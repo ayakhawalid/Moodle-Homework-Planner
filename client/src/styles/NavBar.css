@@ -1,0 +1,217 @@
+.navbar {
+    width: 100%;
+    height: 100px;
+    background: none !important;
+    background-color: transparent !important;
+    display: flex;
+    flex-direction: row;
+    position: absolute;
+    top: 30px;
+    left: 0;
+    z-index: 10;
+  }
+  
+  .navbar .leftSide {
+    flex: 50%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding-left: 50px;
+  }
+  
+
+  
+  .navbar .rightSide {
+    flex: 50%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Logo styling */
+  .navbar .leftSide a {
+    text-decoration: none;
+  }
+
+  .navbar .leftSide img {
+    width: 120px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+
+  .navbar .leftSide img:hover {
+    transform: scale(1.1);
+  }
+
+  /* Round navigation buttons */
+  .navbar .rightSide .nav-circle {
+    color: white;
+    text-decoration: none;
+    margin: 15px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  /* Individual button colors */
+  .navbar .rightSide .nav-circle:nth-child(1) {
+    background-color: #F38181;
+    color: white;
+  }
+
+  .navbar .rightSide .nav-circle:nth-child(2) {
+    background-color: #FCE38A;
+    color: #333;
+  }
+
+  .navbar .rightSide .nav-circle:nth-child(3) {
+    background-color: #D6F7AD;
+    color: #333;
+  }
+
+  .navbar .rightSide .nav-circle:nth-child(4) {
+    background-color: #95E1D3;
+    color: #333;
+  }
+
+  /* Hover effects */
+  .navbar .rightSide .nav-circle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  /* Focus and active states to prevent color bleeding */
+  .navbar .rightSide .nav-circle:focus,
+  .navbar .rightSide .nav-circle:active {
+    outline: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  /* Force navbar to stay transparent in all conditions */
+  .navbar,
+  .navbar:hover,
+  .navbar:focus,
+  .navbar:active,
+  .navbar .leftSide,
+  .navbar .rightSide,
+  .navbar .leftSide:hover,
+  .navbar .rightSide:hover {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+
+  /* Isolate button backgrounds from parent */
+  .navbar .rightSide .nav-circle {
+    position: relative;
+    isolation: isolate;
+  }
+  
+  .navbar .rightSide button {
+    background-color: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+  }
+  
+  .navbar .rightSide svg {
+    font-size: 40px;
+  }
+  
+  /* When menu is open - hide logo, show navigation */
+  .navbar #open {
+    padding-left: 0px;
+  }
+  .navbar #open img {
+    display: none;
+  }
+  .navbar #open .rightSide {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100px;
+    left: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 20px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  /* When menu is closed - show logo, hide navigation on mobile */
+  .navbar #close img {
+    display: inherit;
+  }
+  .navbar #close .rightSide {
+    display: flex;
+  }
+  @media only screen and (max-width: 900px) {
+    .navbar .rightSide a {
+      width: 70px;
+    }
+    .navbar .leftSide {
+      padding-left: 50px;
+    }
+  }
+  
+  @media only screen and (max-width: 600px) {
+    /* Hide navigation circles on mobile by default */
+    .navbar #close .rightSide .nav-circle {
+      display: none;
+    }
+
+    .navbar .rightSide {
+      justify-content: flex-end;
+      padding-right: 50px;
+    }
+
+    /* Show hamburger button on mobile */
+    .navbar .rightSide button {
+      display: flex !important;
+      background: #333 !important;
+      border: 2px solid white !important;
+      color: white !important;
+      font-size: 24px !important;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      width: 60px !important;
+      height: 60px !important;
+      border-radius: 50% !important;
+      position: relative;
+      z-index: 100;
+    }
+
+    .navbar .rightSide button svg {
+      color: white !important;
+      font-size: 28px !important;
+    }
+
+    /* When menu is open on mobile, show navigation vertically */
+    .navbar #open .rightSide .nav-circle {
+      display: flex;
+      margin: 10px auto;
+      width: 80px;
+      height: 80px;
+    }
+  }
+
+  @media only screen and (min-width: 601px) {
+    /* Hide hamburger button on desktop */
+    .navbar .rightSide button {
+      display: none;
+    }
+
+    /* Always show navigation on desktop */
+    .navbar .rightSide .nav-circle {
+      display: flex;
+    }
+  }

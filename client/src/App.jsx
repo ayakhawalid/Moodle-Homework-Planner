@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import coffeeImage from './assets/coffee.png';
+import NavBar from './Components/NavBar';
+import Home from './pages/Home';
+
+import './App.css';
+import './styles/NavBar.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
 
 const actions = [
   { label: 'Login', color: '#F38181' },
@@ -9,39 +15,15 @@ const actions = [
 ];
 
 function App() {
-  const [bgColor, setBgColor] = useState('#fff'); // default white background
-
   return (
-    <div style={{ ...styles.outerContainer, backgroundColor: bgColor }}>
-      <div style={styles.container}>
-        
-
-        <div style={styles.mainContent}>
-          <img src={coffeeImage} alt="coffee" style={styles.coffeeImage} />
-
-          <div style={styles.circleToolbar}>
-            {actions.map((action, index) => (
-              <button
-                key={index}
-                style={{
-                  ...styles.circleButton,
-                  backgroundColor: action.color,
-                }}
-                onMouseEnter={() => setBgColor(action.color)}  // change bg on hover
-                onMouseLeave={() => setBgColor('#fff')}          // reset on leave
-                onMouseDown={() => setBgColor(action.color)}     // keep bg on press
-                onMouseUp={() => setBgColor('#fff')}              // reset on release
-                onTouchStart={() => setBgColor(action.color)}    // touch start (mobile)
-                onTouchEnd={() => setBgColor('#fff')}             // touch end (mobile)
-                onClick={() => alert(`${action.label} clicked`)}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <div className='App'>
+  <Router>
+    <NavBar />
+    <Routes>
+      <Route path='/' element={<Home />} />  
+    </Routes>
+  </Router>
+</div>
   );
 }
 
