@@ -1,90 +1,72 @@
-import React, { useState } from 'react';
+import React from 'react';
 import NavBar from './Components/NavBar';
+import Footer from './Components/footer';
 import Home from './pages/Home';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import BookRooms from './pages/BookRooms';
+import TimeTable from './pages/TimeTable';
+
+// Student Pages
+import StudentDashboard from './pages/student/StudentDashboard';
+import ClassroomInfoStudent from './pages/student/ClassroomInfoStudent';
+import Planner from './pages/student/Planner';
+import HomeworkPlanner from './pages/student/HomeworkPlanner';
+import Progress from './pages/student/Progress';
+import ClassesPlanner from './pages/student/ClassesPlanner';
+import StudyTimer from './pages/student/StudyTimer';
+import StudyTracker from './pages/student/StudyTracker';
+import ExamsFinals from './pages/student/ExamsFinals';
+import ChoosePartner from './pages/student/ChoosePartner';
+
+// Lecturer Pages
+import LecturerDashboard from './pages/lecturer/LecturerDashboard';
+import HomeworkChecker from './pages/lecturer/HomeworkChecker';
+import ClassroomInfoLecturer from './pages/lecturer/ClassroomInfoLecturer';
+import WorkloadStats from './pages/lecturer/WorkloadStats';
 
 import './App.css';
 import './styles/NavBar.css';
+import './styles/footer.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-
-const actions = [
-  { label: 'Login', color: '#F38181' },
-  { label: 'Sign Up', color: '#FCE38A' },
-  { label: 'Book Room', color: '#D6F7AD' },
-  { label: 'Timetable', color: '#95E1D3' },
-];
 
 function App() {
   return (
     <div className='App'>
-  <Router>
-    <NavBar />
-    <Routes>
-      <Route path='/' element={<Home />} />  
-    </Routes>
-  </Router>
-</div>
+      <Router>
+        <NavBar />
+        <Routes>
+          {/* Main Pages */}
+          <Route path='/' element={<Home/>} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/signup' element={<Signup />} />
+          <Route path='/bookrooms' element={<BookRooms />} />
+          <Route path='/timetable' element={<TimeTable />} />
+
+          {/* Student Pages */}
+          <Route path='/student/dashboard' element={<StudentDashboard />} />
+          <Route path='/student/classroom' element={<ClassroomInfoStudent />} />
+          <Route path='/student/planner' element={<Planner />} />
+          <Route path='/student/homework' element={<HomeworkPlanner />} />
+          <Route path='/student/progress' element={<Progress />} />
+          <Route path='/student/classes' element={<ClassesPlanner />} />
+          <Route path='/student/timer' element={<StudyTimer />} />
+          <Route path='/student/tracker' element={<StudyTracker />} />
+          <Route path='/student/exams' element={<ExamsFinals />} />
+          <Route path='/student/partner' element={<ChoosePartner />} />
+
+          {/* Lecturer Pages */}
+          <Route path='/lecturer/dashboard' element={<LecturerDashboard />} />
+          <Route path='/lecturer/homework-checker' element={<HomeworkChecker />} />
+          <Route path='/lecturer/classroom' element={<ClassroomInfoLecturer />} />
+          <Route path='/lecturer/stats' element={<WorkloadStats />} />
+        </Routes>
+        <Footer />
+      </Router>
+    </div>
   );
 }
 
-const styles = {
-  outerContainer: {
-    width: '100vw',
-    height: '100vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingTop: '2rem',
-    boxSizing: 'border-box',
-    transition: 'background-color 0.3s ease',  // smooth bg color transition
-  },
-  container: {
-    width: '1000px',
-    height: '90vh',
-    display: 'flex',
-    flexDirection: 'column',
-    textAlign: 'center',
-    backgroundColor: 'transparent',
-  },
-  header: {
-    marginBottom: '1rem',
-  },
-  headerTitle: {
-    fontSize: '1.5rem',
-    margin: 0,
-  },
-  mainContent: {
-    flex: 1,
-    display: 'flex',
-    height: '100%',
-  },
-  coffeeImage: {
-    flexBasis: '50%',
-    height: '100%',
-    objectFit: 'cover',
-    borderRadius: 0,
-  },
-  circleToolbar: {
-    flexBasis: '50%',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '2rem',
-    paddingLeft: '1rem',
-  },
-  circleButton: {
-    width: '120px',
-    height: '120px',
-    borderRadius: '50%',
-    border: 'none',
-    color: '#333',
-    fontWeight: 'bold',
-    fontSize: '1rem',
-    cursor: 'pointer',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-    transition: 'transform 0.2s ease-in-out',
-  },
-};
+
 
 export default App;
