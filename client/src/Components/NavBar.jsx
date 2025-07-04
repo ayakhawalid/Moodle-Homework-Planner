@@ -19,14 +19,13 @@ function NavBar() {
         </Link>
       </div>
       <div className="rightSide">
-        <Link to="/bookrooms" className="nav-circle">Book Rooms</Link>
+        <Link to="/bookrooms" className="nav-circle">Book{'\n'}Rooms</Link>
         <Link to="/timetable" className="nav-circle">
-          <EventNoteIcon style={{ marginRight: '5px', fontSize: '18px' }} />
-          Timetable
+          <EventNoteIcon style={{ fontSize: '20px', marginBottom: '2px' }} />
+          <span>Timetable</span>
         </Link>
         <Link to="/login" className="nav-circle">
-          <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />
-          Login
+          <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
         </Link>
         <Link to="/signup" className="nav-circle">Sign up</Link>
         <button onClick={toggleNavBar}>
