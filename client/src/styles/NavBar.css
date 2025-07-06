@@ -87,8 +87,25 @@
     color: #333;
   }
 
+  /* Logout button color */
+  .navbar .rightSide .logout-btn {
+    background-color: #F38181;
+    color: white;
+  }
+
+  /* Logout button styling */
+  .navbar .rightSide .logout-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    font-size: 14px;
+  }
+
   /* Hover effects */
-  .navbar .rightSide .nav-circle:hover {
+  .navbar .rightSide .nav-circle:hover,
+  .navbar .rightSide .logout-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   }

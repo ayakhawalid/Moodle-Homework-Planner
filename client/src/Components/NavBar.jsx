@@ -1,16 +1,27 @@
 // src/Components/NavBar.jsx
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LoginIcon from '@mui/icons-material/Login';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import ReorderIcon from '@mui/icons-material/Reorder';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 function NavBar() {
   const [openLinks, setOpenLinks] = useState(false);
+  const navigate = useNavigate();
+
   const toggleNavBar = () => {
     setOpenLinks(!openLinks);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    navigate("/");
+  };
+
+  const isLoggedIn = localStorage.getItem("token");
   return (
     <div className="navbar">
       <div className="leftSide" id = {openLinks ? "open" : "close"}>
@@ -24,10 +35,18 @@ function NavBar() {
           <EventNoteIcon style={{ fontSize: '20px', marginBottom: '2px' }} />
           <span>Timetable</span>
         </Link>
-        <Link to="/login" className="nav-circle">
-          <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
-        </Link>
-        <Link to="/signup" className="nav-circle">Sign up</Link>
+        {!isLoggedIn ? (
+          <>
+            <Link to="/login" className="nav-circle">
+              <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
+            </Link>
+            <Link to="/signup" className="nav-circle">Sign up</Link>
+          </>
+        ) : (
+          <button onClick={handleLogout} className="nav-circle logout-btn">
+            <LogoutIcon style={{ marginRight: '5px', fontSize: '18px' }} />Logout
+          </button>
+        )}
         <button onClick={toggleNavBar}>
           <ReorderIcon style={{ marginRight: '5px', fontSize: '18px' }} />
         </button>
