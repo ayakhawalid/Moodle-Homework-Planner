@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import NavBar from './Components/NavBar';
 import Footer from './Components/footer';
 import Home from './pages/Home';
@@ -34,8 +35,22 @@ function App() {
   return (
     <div className='App'>
       <Router>
-        <NavBar />
-        <Routes>
+        <AppContent />
+      </Router>
+    </div>
+  );
+}
+
+function AppContent() {
+  const location = useLocation();
+
+  // Hide navbar on dashboard pages (they have their own sidebar navigation)
+  const isDashboardPage = location.pathname.startsWith('/student/') || location.pathname.startsWith('/lecturer/');
+
+  return (
+    <>
+      {!isDashboardPage && <NavBar />}
+      <Routes>
           {/* Main Pages */}
           <Route path='/' element={<Home/>} />
           <Route path='/login' element={<Login />} />
@@ -61,10 +76,9 @@ function App() {
           <Route path='/lecturer/classroom' element={<ClassroomInfoLecturer />} />
           <Route path='/lecturer/stats' element={<WorkloadStats />} />
         </Routes>
-        <Footer />
-      </Router>
-    </div>
-  );
+        {!isDashboardPage && <Footer />}
+      </>
+    );
 }
 
 

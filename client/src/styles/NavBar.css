@@ -68,7 +68,7 @@
 
   /* Individual button colors */
   .navbar .rightSide .nav-circle:nth-child(1) {
-    background-color: #F38181;
+    background-color: #95E1D3;
     color: white;
   }
 
@@ -89,8 +89,8 @@
 
   /* Logout button color */
   .navbar .rightSide .logout-btn {
-    background-color: #F38181;
-    color: white;
+    background-color: #95E1D3 !important;
+    color: white !important;
   }
 
   /* Logout button styling */
