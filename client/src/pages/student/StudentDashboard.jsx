@@ -1,74 +1,126 @@
 import React from 'react';
+import { Grid, Box, Typography } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
+import StatCard from '../../Components/charts/StatCard';
+import ProgressChart from '../../Components/charts/ProgressChart';
 import {
   Assignment as AssignmentIcon,
   TrendingUp as TrendingUpIcon,
   Quiz as QuizIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
+  Timer as TimerIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import '../../styles/DashboardLayout.css';
+
+// Mock data for charts
+const studyProgressData = {
+  categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  values: [2, 3, 1, 4, 2, 5, 3],
+  seriesName: 'Study Hours',
+  yAxisTitle: 'Hours'
+};
 
 function StudentDashboard() {
   return (
     <DashboardLayout userRole="student">
-      {/* Welcome Section */}
-      <div className="welcome-section">
-        <h1 className="welcome-title">My Dashboard</h1>
-        <p className="welcome-subtitle">Track your academic progress and manage your tasks</p>
-      </div>
+      <Box p={3}>
+        {/* Welcome Section */}
+        <Box mb={4}>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#333' }}>
+            My Dashboard
+          </Typography>
+          <Typography variant="subtitle1" color="textSecondary">
+            Track your academic progress and manage your tasks
+          </Typography>
+        </Box>
 
-      {/* Time Tracker Section */}
-      <div className="time-tracker-section">
-        <div className="time-card">
-          <div className="time-circle purple">
-            <div className="time-value">10h</div>
-          </div>
-          <div className="time-label">Time Spent</div>
-        </div>
-        <div className="time-card">
-          <div className="time-circle green">
-            <div className="time-value">30+</div>
-          </div>
-          <div className="time-label">Projects Pending</div>
-        </div>
-        <div className="time-card">
-          <div className="time-circle orange">
-            <div className="time-value">12</div>
-          </div>
-          <div className="time-label">Finished Tasks</div>
-        </div>
-      </div>
+        {/* Statistics Cards */}
+        <Grid container spacing={3} mb={4}>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Study Hours"
+              value="24h"
+              icon={<TimerIcon sx={{ fontSize: 40 }} />}
+              color="#1976d2"
+              trend={12.5}
+              subtitle="This week"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Pending Tasks"
+              value="8"
+              icon={<AssignmentIcon sx={{ fontSize: 40 }} />}
+              color="#f57c00"
+              subtitle="Due this week"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Completed"
+              value="15"
+              icon={<CheckCircleIcon sx={{ fontSize: 40 }} />}
+              color="#4caf50"
+              trend={8.2}
+              subtitle="This month"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Courses"
+              value="6"
+              icon={<SchoolIcon sx={{ fontSize: 40 }} />}
+              color="#7b1fa2"
+              subtitle="Active"
+            />
+          </Grid>
+        </Grid>
 
-      {/* Dashboard Grid */}
-      <div className="dashboard-grid">
-        {/* Courses Info Card */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <div className="card-icon primary">
-              <SchoolIcon />
-            </div>
-            <div>
-              <h3 className="card-title">Courses Info</h3>
-              <p className="card-subtitle">Your enrolled courses</p>
-            </div>
-          </div>
-          <div className="card-content">
-            <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Mathematics 101</strong><br />
-                <small style={{color: '#666'}}>Prof. Johnson - Room 204</small>
+        {/* Charts Section */}
+        <Grid container spacing={3} mb={4}>
+          <Grid item xs={12} md={8}>
+            <ProgressChart
+              title="Weekly Study Progress"
+              data={studyProgressData}
+              type="area"
+              height={300}
+              color="#1976d2"
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <div className="dashboard-card" style={{ height: '100%' }}>
+              <div className="card-header">
+                <div className="card-icon primary">
+                  <SchoolIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">Courses Info</h3>
+                  <p className="card-subtitle">Your enrolled courses</p>
+                </div>
               </div>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Physics Advanced</strong><br />
-                <small style={{color: '#666'}}>Prof. Smith - Room 301</small>
-              </div>
-              <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Computer Science</strong><br />
-                <small style={{color: '#666'}}>Prof. Davis - Lab 102</small>
+              <div className="card-content">
+                <div style={{marginTop: '15px'}}>
+                  <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                    <strong>Mathematics 101</strong><br />
+                    <small style={{color: '#666'}}>Prof. Johnson - Room 204</small>
+                  </div>
+                  <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                    <strong>Physics Advanced</strong><br />
+                    <small style={{color: '#666'}}>Prof. Smith - Room 301</small>
+                  </div>
+                  <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                    <strong>Computer Science</strong><br />
+                    <small style={{color: '#666'}}>Prof. Davis - Lab 102</small>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </Grid>
+        </Grid>
+
+        {/* Dashboard Grid */}
+        <div className="dashboard-grid">
 
         {/* Homework Deadlines Card */}
         <div className="dashboard-card">
@@ -154,7 +206,8 @@ function StudentDashboard() {
           </div>
         </div>
 
-      </div>
+        </div>
+      </Box>
     </DashboardLayout>
   );
 }

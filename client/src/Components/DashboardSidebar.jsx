@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
+import Auth0LogoutButton from './Auth0LogoutButton';
 import {
   Dashboard as DashboardIcon,
   Assignment as AssignmentIcon,
@@ -14,7 +16,10 @@ import {
   School as SchoolIcon,
   CalendarToday as CalendarTodayIcon,
   Group as GroupIcon,
-  Quiz as QuizIcon
+  Quiz as QuizIcon,
+  People as UsersIcon,
+  Settings as SettingsIcon,
+  Analytics as AnalyticsIcon
 } from '@mui/icons-material';
 import '../styles/DashboardSidebar.css';
 
@@ -22,6 +27,7 @@ function DashboardSidebar({ userRole }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated, user } = useAuth0();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -52,7 +58,17 @@ function DashboardSidebar({ userRole }) {
     { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> }
   ];
 
-  const navItems = userRole === 'student' ? studentNavItems : lecturerNavItems;
+  // Admin navigation items
+  const adminNavItems = [
+    { path: '/admin/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+    { path: '/admin/users', label: 'User Management', icon: <UsersIcon /> },
+    { path: '/admin/analytics', label: 'System Analytics', icon: <AnalyticsIcon /> },
+    { path: '/admin/settings', label: 'System Settings', icon: <SettingsIcon /> }
+  ];
+
+  const navItems = userRole === 'student' ? studentNavItems :
+                   userRole === 'lecturer' ? lecturerNavItems :
+                   adminNavItems;
 
   return (
     <>
@@ -65,7 +81,7 @@ function DashboardSidebar({ userRole }) {
         {/* Sidebar Header */}
         <div className="sidebar-header">
           <div className="logo-section">
-            <img src="/src/assets/newlogo2.png" alt="Logo" className="sidebar-logo" />
+            <img src="/src/assets/unnamed.png" alt="Logo" className="sidebar-logo" />
             {!isCollapsed && <span className="app-name">EduPlatform</span>}
           </div>
           <button className="toggle-btn" onClick={toggleSidebar}>
@@ -77,10 +93,13 @@ function DashboardSidebar({ userRole }) {
         {!isCollapsed && (
           <div className="user-info">
             <div className="user-avatar">
-              {userRole === 'student' ? '👨‍🎓' : '👨‍🏫'}
+              {userRole === 'student' ? '👨‍🎓' : userRole === 'lecturer' ? '👨‍🏫' : '👨‍💼'}
             </div>
             <div className="user-details">
-              <span className="user-role">{userRole === 'student' ? 'Student' : 'Lecturer'}</span>
+              <span className="user-role">
+                {userRole === 'student' ? 'Student' :
+                 userRole === 'lecturer' ? 'Lecturer' : 'Administrator'}
+              </span>
               <span className="user-name">Welcome back!</span>
             </div>
           </div>
@@ -106,14 +125,7 @@ function DashboardSidebar({ userRole }) {
 
         {/* Logout Button */}
         <div className="sidebar-footer">
-          <button 
-            className="logout-btn" 
-            onClick={handleLogout}
-            title={isCollapsed ? 'Logout' : ''}
-          >
-            <span className="nav-icon"><LogoutIcon /></span>
-            {!isCollapsed && <span className="nav-label">Logout</span>}
-          </button>
+          <Auth0LogoutButton className={`logout-btn ${isCollapsed ? 'collapsed' : ''}`} />
         </div>
       </div>
     </>

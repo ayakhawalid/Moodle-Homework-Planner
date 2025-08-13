@@ -1,7 +1,10 @@
 // src/Components/NavBar.jsx
 import React, { useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useAuth } from '../hooks/useAuth';
 import logo from '../assets/logo.png';
 import { Link, useNavigate } from "react-router-dom";
+import Auth0LogoutButton from './Auth0LogoutButton';
 import {
   Login as LoginIcon,
   EventNote as EventNoteIcon,
@@ -13,12 +16,17 @@ import {
   TrendingUp as TrendingUpIcon,
   Grade as GradingIcon,
   Class as ClassIcon,
-  BarChart as BarChartIcon
+  BarChart as BarChartIcon,
+  AdminPanelSettings as AdminIcon,
+  People as UsersIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 
 function NavBar() {
   const [openLinks, setOpenLinks] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated: auth0IsAuthenticated } = useAuth0();
+  const { isAuthenticated, userRole, user } = useAuth();
 
   const toggleNavBar = () => {
     setOpenLinks(!openLinks);
@@ -29,9 +37,6 @@ function NavBar() {
     localStorage.removeItem("role");
     navigate("/");
   };
-
-  const isLoggedIn = localStorage.getItem("token");
-  const userRole = localStorage.getItem("role");
   return (
     <div className="navbar">
       <div className="leftSide" id = {openLinks ? "open" : "close"}>
@@ -41,7 +46,7 @@ function NavBar() {
       </div>
       <div className="rightSide">
         {/* Always visible items */}
-        {!isLoggedIn && (
+        {!isAuthenticated && (
           <>
             <Link to="/bookrooms" className="nav-circle">Book{'\n'}Rooms</Link>
             <Link to="/timetable" className="nav-circle">
@@ -52,7 +57,7 @@ function NavBar() {
         )}
 
         {/* Student navigation items */}
-        {isLoggedIn && userRole === "student" && (
+        {isAuthenticated && userRole === "student" && (
           <>
             <Link to="/student/dashboard" className="nav-circle">
               <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
@@ -74,7 +79,7 @@ function NavBar() {
         )}
 
         {/* Lecturer navigation items */}
-        {isLoggedIn && userRole === "lecturer" && (
+        {isAuthenticated && userRole === "lecturer" && (
           <>
             <Link to="/lecturer/dashboard" className="nav-circle">
               <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
@@ -95,18 +100,35 @@ function NavBar() {
           </>
         )}
 
-        {/* Login/Logout buttons */}
-        {!isLoggedIn ? (
+        {/* Admin navigation items */}
+        {isAuthenticated && userRole === "admin" && (
           <>
-            <Link to="/login" className="nav-circle">
-              <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
+            <Link to="/admin/dashboard" className="nav-circle">
+              <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
+              <span>Dashboard</span>
             </Link>
-            <Link to="/signup" className="nav-circle">Sign up</Link>
+            <Link to="/admin/users" className="nav-circle">
+              <UsersIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
+              <span>Users</span>
+            </Link>
+            <Link to="/admin/analytics" className="nav-circle">
+              <BarChartIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
+              <span>Analytics</span>
+            </Link>
+            <Link to="/admin/settings" className="nav-circle">
+              <SettingsIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
+              <span>Settings</span>
+            </Link>
           </>
+        )}
+
+        {/* Login/Logout buttons */}
+        {!isAuthenticated ? (
+          <Link to="/login" className="nav-circle">
+            <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
+          </Link>
         ) : (
-          <button onClick={handleLogout} className="nav-circle logout-btn">
-            <LogoutIcon style={{ marginRight: '5px', fontSize: '18px' }} />Logout
-          </button>
+          <Auth0LogoutButton />
         )}
 
         <button onClick={toggleNavBar}>

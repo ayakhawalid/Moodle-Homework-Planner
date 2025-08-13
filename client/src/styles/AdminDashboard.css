@@ -1,0 +1,73 @@
+.admin-dashboard {
+  padding: 24px;
+  background: linear-gradient(135deg, #D6F7AD 0%, #FCE38A 100%);
+  min-height: calc(100vh - 64px);
+}
+
+.stat-card {
+  transition: all 0.3s ease;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  border: none !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.quick-action-card {
+  transition: all 0.3s ease;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08) !important;
+  border: none !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 16px;
+  }
+}
+
+/* Animation for loading state */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-dashboard > * {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* Custom scrollbar for better UX */
+.admin-dashboard::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-dashboard::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.admin-dashboard::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.admin-dashboard::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
