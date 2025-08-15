@@ -47,7 +47,7 @@ const RolePending = () => {
           </Typography>
           
           <Typography variant="h6" color="textSecondary" paragraph>
-            Welcome, {user?.name || user?.email}!
+            Welcome, {user?.name || user?.email?.split('@')[0] || user?.email}!
           </Typography>
 
           <Alert severity="info" sx={{ mb: 3, textAlign: 'left' }}>

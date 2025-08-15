@@ -24,7 +24,7 @@ import DashboardLayout from '../../Components/DashboardLayout';
 
 const SystemSettings = () => {
   const [settings, setSettings] = useState({
-    siteName: 'EduPlatform',
+    siteName: 'Learning Platform',
     siteDescription: 'Educational Management System',
     maxFileSize: '10',
     sessionTimeout: '30',
@@ -57,7 +57,7 @@ const SystemSettings = () => {
 
   const handleReset = () => {
     setSettings({
-      siteName: 'EduPlatform',
+      siteName: 'Learning Platform',
       siteDescription: 'Educational Management System',
       maxFileSize: '10',
       sessionTimeout: '30',

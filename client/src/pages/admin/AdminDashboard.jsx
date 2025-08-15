@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Card, CardContent, Typography, Box, Paper } from '@mui/material';
+import { Grid, Card, CardContent, Typography, Box, Paper, Tabs, Tab } from '@mui/material';
+import { useAuth } from '../../hooks/useAuth';
+import UserManagement from '../../Components/UserManagement';
+import UserSyncStatus from '../../Components/UserSyncStatus';
+import { useUserStats } from '../../hooks/useApi';
 import {
   People as UsersIcon,
   School as SchoolIcon,
@@ -65,15 +69,14 @@ const QuickActionCard = ({ title, description, action, color }) => (
 
 const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [tabValue, setTabValue] = useState(0);
+  const { user } = useAuth();
+  const { data: userStats, loading: statsLoading } = useUserStats();
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    // Set loading based on stats loading
+    setIsLoading(statsLoading);
+  }, [statsLoading]);
 
   if (isLoading) {
     return (
@@ -88,50 +91,70 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout userRole="admin">
       <div className="admin-dashboard">
+        {/* User Sync Status */}
+        <UserSyncStatus showDetails={false} />
+
         <Box mb={3}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#333' }}>
-            Admin Dashboard
+            Welcome back, {user?.name || user?.email?.split('@')[0] || 'Admin'}!
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
-            Welcome back! Here's what's happening with your platform today.
+            Here's what's happening with your platform today.
+            {userStats && (
+              <span style={{ marginLeft: '10px', color: '#4caf50' }}>
+                • {userStats.total_users} users in database ✓
+              </span>
+            )}
           </Typography>
         </Box>
 
-        {/* Statistics Cards */}
-        <Grid container spacing={3} mb={4}>
+        {/* Admin Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+            <Tab label="Dashboard Overview" />
+            <Tab label="User Management" />
+          </Tabs>
+        </Box>
+
+        {/* Tab Content */}
+        {tabValue === 0 && (
+          <>
+            {/* Statistics Cards */}
+            <Grid container spacing={3} mb={4}>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
               title="Total Users"
-              value={mockData.totalUsers.toLocaleString()}
+              value={userStats ? userStats.total_users.toLocaleString() : '0'}
               icon={<UsersIcon sx={{ fontSize: 40 }} />}
               color="#1976d2"
-              trend={mockData.monthlyGrowth}
+              trend={userStats ? '+' + ((userStats.total_users / 10) * 100).toFixed(1) + '%' : '0%'}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
-              title="Active Students"
-              value={mockData.totalStudents.toLocaleString()}
+              title="Students"
+              value={userStats ? userStats.roles.students.toLocaleString() : '0'}
               icon={<SchoolIcon sx={{ fontSize: 40 }} />}
               color="#388e3c"
-              trend={8.2}
+              trend={userStats ? ((userStats.roles.students / userStats.total_users) * 100).toFixed(1) + '%' : '0%'}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
-              title="Total Lecturers"
-              value={mockData.totalLecturers}
+              title="Lecturers"
+              value={userStats ? userStats.roles.lecturers : '0'}
               icon={<UsersIcon sx={{ fontSize: 40 }} />}
               color="#f57c00"
-              trend={5.1}
+              trend={userStats ? ((userStats.roles.lecturers / userStats.total_users) * 100).toFixed(1) + '%' : '0%'}
             />
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
-              title="System Uptime"
-              value={mockData.systemUptime}
+              title="Verified Users"
+              value={userStats ? userStats.verified_users.toLocaleString() : '0'}
               icon={<TrendingUpIcon sx={{ fontSize: 40 }} />}
               color="#7b1fa2"
+              trend={userStats ? ((userStats.verified_users / userStats.total_users) * 100).toFixed(1) + '%' : '0%'}
             />
           </Grid>
         </Grid>
@@ -204,6 +227,13 @@ const AdminDashboard = () => {
             </Paper>
           </Grid>
         </Grid>
+          </>
+        )}
+
+        {/* User Management Tab */}
+        {tabValue === 1 && (
+          <UserManagement />
+        )}
       </div>
     </DashboardLayout>
   );

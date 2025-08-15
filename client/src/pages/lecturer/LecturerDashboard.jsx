@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../Components/DashboardLayout';
+import { useAuth } from '../../hooks/useAuth';
 import {
   Grade as GradingIcon,
   Class as ClassIcon,
@@ -14,11 +15,13 @@ import {
 import '../../styles/DashboardLayout.css';
 
 function LecturerDashboard() {
+  const { user } = useAuth();
+
   return (
     <DashboardLayout userRole="lecturer">
       {/* Welcome Section */}
       <div className="welcome-section">
-        <h1 className="welcome-title">Welcome Back, Professor! 👨‍🏫</h1>
+        <h1 className="welcome-title">Welcome Back, {user?.name || user?.email?.split('@')[0] || 'Professor'}! 👨‍🏫</h1>
         <p className="welcome-subtitle">Ready to inspire and educate your students?</p>
         <div className="quick-actions">
           <Link to="/lecturer/homework-checker" className="action-btn">

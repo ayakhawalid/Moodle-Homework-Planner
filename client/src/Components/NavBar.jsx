@@ -28,6 +28,9 @@ function NavBar() {
   const { isAuthenticated: auth0IsAuthenticated } = useAuth0();
   const { isAuthenticated, userRole, user } = useAuth();
 
+  // Use Auth0 authentication state or localStorage fallback
+  const isLoggedIn = auth0IsAuthenticated || localStorage.getItem("token");
+
   const toggleNavBar = () => {
     setOpenLinks(!openLinks);
   };
@@ -46,7 +49,7 @@ function NavBar() {
       </div>
       <div className="rightSide">
         {/* Always visible items */}
-        {!isAuthenticated && (
+        {!isLoggedIn && (
           <>
             <Link to="/bookrooms" className="nav-circle">Book{'\n'}Rooms</Link>
             <Link to="/timetable" className="nav-circle">
@@ -57,7 +60,7 @@ function NavBar() {
         )}
 
         {/* Student navigation items */}
-        {isAuthenticated && userRole === "student" && (
+        {isLoggedIn && userRole === "student" && (
           <>
             <Link to="/student/dashboard" className="nav-circle">
               <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
@@ -79,7 +82,7 @@ function NavBar() {
         )}
 
         {/* Lecturer navigation items */}
-        {isAuthenticated && userRole === "lecturer" && (
+        {isLoggedIn && userRole === "lecturer" && (
           <>
             <Link to="/lecturer/dashboard" className="nav-circle">
               <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
@@ -101,7 +104,7 @@ function NavBar() {
         )}
 
         {/* Admin navigation items */}
-        {isAuthenticated && userRole === "admin" && (
+        {isLoggedIn && userRole === "admin" && (
           <>
             <Link to="/admin/dashboard" className="nav-circle">
               <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
@@ -123,7 +126,7 @@ function NavBar() {
         )}
 
         {/* Login/Logout buttons */}
-        {!isAuthenticated ? (
+        {!isLoggedIn ? (
           <Link to="/login" className="nav-circle">
             <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
           </Link>

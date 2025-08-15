@@ -34,7 +34,7 @@ http://localhost:5174
 
 To assign roles to users, you have several options:
 
-#### Auth0 Post-Login Action for Manual Role Assignment
+#### Auth0 Post-Login Action for Role Assignment
 Create a Post-Login Action in Auth0 Dashboard > Actions > Flows > Login:
 
 ```javascript
@@ -42,16 +42,27 @@ exports.onExecutePostLogin = async (event, api) => {
   // Get roles manually assigned to the user in Auth0 Dashboard
   const assignedRoles = (event.authorization?.roles) || [];
 
-  // Add roles as custom claim in ID token (only if roles exist)
+  // Check if this is a new user signup with role selection
+  const selectedRole = event.request?.query?.role;
+
+  // If user has manually assigned roles, use those
   if (assignedRoles.length > 0) {
     api.idToken.setCustomClaim("https://my-app.com/roles", assignedRoles);
   }
-  // Note: If no roles are assigned, no custom claim is added
+  // If this is a new signup with role selection, assign the selected role
+  else if (selectedRole && (selectedRole === 'student' || selectedRole === 'lecturer')) {
+    // Store the role in user metadata for future reference
+    api.user.setUserMetadata("selected_role", selectedRole);
+
+    // Add the role as a custom claim
+    api.idToken.setCustomClaim("https://my-app.com/roles", [selectedRole]);
+  }
+  // Note: If no roles are assigned and no role selected, no custom claim is added
   // This allows the app to handle users without roles appropriately
 };
 ```
 
-**Important:** This code only adds roles to the ID token if they have been manually assigned in the Auth0 Dashboard. New users without assigned roles will not have the custom claim until an admin assigns roles to them.
+**Important:** This code handles both manually assigned roles and user-selected roles during signup. For new signups, users can select their role (student or lecturer), but admin roles must still be manually assigned.
 
 #### Option B: Using Rules (Legacy - Not Recommended)
 If you prefer to use Rules (legacy), create a rule in Auth0 Dashboard > Auth Pipeline > Rules:

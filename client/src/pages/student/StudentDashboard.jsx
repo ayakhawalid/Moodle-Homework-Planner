@@ -1,8 +1,12 @@
 import React from 'react';
-import { Grid, Box, Typography } from '@mui/material';
+import { Grid, Box, Typography, Alert } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import StatCard from '../../Components/charts/StatCard';
 import ProgressChart from '../../Components/charts/ProgressChart';
+import { useAuth } from '../../hooks/useAuth';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useUserSync } from '../../hooks/useUserSync';
+import UserSyncStatus from '../../Components/UserSyncStatus';
 import {
   Assignment as AssignmentIcon,
   TrendingUp as TrendingUpIcon,
@@ -22,16 +26,48 @@ const studyProgressData = {
 };
 
 function StudentDashboard() {
+  const { user } = useAuth();
+  const { user: auth0User } = useAuth0();
+  const { syncStatus, isReady } = useUserSync();
+
+  // Get user name with multiple fallbacks
+  const getUserName = () => {
+    // Try from our processed user object first
+    if (user?.name && user.name !== 'User') {
+      return user.name;
+    }
+
+    // Try directly from Auth0 user object
+    if (auth0User) {
+      const name = auth0User.name ||
+                   auth0User.nickname ||
+                   auth0User.given_name ||
+                   auth0User.email?.split('@')[0];
+      if (name) return name;
+    }
+
+    // Final fallback
+    return user?.email?.split('@')[0] || 'Student';
+  };
+
   return (
     <DashboardLayout userRole="student">
       <Box p={3}>
+        {/* User Sync Status */}
+        <UserSyncStatus showDetails={true} />
+
         {/* Welcome Section */}
         <Box mb={4}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#333' }}>
-            My Dashboard
+            Welcome back, {getUserName()}!
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
             Track your academic progress and manage your tasks
+            {isReady && (
+              <span style={{ marginLeft: '10px', color: '#4caf50' }}>
+                • Database Connected ✓
+              </span>
+            )}
           </Typography>
         </Box>
 
@@ -180,31 +216,7 @@ function StudentDashboard() {
           </div>
         </div>
 
-        {/* Study Graph Card */}
-        <div className="dashboard-card study-graph-card">
-          <div className="card-header">
-            <div className="card-icon study-activity">
-              <TrendingUpIcon />
-            </div>
-            <div>
-              <h3 className="card-title">Study Activity</h3>
-              <p className="card-subtitle">Last 7 days</p>
-            </div>
-          </div>
-          <div className="card-content">
-            <div className="study-graph">
-              <div className="graph-bars">
-                <div className="bar" style={{height: '20%'}}><span>Mon</span></div>
-                <div className="bar" style={{height: '45%'}}><span>Tue</span></div>
-                <div className="bar" style={{height: '30%'}}><span>Wed</span></div>
-                <div className="bar" style={{height: '70%'}}><span>Thu</span></div>
-                <div className="bar" style={{height: '85%'}}><span>Fri</span></div>
-                <div className="bar" style={{height: '60%'}}><span>Sat</span></div>
-                <div className="bar" style={{height: '40%'}}><span>Sun</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         </div>
       </Box>

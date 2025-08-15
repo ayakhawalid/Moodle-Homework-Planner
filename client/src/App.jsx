@@ -8,6 +8,9 @@ import Callback from './pages/Callback';
 import ProtectedRoute from './Components/ProtectedRoute';
 import Auth0Debug from './Components/Auth0Debug';
 import Auth0ConfigDebug from './Components/Auth0ConfigDebug';
+import ApiTest from './Components/ApiTest';
+import AuthDebugger from './Components/AuthDebugger';
+import Auth0ConfigTester from './Components/Auth0ConfigTester';
 import RolePending from './pages/RolePending';
 import BookRooms from './pages/BookRooms';
 import TimeTable from './pages/TimeTable';
@@ -70,6 +73,9 @@ function AppContent() {
           <Route path='/callback' element={<Callback />} />
           <Route path='/auth0-debug' element={<Auth0Debug />} />
           <Route path='/auth0-config' element={<Auth0ConfigDebug />} />
+          <Route path='/api-test' element={<ApiTest />} />
+          <Route path='/auth-debug' element={<AuthDebugger />} />
+          <Route path='/auth0-config-test' element={<Auth0ConfigTester />} />
           <Route path='/role-pending' element={<RolePending />} />
           <Route path='/bookrooms' element={<BookRooms />} />
           <Route path='/timetable' element={<TimeTable />} />

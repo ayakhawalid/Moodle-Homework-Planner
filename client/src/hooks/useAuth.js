@@ -30,9 +30,45 @@ export const useAuth = () => {
   // Get user info with role
   const getUserInfo = () => {
     if (user) {
+      // Try different ways to get the user's name
+      let userName = 'User'; // Default fallback
+
+      try {
+        // Check all possible name fields from Auth0
+        userName = user.name ||
+                  user.nickname ||
+                  user.given_name ||
+                  user.family_name ||
+                  user.preferred_username;
+
+        // If no name available, extract from email
+        if (!userName && user.email) {
+          userName = user.email.split('@')[0];
+        }
+
+        // If still no name, use email
+        if (!userName) {
+          userName = user.email || 'User';
+        }
+
+        console.log('Auth0 User Data:', user);
+        console.log('Available name fields:', {
+          name: user.name,
+          nickname: user.nickname,
+          given_name: user.given_name,
+          family_name: user.family_name,
+          email: user.email,
+          preferred_username: user.preferred_username
+        });
+        console.log('Final extracted User Name:', userName);
+      } catch (error) {
+        console.error('Error extracting user name:', error);
+        userName = user.email?.split('@')[0] || 'User';
+      }
+
       return {
         id: user.sub,
-        name: user.name || user.nickname || 'User',
+        name: userName,
         email: user.email,
         picture: user.picture,
         roles: getUserRoles(),

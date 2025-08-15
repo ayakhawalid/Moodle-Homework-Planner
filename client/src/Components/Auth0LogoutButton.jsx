@@ -13,14 +13,22 @@ const Auth0LogoutButton = ({ className = "nav-circle logout-btn" }) => {
     localStorage.removeItem("user");
 
     // Auth0 logout
-    logout({
-      logoutParams: {
-        returnTo: window.location.origin
-      }
-    });
+    if (isAuthenticated) {
+      logout({
+        logoutParams: {
+          returnTo: window.location.origin
+        }
+      });
+    } else {
+      // Fallback for demo login
+      window.location.href = '/';
+    }
   };
 
-  if (!isAuthenticated) {
+  // Show logout button if authenticated with Auth0 OR if there's a token in localStorage
+  const shouldShowLogout = isAuthenticated || localStorage.getItem("token");
+
+  if (!shouldShowLogout) {
     return null;
   }
 

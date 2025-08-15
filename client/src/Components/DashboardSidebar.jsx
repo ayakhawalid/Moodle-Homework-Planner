@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useAuth } from '../hooks/useAuth';
 import Auth0LogoutButton from './Auth0LogoutButton';
 import {
   Dashboard as DashboardIcon,
@@ -27,7 +28,8 @@ function DashboardSidebar({ userRole }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user } = useAuth0();
+  const { isAuthenticated, user: auth0User } = useAuth0();
+  const { user } = useAuth();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -37,6 +39,26 @@ function DashboardSidebar({ userRole }) {
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  // Get user name with multiple fallbacks
+  const getUserName = () => {
+    // Try from our processed user object first
+    if (user?.name && user.name !== 'User') {
+      return user.name;
+    }
+
+    // Try directly from Auth0 user object
+    if (auth0User) {
+      const name = auth0User.name ||
+                   auth0User.nickname ||
+                   auth0User.given_name ||
+                   auth0User.email?.split('@')[0];
+      if (name) return name;
+    }
+
+    // Final fallback
+    return user?.email?.split('@')[0] || 'User';
   };
 
   // Student navigation items
@@ -82,7 +104,6 @@ function DashboardSidebar({ userRole }) {
         <div className="sidebar-header">
           <div className="logo-section">
             <img src="/src/assets/unnamed.png" alt="Logo" className="sidebar-logo" />
-            {!isCollapsed && <span className="app-name">EduPlatform</span>}
           </div>
           <button className="toggle-btn" onClick={toggleSidebar}>
             {isCollapsed ? <MenuIcon /> : <CloseIcon />}
@@ -100,7 +121,9 @@ function DashboardSidebar({ userRole }) {
                 {userRole === 'student' ? 'Student' :
                  userRole === 'lecturer' ? 'Lecturer' : 'Administrator'}
               </span>
-              <span className="user-name">Welcome back!</span>
+              <span className="user-name">
+                Welcome back, {getUserName()}!
+              </span>
             </div>
           </div>
         )}
