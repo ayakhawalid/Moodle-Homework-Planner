@@ -1,37 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { apiService, setAuthToken, handleApiError } from '../services/api';
+import { apiService, setTokenProvider, handleApiError } from '../services/api';
 
 export const useApi = () => {
   const { getAccessTokenSilently, isAuthenticated, isLoading } = useAuth0();
-  const [isApiReady, setIsApiReady] = useState(false);
 
-  // Set up API token when user is authenticated
+  // The API is considered "ready" when Auth0 is not loading and the user is authenticated.
+  const isApiReady = !isLoading && isAuthenticated;
+
+  // Set up the token provider when the auth state changes
   useEffect(() => {
-    const setupApiToken = async () => {
-      if (isAuthenticated && !isLoading) {
+    if (isAuthenticated) {
+      const getToken = async () => {
         try {
-          const token = await getAccessTokenSilently({
+          return await getAccessTokenSilently({
             authorizationParams: {
               audience: import.meta.env.VITE_AUTH0_AUDIENCE,
             },
           });
-          
-          setAuthToken(token);
-          setIsApiReady(true);
-          console.log('API token set successfully');
         } catch (error) {
           console.error('Error getting access token:', error);
-          setIsApiReady(false);
+          return null;
         }
-      } else if (!isAuthenticated) {
-        setAuthToken(null);
-        setIsApiReady(false);
-      }
-    };
-
-    setupApiToken();
-  }, [isAuthenticated, isLoading, getAccessTokenSilently]);
+      };
+      setTokenProvider(getToken);
+    } else {
+      setTokenProvider(null); // Clear the token provider for logged-out users
+    }
+  }, [isAuthenticated, getAccessTokenSilently]);
 
   return {
     api: apiService,
@@ -41,8 +37,8 @@ export const useApi = () => {
 };
 
 // Hook for API calls with loading and error states
-export const useApiCall = (apiFunction, dependencies = []) => {
-  const [data, setData] = useState(null);
+export const useApiCall = (apiFunction, dependencies = [], initialData = null) => {
+  const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { isApiReady } = useApi();
@@ -125,32 +121,34 @@ export const useUserProfile = () => {
 
 export const useUserStats = () => {
   const { api } = useApi();
-  return useApiCall(() => api.user.getStats());
+  const initialStats = { total_users: 0, verified_users: 0, roles: { students: 0, lecturers: 0, admins: 0 } };
+  return useApiCall(() => api.user.getStats(), [], initialStats);
 };
 
 export const useUsers = (params = {}) => {
   const { api } = useApi();
-  return useApiCall(() => api.user.getAll(params), [JSON.stringify(params)]);
+  const initialData = { users: [], pagination: {} };
+  return useApiCall(() => api.user.getAll(params), [JSON.stringify(params)], initialData);
 };
 
 export const useCourses = (params = {}) => {
   const { api } = useApi();
-  return useApiCall(() => api.courses.getAll(params), [JSON.stringify(params)]);
+  return useApiCall(() => api.courses.getAll(params), [JSON.stringify(params)], []);
 };
 
 export const useHomework = (params = {}) => {
   const { api } = useApi();
-  return useApiCall(() => api.homework.getAll(params), [JSON.stringify(params)]);
+  return useApiCall(() => api.homework.getAll(params), [JSON.stringify(params)], []);
 };
 
 export const useUpcomingHomework = (days = 7) => {
   const { api } = useApi();
-  return useApiCall(() => api.homework.getUpcoming(days), [days]);
+  return useApiCall(() => api.homework.getUpcoming(days), [days], []);
 };
 
 export const useStudyProgress = (studentId) => {
   const { api } = useApi();
-  return useApiCall(() => api.studyProgress.getByStudent(studentId), [studentId]);
+  return useApiCall(() => api.studyProgress.getByStudent(studentId), [studentId], []);
 };
 
 export default useApi;

@@ -69,12 +69,8 @@ const gradeSchema = new mongoose.Schema({
     default: true
   },
   
-  // Timestamps
+  // Custom Timestamps
   graded_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
     type: Date,
     default: Date.now
   }
@@ -102,7 +98,6 @@ gradeSchema.pre('save', function(next) {
   } else if (this.homework_id && this.exam_id) {
     next(new Error('Cannot have both homework_id and exam_id'));
   } else {
-    this.updated_at = Date.now();
     next();
   }
 });

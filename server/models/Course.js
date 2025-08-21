@@ -52,16 +52,6 @@ const courseSchema = new mongoose.Schema({
   is_active: {
     type: Boolean,
     default: true
-  },
-  
-  // Timestamps
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now
   }
 }, {
   timestamps: true,
@@ -94,12 +84,6 @@ courseSchema.virtual('exams', {
   ref: 'Exam',
   localField: '_id',
   foreignField: 'course_id'
-});
-
-// Update the updated_at field before saving
-courseSchema.pre('save', function(next) {
-  this.updated_at = Date.now();
-  next();
 });
 
 // Instance method to add student

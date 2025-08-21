@@ -1,66 +1,40 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /**
  * Custom hook to handle authentication state and user roles
- * Integrates with Auth0 Post-Login Action that sets roles in custom claims
+ * This hook uses Auth0 directly and falls back to localStorage for demo mode
  */
 export const useAuth = () => {
   const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0();
   const navigate = useNavigate();
 
-  // Get user roles from Auth0 custom claims
-  const getUserRoles = () => {
+  const userRoles = useMemo(() => {
+    // Use JWT roles from Auth0
     if (user && user['https://my-app.com/roles']) {
       return user['https://my-app.com/roles'];
     }
 
-    // Fallback to localStorage for demo login compatibility
+    // Fallback for legacy demo login compatibility
     const storedRole = localStorage.getItem('role');
     return storedRole ? [storedRole] : [];
-  };
+  }, [user]);
 
-  // Get primary user role (first role in the array)
-  const getUserRole = () => {
-    const roles = getUserRoles();
-    return roles.length > 0 ? roles[0] : null; // Return null if no roles assigned
-  };
+  const userRole = useMemo(() => (userRoles.length > 0 ? userRoles[0] : null), [userRoles]);
 
-  // Get user info with role
-  const getUserInfo = () => {
+  const userInfo = useMemo(() => {
     if (user) {
-      // Try different ways to get the user's name
-      let userName = 'User'; // Default fallback
-
+      let userName = 'User';
       try {
-        // Check all possible name fields from Auth0
         userName = user.name ||
-                  user.nickname ||
-                  user.given_name ||
-                  user.family_name ||
-                  user.preferred_username;
-
-        // If no name available, extract from email
-        if (!userName && user.email) {
-          userName = user.email.split('@')[0];
-        }
-
-        // If still no name, use email
-        if (!userName) {
-          userName = user.email || 'User';
-        }
-
-        console.log('Auth0 User Data:', user);
-        console.log('Available name fields:', {
-          name: user.name,
-          nickname: user.nickname,
-          given_name: user.given_name,
-          family_name: user.family_name,
-          email: user.email,
-          preferred_username: user.preferred_username
-        });
-        console.log('Final extracted User Name:', userName);
+                   user.nickname ||
+                   user.given_name ||
+                   user.family_name ||
+                   user.preferred_username ||
+                   user.email?.split('@')[0] ||
+                   user.email ||
+                   'User';
       } catch (error) {
         console.error('Error extracting user name:', error);
         userName = user.email?.split('@')[0] || 'User';
@@ -71,39 +45,46 @@ export const useAuth = () => {
         name: userName,
         email: user.email,
         picture: user.picture,
-        roles: getUserRoles(),
-        primaryRole: getUserRole(),
+        roles: userRoles,
+        primaryRole: userRole,
         emailVerified: user.email_verified
       };
     }
 
-    // Fallback for demo login
+    // Fallback for demo login from localStorage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
         return {
           ...parsed,
-          roles: [localStorage.getItem('role') || 'student'],
-          primaryRole: localStorage.getItem('role') || 'student'
+          roles: userRoles,
+          primaryRole: userRole
         };
       } catch (e) {
         return null;
       }
     }
-
-    return null;
-  };
+    // Return a default "guest" user object instead of null.
+    return {
+      id: null,
+      name: 'Guest',
+      email: null,
+      roles: [],
+      primaryRole: null
+    };
+  }, [user, userRoles, userRole]);
 
   // Check if user is authenticated (Auth0 or localStorage)
   const isLoggedIn = isAuthenticated || !!localStorage.getItem('token');
 
   // Enhanced logout that clears both Auth0 and localStorage
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('user');
-    
+    sessionStorage.removeItem('user_synced'); // Clear the sync flag on logout
+
     if (isAuthenticated) {
       logout({
         logoutParams: {
@@ -112,38 +93,52 @@ export const useAuth = () => {
       });
     } else {
       // For demo login, just redirect to home
-      window.location.href = '/';
+      navigate('/');
     }
-  };
+  }, [isAuthenticated, logout, navigate]);
 
   // Enhanced login that redirects to Auth0
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     loginWithRedirect();
-  };
+  }, [loginWithRedirect]);
 
   // Check if user has specific role
-  const hasRole = (requiredRole) => {
-    const userRole = getUserRole();
+  const hasRole = useCallback((requiredRole) => {
     return userRole === requiredRole;
-  };
+  }, [userRole]);
 
   // Check if user has any of the specified roles
-  const hasAnyRole = (roleList) => {
-    const userRoles = getUserRoles();
+  const hasAnyRole = useCallback((roleList = []) => {
     return roleList.some(role => userRoles.includes(role));
-  };
+  }, [userRoles]);
+
+  // Check if user has the required role, considering hierarchy
+  const hasRequiredRole = useCallback((requiredRole) => {
+    console.log('Checking required role:', requiredRole);
+    console.log("User's current role(s):", userRoles);
+    if (!requiredRole) return true; // No role required
+    if (!userRole) return false; // User has no role
+
+    const roleHierarchy = {
+      admin: ['admin', 'lecturer', 'student'],
+      lecturer: ['lecturer', 'student'],
+      student: ['student'],
+    };
+
+    const allowedRoles = roleHierarchy[userRole] || [];
+    const hasRole = allowedRoles.includes(requiredRole);
+    console.log(`User has required role (${requiredRole}): ${hasRole}`);
+    return hasRole;
+  }, [userRole, userRoles]);
 
   // Auto-redirect based on role after Auth0 login
-  const redirectToDashboard = () => {
-    const role = getUserRole();
-
-    if (!role) {
-      // User has no assigned roles - redirect to a pending page or show message
+  const redirectToDashboard = useCallback(() => {
+    if (!userRole) {
       navigate('/role-pending');
       return;
     }
 
-    switch (role) {
+    switch (userRole) {
       case 'student':
         navigate('/student/dashboard');
         break;
@@ -154,38 +149,35 @@ export const useAuth = () => {
         navigate('/admin/dashboard');
         break;
       default:
-        // Unknown role - redirect to pending page
         navigate('/role-pending');
     }
-  };
+  }, [userRole, navigate]);
 
   // Store user data in localStorage for app-wide access
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const userRole = getUserRole();
-      const userInfo = getUserInfo();
-
+    if (isAuthenticated && userInfo && userInfo.id) {
       // Store in localStorage for compatibility with existing code
       localStorage.setItem('token', 'auth0-jwt');
-      localStorage.setItem('role', userRole);
+      localStorage.setItem('role', userInfo.primaryRole);
       localStorage.setItem('user', JSON.stringify(userInfo));
 
-      console.log('User authenticated with role:', userRole);
-      console.log('User roles:', getUserRoles());
+      console.log('User authenticated with role:', userInfo.primaryRole);
+      console.log('User roles from useAuth:', userInfo.roles);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, userInfo]);
 
   return {
     // Auth state
     isAuthenticated: isLoggedIn,
-    isLoading,
-    user: getUserInfo(),
+    isLoading: isLoading,
+    user: userInfo,
 
     // Role checking
-    userRole: getUserRole(),
-    userRoles: getUserRoles(),
+    userRole: userRole,
+    userRoles: userRoles,
     hasRole,
     hasAnyRole,
+    hasRequiredRole,
 
     // Actions
     login: handleLogin,

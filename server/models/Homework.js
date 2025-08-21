@@ -51,16 +51,6 @@ const homeworkSchema = new mongoose.Schema({
   allow_late_submission: {
     type: Boolean,
     default: false
-  },
-  
-  // Timestamps
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now
   }
 }, {
   timestamps: true,
@@ -92,12 +82,6 @@ homeworkSchema.virtual('partners', {
   ref: 'Partner',
   localField: '_id',
   foreignField: 'homework_id'
-});
-
-// Update the updated_at field before saving
-homeworkSchema.pre('save', function(next) {
-  this.updated_at = Date.now();
-  next();
 });
 
 // Instance method to check if overdue

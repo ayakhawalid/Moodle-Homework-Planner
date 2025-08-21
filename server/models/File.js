@@ -59,16 +59,6 @@ const fileSchema = new mongoose.Schema({
   is_active: {
     type: Boolean,
     default: true
-  },
-  
-  // Timestamps
-  uploaded_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now
   }
 }, {
   timestamps: true,
@@ -80,13 +70,6 @@ const fileSchema = new mongoose.Schema({
 fileSchema.index({ homework_id: 1 });
 fileSchema.index({ class_id: 1 });
 fileSchema.index({ uploaded_by: 1 });
-fileSchema.index({ uploaded_at: -1 });
-
-// Update the updated_at field before saving
-fileSchema.pre('save', function(next) {
-  this.updated_at = Date.now();
-  next();
-});
 
 // Instance method to get file URL
 fileSchema.methods.getFileUrl = function() {
@@ -117,7 +100,7 @@ fileSchema.statics.findByClass = function(classId) {
 
 // Static method to find by user
 fileSchema.statics.findByUser = function(userId) {
-  return this.find({ uploaded_by: userId, is_active: true }).sort({ uploaded_at: -1 });
+  return this.find({ uploaded_by: userId, is_active: true }).sort({ createdAt: -1 });
 };
 
 module.exports = mongoose.model('File', fileSchema);

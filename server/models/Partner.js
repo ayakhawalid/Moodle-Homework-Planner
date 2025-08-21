@@ -40,11 +40,6 @@ const partnerSchema = new mongoose.Schema({
     trim: true
   },
   
-  // Timestamps
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
   accepted_at: {
     type: Date
   },

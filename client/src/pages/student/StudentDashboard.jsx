@@ -5,7 +5,8 @@ import StatCard from '../../Components/charts/StatCard';
 import ProgressChart from '../../Components/charts/ProgressChart';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useUserSync } from '../../hooks/useUserSync';
+
+import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import UserSyncStatus from '../../Components/UserSyncStatus';
 import {
   Assignment as AssignmentIcon,
@@ -28,7 +29,7 @@ const studyProgressData = {
 function StudentDashboard() {
   const { user } = useAuth();
   const { user: auth0User } = useAuth0();
-  const { syncStatus, isReady } = useUserSync();
+  const { syncStatus } = useUserSyncContext();
 
   // Get user name with multiple fallbacks
   const getUserName = () => {
@@ -54,7 +55,7 @@ function StudentDashboard() {
     <DashboardLayout userRole="student">
       <Box p={3}>
         {/* User Sync Status */}
-        <UserSyncStatus showDetails={true} />
+        <UserSyncStatus showDetails={false} />
 
         {/* Welcome Section */}
         <Box mb={4}>
@@ -63,7 +64,7 @@ function StudentDashboard() {
           </Typography>
           <Typography variant="subtitle1" color="textSecondary">
             Track your academic progress and manage your tasks
-            {isReady && (
+            {syncStatus === 'synced' && (
               <span style={{ marginLeft: '10px', color: '#4caf50' }}>
                 • Database Connected ✓
               </span>

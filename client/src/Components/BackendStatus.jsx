@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import {
   Box,
   Card,
@@ -21,6 +22,8 @@ const BackendStatus = () => {
     mongodb: 'checking',
     auth: 'checking'
   });
+
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
 
   const checkBackendStatus = async () => {
     setStatus({
@@ -58,31 +61,33 @@ const BackendStatus = () => {
       setStatus(prev => ({ ...prev, mongodb: 'error' }));
     }
 
-    // Check Auth (if token exists)
-    const token = localStorage.getItem('auth_token');
-    if (token) {
+    // Check Auth (use a fresh token, not localStorage)
+    if (isAuthenticated) {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth-test`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        const token = await getAccessTokenSilently({
+          authorizationParams: {
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000'
+          },
+          ignoreCache: true // force fresh token for health check
         });
-        if (response.ok) {
-          setStatus(prev => ({ ...prev, auth: 'connected' }));
-        } else {
-          setStatus(prev => ({ ...prev, auth: 'error' }));
-        }
+
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth-test`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setStatus(prev => ({ ...prev, auth: response.ok ? 'connected' : 'error' }));
       } catch (error) {
+        console.error('Auth check failed:', error);
         setStatus(prev => ({ ...prev, auth: 'error' }));
       }
     } else {
-      setStatus(prev => ({ ...prev, auth: 'no_token' }));
+      setStatus(prev => ({ ...prev, auth: 'not-authenticated' }));
     }
   };
 
   useEffect(() => {
     checkBackendStatus();
-  }, []);
+  }, [isAuthenticated, getAccessTokenSilently]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -90,6 +95,7 @@ const BackendStatus = () => {
       case 'error': return 'error';
       case 'checking': return 'info';
       case 'no_token': return 'warning';
+      case 'not-authenticated': return 'warning';
       default: return 'default';
     }
   };
@@ -100,6 +106,7 @@ const BackendStatus = () => {
       case 'error': return <ErrorIcon />;
       case 'checking': return <CircularProgress size={16} />;
       case 'no_token': return <WarningIcon />;
+      case 'not-authenticated': return <WarningIcon />;
       default: return null;
     }
   };
@@ -110,13 +117,14 @@ const BackendStatus = () => {
       case 'error': return 'Error';
       case 'checking': return 'Checking...';
       case 'no_token': return 'No Token';
+      case 'not-authenticated': return 'Not Authenticated';
       default: return 'Unknown';
     }
   };
 
   const allConnected = status.backend === 'connected' && 
                       status.mongodb === 'connected' && 
-                      (status.auth === 'connected' || status.auth === 'no_token');
+                      (status.auth === 'connected' || status.auth === 'no_token' || status.auth === 'not-authenticated');
 
   return (
     <Card sx={{ mb: 2 }}>

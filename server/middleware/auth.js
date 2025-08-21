@@ -1,5 +1,6 @@
 const { expressjwt: jwt } = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
+const jwtDecode = require('jsonwebtoken');
 
 // Auth0 JWT verification middleware
 const checkJwt = jwt({
@@ -16,15 +17,25 @@ const checkJwt = jwt({
 
 // Middleware to extract user info from JWT
 const extractUser = (req, res, next) => {
-  if (req.user) {
+  if (req.auth) {
     // Extract user information from the JWT token
     req.userInfo = {
-      auth0_id: req.user.sub,
-      email: req.user.email,
-      name: req.user.name,
-      roles: req.user['https://my-app.com/roles'] || [],
-      email_verified: req.user.email_verified
+      auth0_id: req.auth.sub,
+      email: req.auth.email,
+      name: req.auth.name,
+      roles: req.auth['https://my-app.com/roles'] || [],
+      permissions: req.auth.permissions || [],
+      scope: req.auth.scope || '',
+      email_verified: req.auth.email_verified
     };
+
+    // Debug logging
+    console.log('JWT Token contents:', {
+      sub: req.auth.sub,
+      roles: req.auth['https://my-app.com/roles'],
+      permissions: req.auth.permissions,
+      scope: req.auth.scope
+    });
   }
   next();
 };
@@ -40,7 +51,7 @@ const requireRole = (roles) => {
     const hasRole = roles.some(role => userRoles.includes(role));
 
     if (!hasRole) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Insufficient permissions',
         required: roles,
         current: userRoles
@@ -51,10 +62,102 @@ const requireRole = (roles) => {
   };
 };
 
+// Permission/scope-based authorization middleware
+const requirePermission = (permission) => {
+  return (req, res, next) => {
+    if (!req.userInfo) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const userPermissions = req.userInfo.permissions || [];
+    const userScopes = req.userInfo.scope ? req.userInfo.scope.split(' ') : [];
+
+    // Check both permissions array and scope string
+    const hasPermission = userPermissions.includes(permission) || userScopes.includes(permission);
+
+    if (!hasPermission) {
+      return res.status(403).json({
+        error: 'Insufficient permissions',
+        required: [permission],
+        current: userPermissions.length > 0 ? userPermissions : userScopes
+      });
+    }
+
+    next();
+  };
+};
+
+// Combined role OR permission check
+const requireRoleOrPermission = (roles, permissions) => {
+  return (req, res, next) => {
+    if (!req.userInfo) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const userRoles = req.userInfo.roles || [];
+    const userPermissions = req.userInfo.permissions || [];
+    const userScopes = req.userInfo.scope ? req.userInfo.scope.split(' ') : [];
+
+    // Check if user has any of the required roles
+    const hasRole = roles.some(role => userRoles.includes(role));
+
+    // Check if user has any of the required permissions
+    const hasPermission = permissions.some(perm =>
+      userPermissions.includes(perm) || userScopes.includes(perm)
+    );
+
+    if (!hasRole && !hasPermission) {
+      return res.status(403).json({
+        error: 'Insufficient permissions',
+        required: { roles, permissions },
+        current: {
+          roles: userRoles,
+          permissions: userPermissions.length > 0 ? userPermissions : userScopes
+        }
+      });
+    }
+
+    next();
+  };
+};
+
 // Specific role middlewares
-const requireAdmin = requireRole(['admin']);
+const requireAdmin = (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Missing token' });
+    }
+
+    // Decode the token to check permissions
+    const decoded = jwtDecode.decode(token);
+    const permissions = decoded.scope?.split(' ') || [];
+
+    // Check if the required permission is present
+    if (!permissions.includes('delete:users')) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Error in requireAdmin middleware:', error);
+    res.status(500).json({ error: 'Failed to validate permissions' });
+  }
+};
+
 const requireLecturer = requireRole(['lecturer', 'admin']);
 const requireStudent = requireRole(['student', 'lecturer', 'admin']);
+
+// Specific permission middlewares
+const requireReadUsers = requirePermission('read:users');
+const requireWriteUsers = requirePermission('write:users');
+const requireReadStats = requirePermission('read:stats');
+
+// Combined middlewares (role OR permission)
+const requireAdminOrReadUsers = requireRoleOrPermission(['admin'], ['read:users']);
+const requireAdminOrReadStats = requireRoleOrPermission(['admin'], ['read:stats']);
+const requireAdminOrWriteUsers = requireRoleOrPermission(['admin'], ['write:users']);
+const requireAdminOrManageUsers = requireRoleOrPermission(['admin'], ['write:users', 'manage:users']);
 
 // Middleware to check if user owns resource or is admin
 const requireOwnershipOrAdmin = (userIdField = 'student_id') => {
@@ -76,7 +179,7 @@ const requireOwnershipOrAdmin = (userIdField = 'student_id') => {
     }
 
     // Check if the authenticated user owns this resource
-    if (resourceUserId.toString() !== req.user.userId) {
+    if (resourceUserId.toString() !== req.auth.sub) {
       return res.status(403).json({ error: 'Access denied: You can only access your own resources' });
     }
 
@@ -88,8 +191,17 @@ module.exports = {
   checkJwt,
   extractUser,
   requireRole,
+  requirePermission,
+  requireRoleOrPermission,
   requireAdmin,
   requireLecturer,
   requireStudent,
+  requireReadUsers,
+  requireWriteUsers,
+  requireReadStats,
+  requireAdminOrReadUsers,
+  requireAdminOrReadStats,
+  requireAdminOrWriteUsers,
+  requireAdminOrManageUsers,
   requireOwnershipOrAdmin
 };

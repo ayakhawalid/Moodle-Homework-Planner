@@ -6,7 +6,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
   const { isLoading } = useAuth0();
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, hasRequiredRole } = useAuth();
 
   // Show loading spinner while Auth0 is checking authentication
   if (isLoading) {
@@ -35,19 +35,10 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     return <Navigate to="/role-pending" replace />;
   }
 
-  // If a specific role is required, check it
-  if (requiredRole && userRole !== requiredRole) {
-    // Redirect to appropriate dashboard based on user's actual role
-    switch (userRole) {
-      case "student":
-        return <Navigate to="/student/dashboard" replace />;
-      case "lecturer":
-        return <Navigate to="/lecturer/dashboard" replace />;
-      case "admin":
-        return <Navigate to="/admin/dashboard" replace />;
-      default:
-        return <Navigate to="/role-pending" replace />;
-    }
+  // If a specific role is required, check if the user has it
+  if (!hasRequiredRole(requiredRole)) {
+    // If not, redirect to the user's own dashboard
+    return <Navigate to={`/${userRole}/dashboard`} replace />;
   }
 
   return children;

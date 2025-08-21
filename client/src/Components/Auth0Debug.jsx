@@ -172,8 +172,10 @@ const Auth0Debug = () => {
             overflow: 'auto'
           }}>
 {`exports.onExecutePostLogin = async (event, api) => {
-  const assignedRoles = (event.authorization?.roles) || [];
-  api.idToken.setCustomClaim("https://my-app.com/roles", assignedRoles);
+  const assignedRoles = event.authorization?.roles || [];
+  // Put roles into both ID and Access tokens under your namespace
+  api.idToken.setCustomClaim('https://my-app.com/roles', assignedRoles);
+  api.accessToken.setCustomClaim('https://my-app.com/roles', assignedRoles);
 };`}
           </pre>
           <Typography variant="body2" sx={{ mt: 2 }}>

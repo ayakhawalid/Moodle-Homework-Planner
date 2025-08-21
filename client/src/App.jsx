@@ -11,6 +11,8 @@ import Auth0ConfigDebug from './Components/Auth0ConfigDebug';
 import ApiTest from './Components/ApiTest';
 import AuthDebugger from './Components/AuthDebugger';
 import Auth0ConfigTester from './Components/Auth0ConfigTester';
+import AuthDebugPanel from './Components/AuthDebugPanel';
+import BackendTest from './Components/BackendTest';
 import RolePending from './pages/RolePending';
 import BookRooms from './pages/BookRooms';
 import TimeTable from './pages/TimeTable';
@@ -43,25 +45,41 @@ import './App.css';
 import './styles/NavBar.css';
 import './styles/footer.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
 import Auth0ProviderWithHistory from './auth/Auth0Provider';
+import { UserSyncProvider, useUserSyncContext } from "./contexts/UserSyncContext.jsx";
 
 function App() {
   return (
-    <Auth0ProviderWithHistory>
-      <div className='App'>
-        <Router>
-          <AppContent />
-        </Router>
-      </div>
-    </Auth0ProviderWithHistory>
+    <Router>
+      <Auth0ProviderWithHistory>
+        <UserSyncProvider>
+          <div className='App'>
+            <AppContent />
+          </div>
+        </UserSyncProvider>
+      </Auth0ProviderWithHistory>
+    </Router>
   );
 }
 
 function AppContent() {
   const location = useLocation();
+  const { isLoading, isAuthenticated } = useAuth();
+  const { syncStatus } = useUserSyncContext();
 
   // Hide navbar on dashboard pages (they have their own sidebar navigation)
   const isDashboardPage = location.pathname.startsWith('/student/') || location.pathname.startsWith('/lecturer/') || location.pathname.startsWith('/admin/');
+
+  // Display a global loading indicator while the Auth0 SDK is initializing.
+  // Or while the initial user sync is in progress.
+  if (isLoading || (isAuthenticated && (syncStatus === 'syncing' || syncStatus === 'idle'))) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <h2>Loading Application...</h2>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -76,6 +94,8 @@ function AppContent() {
           <Route path='/api-test' element={<ApiTest />} />
           <Route path='/auth-debug' element={<AuthDebugger />} />
           <Route path='/auth0-config-test' element={<Auth0ConfigTester />} />
+          <Route path='/debug-panel' element={<AuthDebugPanel />} />
+          <Route path='/backend-test' element={<BackendTest />} />
           <Route path='/role-pending' element={<RolePending />} />
           <Route path='/bookrooms' element={<BookRooms />} />
           <Route path='/timetable' element={<TimeTable />} />

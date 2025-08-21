@@ -38,8 +38,16 @@ const studyProgressSchema = new mongoose.Schema({
   
   // Study session details
   study_sessions: [{
-    start_time: String, // Format: "HH:MM"
-    end_time: String,   // Format: "HH:MM"
+    start_time: {
+      type: String, // Format: "HH:MM"
+      required: true,
+      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Start time must be in HH:MM format']
+    },
+    end_time: {
+      type: String,   // Format: "HH:MM"
+      required: true,
+      match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'End time must be in HH:MM format']
+    },
     subject: String,
     notes: String,
     productivity_rating: {
@@ -76,16 +84,6 @@ const studyProgressSchema = new mongoose.Schema({
   month_summary: {
     type: String,
     trim: true
-  },
-  
-  // Timestamps
-  created_at: {
-    type: Date,
-    default: Date.now
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now
   }
 }, {
   timestamps: true,
@@ -101,10 +99,10 @@ studyProgressSchema.index({ student_id: 1, date: 1 }, { unique: true });
 // Compound indexes for queries
 studyProgressSchema.index({ student_id: 1, date: -1 });
 
-// Update the updated_at field before saving
 studyProgressSchema.pre('save', function(next) {
-  this.updated_at = Date.now();
-  
+  // Normalize the date to the beginning of the day to ensure one record per day per student.
+  this.date.setHours(0, 0, 0, 0);
+
   // Check if daily goal is achieved
   if (this.daily_goal_hours > 0) {
     this.goal_achieved = this.hours_studied >= this.daily_goal_hours;
@@ -117,18 +115,14 @@ studyProgressSchema.pre('save', function(next) {
 studyProgressSchema.methods.addStudySession = function(session) {
   this.study_sessions.push(session);
   
-  // Recalculate total hours
-  const totalMinutes = this.study_sessions.reduce((total, session) => {
-    const [startHours, startMinutes] = session.start_time.split(':').map(Number);
-    const [endHours, endMinutes] = session.end_time.split(':').map(Number);
-    
-    const startTotalMinutes = startHours * 60 + startMinutes;
-    const endTotalMinutes = endHours * 60 + endMinutes;
-    
-    return total + (endTotalMinutes - startTotalMinutes);
-  }, 0);
-  
-  this.hours_studied = Math.round((totalMinutes / 60) * 100) / 100; // Round to 2 decimal places
+  // Incrementally update total hours studied for better performance
+  const [startHours, startMinutes] = session.start_time.split(':').map(Number);
+  const [endHours, endMinutes] = session.end_time.split(':').map(Number);
+  const startTotalMinutes = startHours * 60 + startMinutes;
+  const endTotalMinutes = endHours * 60 + endMinutes;
+  const sessionDurationHours = (endTotalMinutes - startTotalMinutes) / 60;
+
+  this.hours_studied = (this.hours_studied || 0) + sessionDurationHours;
   
   return this.save();
 };
@@ -211,28 +205,44 @@ studyProgressSchema.statics.getMonthlySummary = function(studentId, year, month)
 };
 
 // Static method to get study streak
-studyProgressSchema.statics.getStudyStreak = function(studentId) {
-  return this.find({ student_id: studentId })
+studyProgressSchema.statics.getStudyStreak = async function(studentId) {
+  // Fetch all unique, sorted study dates for the user.
+  // This is more efficient than fetching full records.
+  const records = await this.find({ student_id: studentId }, 'date')
     .sort({ date: -1 })
-    .then(records => {
-      let streak = 0;
-      let currentDate = new Date();
-      currentDate.setHours(0, 0, 0, 0);
-      
-      for (const record of records) {
-        const recordDate = new Date(record.date);
-        recordDate.setHours(0, 0, 0, 0);
-        
-        if (recordDate.getTime() === currentDate.getTime()) {
-          streak++;
-          currentDate.setDate(currentDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-      
-      return streak;
-    });
+    .lean();
+
+  if (records.length === 0) {
+    return 0;
+  }
+
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // The date of the most recent study session
+  let lastStudyDate = new Date(records[0].date);
+  lastStudyDate.setHours(0, 0, 0, 0);
+
+  // A streak is only valid if the last study day is today or yesterday.
+  if (today.getTime() - lastStudyDate.getTime() > 24 * 60 * 60 * 1000) {
+    return 0;
+  }
+
+  // Calculate the consecutive days from the most recent entry.
+  for (const record of records) {
+    const currentRecordDate = new Date(record.date);
+    currentRecordDate.setHours(0, 0, 0, 0);
+
+    if (lastStudyDate.getTime() - currentRecordDate.getTime() < 2 * 24 * 60 * 60 * 1000) {
+      streak++;
+      lastStudyDate = currentRecordDate;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
 };
 
 module.exports = mongoose.model('StudyProgress', studyProgressSchema);

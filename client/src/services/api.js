@@ -9,13 +9,27 @@ const api = axios.create({
   },
 });
 
+// Store the token provider function
+let tokenProvider = null;
+
+// Function to set the token provider
+export const setTokenProvider = (provider) => {
+  tokenProvider = provider;
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage (set by useApi hook)
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    if (tokenProvider) {
+      try {
+        const token = await tokenProvider();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Failed to get access token for request:', error);
+        // Optionally, you could cancel the request here
+      }
     }
 
     console.log('API Request:', config.method?.toUpperCase(), config.url);
@@ -50,20 +64,51 @@ api.interceptors.response.use(
 // API service functions
 export const apiService = {
   // Health check
-  health: () => api.get('/health'),
-  
+  health: async () => {
+    const response = await api.get('/health');
+    return response.data;
+  },
+
   // Auth test
-  authTest: () => api.get('/auth-test'),
+  authTest: async () => {
+    const response = await api.get('/auth-test');
+    return response.data;
+  },
   
   // User endpoints
   user: {
-    getProfile: () => api.get('/users/profile'),
-    updateProfile: (data) => api.put('/users/profile', data),
-    getAll: (params) => api.get('/users', { params }),
-    getStats: () => api.get('/users/stats'),
-    getById: (id) => api.get(`/users/${id}`),
-    updateRole: (id, role) => api.put(`/users/${id}/role`, { role }),
-    deactivate: (id) => api.delete(`/users/${id}`)
+    getProfile: async () => {
+      const response = await api.get('/users/profile');
+      return response.data;
+    },
+    updateProfile: async (data) => {
+      const response = await api.put('/users/profile', data);
+      return response.data;
+    },
+    getAll: async (params) => {
+      const response = await api.get('/users', { params });
+      return response.data;
+    },
+    getStats: async () => {
+      const response = await api.get('/users/stats');
+      return response.data;
+    },
+    getById: async (id) => {
+      const response = await api.get(`/users/${id}`);
+      return response.data;
+    },
+    updateRole: async (id, role) => {
+      const response = await api.put(`/users/${id}/role`, { role });
+      return response.data;
+    },
+    deactivate: async (id) => {
+      const response = await api.delete(`/users/${id}`);
+      return response.data;
+    },
+    syncProfile: async (data) => {
+      const response = await api.post('/users', data);
+      return response.data;
+    }
   },
   
   // Course endpoints (to be implemented)
@@ -126,16 +171,7 @@ export const apiService = {
   }
 };
 
-// Helper function to set auth token
-export const setAuthToken = (token) => {
-  if (token) {
-    localStorage.setItem('auth_token', token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    localStorage.removeItem('auth_token');
-    delete api.defaults.headers.common['Authorization'];
-  }
-};
+
 
 // Helper function to handle API errors
 export const handleApiError = (error) => {

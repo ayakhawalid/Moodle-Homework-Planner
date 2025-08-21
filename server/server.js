@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const mongoose = require('mongoose');
+const { startPeriodicSync } = require('./services/syncAuth0'); // Import the sync service
 
 // Import database connection
 const connectDB = require('./config/database');
@@ -13,16 +15,21 @@ const { checkJwt, extractUser } = require('./middleware/auth');
 
 // Import routes
 const userRoutes = require('./routes/users');
-// const courseRoutes = require('./routes/courses');
-// const homeworkRoutes = require('./routes/homework');
-// const gradeRoutes = require('./routes/grades');
-// const fileRoutes = require('./routes/files');
-// const studyProgressRoutes = require('./routes/studyProgress');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
-connectDB();
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+})
+  .then(() => {
+    console.log('✅ MongoDB connected!');
+    startPeriodicSync(15); // Start periodic sync every 15 minutes
+  })
+  .catch(err => console.error('❌ MongoDB connection error:', err.message));
 
 // Security middleware
 app.use(helmet());
@@ -58,21 +65,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Auth test endpoint
-app.get('/api/auth-test', checkJwt, extractUser, (req, res) => {
-  res.json({
-    message: 'Authentication successful',
-    user: req.userInfo
-  });
-});
-
 // API Routes
 app.use('/api/users', checkJwt, extractUser, userRoutes);
-// app.use('/api/courses', checkJwt, extractUser, courseRoutes);
-// app.use('/api/homework', checkJwt, extractUser, homeworkRoutes);
-// app.use('/api/grades', checkJwt, extractUser, gradeRoutes);
-// app.use('/api/files', checkJwt, extractUser, fileRoutes);
-// app.use('/api/study-progress', checkJwt, extractUser, studyProgressRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -119,10 +113,8 @@ app.use('*', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Client URL: ${process.env.CLIENT_URL}`);
 });

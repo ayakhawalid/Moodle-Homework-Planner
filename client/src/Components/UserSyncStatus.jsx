@@ -15,11 +15,12 @@ import {
   Sync as SyncIcon
 } from '@mui/icons-material';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useUserSync } from '../hooks/useUserSync';
+import { useUserSyncContext } from '../contexts/UserSyncContext';
+
 
 const UserSyncStatus = ({ showDetails = false }) => {
   const { user, isAuthenticated } = useAuth0();
-  const { syncStatus, retrySync, isReady } = useUserSync();
+  const { syncStatus, error, dbUser, retrySync } = useUserSyncContext();
 
   if (!isAuthenticated) {
     return null;
@@ -29,7 +30,7 @@ const UserSyncStatus = ({ showDetails = false }) => {
   if (!showDetails) {
     return (
       <Box display="flex" alignItems="center" gap={1}>
-        {syncStatus.syncing && (
+        {syncStatus === 'syncing' && (
           <>
             <CircularProgress size={16} />
             <Typography variant="caption" color="textSecondary">
@@ -38,7 +39,7 @@ const UserSyncStatus = ({ showDetails = false }) => {
           </>
         )}
         
-        {syncStatus.synced && (
+        {syncStatus === 'success' && (
           <>
             <CheckIcon sx={{ fontSize: 16, color: 'success.main' }} />
             <Typography variant="caption" color="success.main">
@@ -47,7 +48,7 @@ const UserSyncStatus = ({ showDetails = false }) => {
           </>
         )}
         
-        {syncStatus.error && (
+        {syncStatus === 'error' && (
           <>
             <ErrorIcon sx={{ fontSize: 16, color: 'error.main' }} />
             <Typography variant="caption" color="error.main">
@@ -63,7 +64,7 @@ const UserSyncStatus = ({ showDetails = false }) => {
   return (
     <Box>
       {/* Syncing Status */}
-      {syncStatus.syncing && (
+      {syncStatus === 'syncing' && (
         <Alert 
           severity="info" 
           icon={<CircularProgress size={20} />}
@@ -77,7 +78,7 @@ const UserSyncStatus = ({ showDetails = false }) => {
       )}
 
       {/* Success Status */}
-      {syncStatus.synced && (
+      {syncStatus === 'success' && (
         <Alert severity="success" sx={{ mb: 2 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <Box>
@@ -97,11 +98,11 @@ const UserSyncStatus = ({ showDetails = false }) => {
       )}
 
       {/* Error Status */}
-      {syncStatus.error && (
+      {syncStatus === 'error' && (
         <Alert severity="error" sx={{ mb: 2 }}>
           <Typography variant="subtitle2">Profile Sync Failed</Typography>
           <Typography variant="body2" sx={{ mb: 1 }}>
-            {syncStatus.error}
+            {error}
           </Typography>
           <Button 
             size="small" 
@@ -115,7 +116,7 @@ const UserSyncStatus = ({ showDetails = false }) => {
       )}
 
       {/* User Profile Details (when synced) */}
-      {syncStatus.synced && syncStatus.userProfile && (
+      {syncStatus === 'success' && dbUser && (
         <Card sx={{ mt: 2, bgcolor: '#f8f9fa' }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -124,33 +125,33 @@ const UserSyncStatus = ({ showDetails = false }) => {
             <Box display="flex" flexDirection="column" gap={1}>
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="body2" color="textSecondary">Name:</Typography>
-                <Typography variant="body2">{syncStatus.userProfile.name}</Typography>
+                <Typography variant="body2">{dbUser.name}</Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="body2" color="textSecondary">Email:</Typography>
-                <Typography variant="body2">{syncStatus.userProfile.email}</Typography>
+                <Typography variant="body2">{dbUser.email}</Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="body2" color="textSecondary">Role:</Typography>
                 <Chip 
-                  label={syncStatus.userProfile.role} 
+                  label={dbUser.role || 'Pending'}
                   size="small"
                   color={
-                    syncStatus.userProfile.role === 'admin' ? 'error' :
-                    syncStatus.userProfile.role === 'lecturer' ? 'warning' : 'success'
+                    dbUser.role === 'admin' ? 'error' :
+                    dbUser.role === 'lecturer' ? 'warning' : 'success'
                   }
                 />
               </Box>
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="body2" color="textSecondary">Database ID:</Typography>
                 <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                  {syncStatus.userProfile._id}
+                  {dbUser._id}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="body2" color="textSecondary">Last Login:</Typography>
                 <Typography variant="body2">
-                  {new Date(syncStatus.userProfile.last_login).toLocaleString()}
+                  {new Date(dbUser.last_login).toLocaleString()}
                 </Typography>
               </Box>
             </Box>
@@ -173,9 +174,9 @@ const UserSyncStatus = ({ showDetails = false }) => {
             </Typography>
             <Typography variant="caption" display="block">
               Sync Status: {JSON.stringify({
-                syncing: syncStatus.syncing,
-                synced: syncStatus.synced,
-                hasError: !!syncStatus.error
+                syncing: syncStatus === 'syncing',
+                synced: syncStatus === 'success',
+                hasError: syncStatus === 'error'
               })}
             </Typography>
           </CardContent>
