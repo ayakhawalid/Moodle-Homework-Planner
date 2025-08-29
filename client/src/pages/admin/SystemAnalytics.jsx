@@ -9,8 +9,14 @@ import {
 } from '@mui/material';
 import Chart from 'react-apexcharts';
 import DashboardLayout from '../../Components/DashboardLayout';
+import { apiService } from '../../services/api';
+import api from '../../services/api';
 
 const SystemAnalytics = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState(null);
+
   const [userGrowthData, setUserGrowthData] = useState({
     series: [{
       name: 'Users',
@@ -52,7 +58,7 @@ const SystemAnalytics = () => {
   });
 
   const [roleDistributionData, setRoleDistributionData] = useState({
-    series: [892, 45, 10],
+    series: [0, 0, 0],
     options: {
       chart: {
         type: 'donut',
@@ -123,6 +129,50 @@ const SystemAnalytics = () => {
     }
   });
 
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const s = await apiService.user.getStats();
+        setStats(s);
+        // Update role distribution from backend stats
+        setRoleDistributionData((prev) => ({
+          ...prev,
+          series: [s?.roles?.students || 0, s?.roles?.lecturers || 0, s?.roles?.admins || 0]
+        }));
+        // Fetch analytics overview (growth + weekly activity)
+        try {
+          const overview = await api.get('/analytics/overview').then(r => r.data);
+          if (overview?.userGrowth?.labels && overview?.userGrowth?.counts) {
+            setUserGrowthData(prev => ({
+              ...prev,
+              options: { ...prev.options, xaxis: { ...prev.options.xaxis, categories: overview.userGrowth.labels } },
+              series: [{ name: 'Users', data: overview.userGrowth.counts }]
+            }));
+          }
+          if (overview?.weeklyActivity?.labels) {
+            setActivityData(prev => ({
+              ...prev,
+              options: { ...prev.options, xaxis: { ...prev.options.xaxis, categories: overview.weeklyActivity.labels } },
+              series: [
+                { name: 'Logins', data: overview.weeklyActivity.logins || [] },
+                { name: 'New Users', data: overview.weeklyActivity.newUsers || [] }
+              ]
+            }));
+          }
+        } catch (e) {
+          console.warn('Analytics overview fetch failed', e?.message);
+        }
+      } catch (e) {
+        setError('Failed to load analytics');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
   return (
     <DashboardLayout userRole="admin">
       <Box p={3}>
@@ -134,6 +184,10 @@ const SystemAnalytics = () => {
             Comprehensive analytics and insights about your platform
           </Typography>
         </Box>
+
+        {error && (
+          <Box mb={2}><Typography color="error">{error}</Typography></Box>
+        )}
 
         <Grid container spacing={3}>
           {/* User Growth Chart */}
@@ -163,6 +217,11 @@ const SystemAnalytics = () => {
                 type="donut"
                 height={350}
               />
+              <Box mt={2}>
+                <Typography variant="body2" color="textSecondary">Students: {stats?.roles?.students ?? '—'}</Typography>
+                <Typography variant="body2" color="textSecondary">Lecturers: {stats?.roles?.lecturers ?? '—'}</Typography>
+                <Typography variant="body2" color="textSecondary">Admins: {stats?.roles?.admins ?? '—'}</Typography>
+              </Box>
             </Paper>
           </Grid>
 
@@ -188,10 +247,10 @@ const SystemAnalytics = () => {
                 <Card sx={{ textAlign: 'center', p: 2 }}>
                   <CardContent>
                     <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
-                      98.5%
+                      {loading ? '…' : (stats?.total_users ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      System Uptime
+                      Total Users
                     </Typography>
                   </CardContent>
                 </Card>
@@ -200,10 +259,10 @@ const SystemAnalytics = () => {
                 <Card sx={{ textAlign: 'center', p: 2 }}>
                   <CardContent>
                     <Typography variant="h4" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
-                      2.3s
+                      {loading ? '…' : (stats?.verified_users ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      Avg Response Time
+                      Verified Users
                     </Typography>
                   </CardContent>
                 </Card>
@@ -212,10 +271,10 @@ const SystemAnalytics = () => {
                 <Card sx={{ textAlign: 'center', p: 2 }}>
                   <CardContent>
                     <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                      156
+                      {loading ? '…' : (stats?.roles?.students ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      Active Sessions
+                      Students
                     </Typography>
                   </CardContent>
                 </Card>
@@ -224,10 +283,10 @@ const SystemAnalytics = () => {
                 <Card sx={{ textAlign: 'center', p: 2 }}>
                   <CardContent>
                     <Typography variant="h4" sx={{ color: '#f44336', fontWeight: 'bold' }}>
-                      0
+                      {loading ? '…' : (stats?.roles?.lecturers ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      Critical Issues
+                      Lecturers
                     </Typography>
                   </CardContent>
                 </Card>

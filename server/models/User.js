@@ -4,6 +4,8 @@ const userSchema = new mongoose.Schema({
   auth0_id: { type: String, unique: true, required: true }, // Auth0 ID
   email: { type: String, required: true, unique: true }, // Email must be unique
   name: { type: String },
+  full_name: { type: String }, // Full name
+  username: { type: String, unique: true, sparse: true }, // Username (optional, unique when present)
   role: { type: String }, // Role from app_metadata
   picture: { type: String }, // Profile picture
   email_verified: { type: Boolean, default: false }, // Email verification status

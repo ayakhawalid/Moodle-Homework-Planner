@@ -15,6 +15,8 @@ const { checkJwt, extractUser } = require('./middleware/auth');
 
 // Import routes
 const userRoutes = require('./routes/users');
+const analyticsRoutes = require('./routes/analytics');
+const roleRequestsRoutes = require('./routes/roleRequests');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -67,6 +69,8 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/users', checkJwt, extractUser, userRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/role-requests', roleRequestsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

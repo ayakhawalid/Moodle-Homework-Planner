@@ -34,6 +34,7 @@ const AdminDashboard = () => {
   });
   const [testResult, setTestResult] = useState(null);
   const [isRealAdmin, setIsRealAdmin] = useState(false);
+  const [roleRequests, setRoleRequests] = useState([]);
 
   // Check if user has admin access (either real admin or debug mode)
   const hasAdminAccess = isAdmin || debugMode;
@@ -41,8 +42,19 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (hasAdminAccess) {
       fetchStats();
+      loadRoleRequests();
     }
   }, [hasAdminAccess]);
+
+  const loadRoleRequests = async () => {
+    try {
+      const items = await apiService.roleRequests.list('pending');
+      setRoleRequests(items);
+    } catch (e) {
+      console.error('Failed to load role requests', e);
+      setRoleRequests([]);
+    }
+  };
 
   const testDirectAPI = async () => {
     try {
@@ -84,24 +96,32 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching admin dashboard stats...');
       const data = await apiService.user.getStats();
+      console.log('Stats fetched successfully:', data);
       setStats(data);
     } catch (err) {
       console.error('Failed to fetch stats:', err);
+      console.error('Error response:', err.response);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
 
       // If it's a 403 error, show a helpful message instead of breaking the dashboard
       if (err.response?.status === 403) {
+        console.error('403 Forbidden - User lacks read:stats permission or admin role');
         setError({
           message: 'Stats unavailable - Backend role sync issue',
           isPermissionError: true
         });
         // Set some dummy stats so the dashboard still looks good
         setStats({
-          totalUsers: 'N/A',
-          totalStudents: 'N/A',
-          totalLecturers: 'N/A',
-          totalAdmins: 'N/A',
-          activeUsers: 'N/A'
+          total_users: 'N/A',
+          verified_users: 'N/A',
+          roles: {
+            students: 'N/A',
+            lecturers: 'N/A',
+            admins: 'N/A'
+          }
         });
       } else {
         setError(err);
@@ -301,20 +321,59 @@ const AdminDashboard = () => {
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  System Status
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Typography variant="body2" color="textSecondary">
-                    Database: Connected
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Pending Role Requests
                   </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Auth Service: Active
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    API Status: Healthy
-                  </Typography>
+                  <Button size="small" onClick={loadRoleRequests}>Refresh</Button>
                 </Box>
+
+                {roleRequests && roleRequests.length > 0 ? (
+                  roleRequests.map((rr) => (
+                    <Box key={rr._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #eee' }}>
+                      <Box>
+                        <Typography variant="body1">{rr.user?.name || rr.user?.email}</Typography>
+                        <Typography variant="caption" color="textSecondary">Requested: {rr.desired_role}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button 
+                          size="small" 
+                          variant="contained" 
+                          onClick={async () => {
+                            try {
+                              await apiService.roleRequests.approve(rr._id);
+                              loadRoleRequests();
+                              fetchStats();
+                            } catch (error) {
+                              console.error('Failed to approve role request:', error);
+                              alert('Failed to approve role request. Please try again.');
+                            }
+                          }}
+                        >
+                          Approve
+                        </Button>
+                        <Button 
+                          size="small" 
+                          variant="outlined" 
+                          color="error" 
+                          onClick={async () => {
+                            try {
+                              await apiService.roleRequests.reject(rr._id);
+                              loadRoleRequests();
+                            } catch (error) {
+                              console.error('Failed to reject role request:', error);
+                              alert('Failed to reject role request. Please try again.');
+                            }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="textSecondary">No pending requests.</Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>

@@ -1,6 +1,6 @@
 const { expressjwt: jwt } = require('express-jwt');
 const jwksRsa = require('jwks-rsa');
-const jwtDecode = require('jsonwebtoken');
+const { jwtDecode } = require('jwt-decode');
 
 // Auth0 JWT verification middleware
 const checkJwt = jwt({
@@ -14,6 +14,8 @@ const checkJwt = jwt({
   issuer: `https://${process.env.AUTH0_DOMAIN}/`,
   algorithms: ['RS256']
 });
+
+
 
 // Middleware to extract user info from JWT
 const extractUser = (req, res, next) => {
@@ -30,12 +32,18 @@ const extractUser = (req, res, next) => {
     };
 
     // Debug logging
-    console.log('JWT Token contents:', {
+    console.log('[JWT] Token contents:', {
       sub: req.auth.sub,
+      email: req.auth.email,
       roles: req.auth['https://my-app.com/roles'],
       permissions: req.auth.permissions,
-      scope: req.auth.scope
+      scope: req.auth.scope,
+      email_verified: req.auth.email_verified
     });
+
+    console.log('[JWT] Extracted userInfo:', req.userInfo);
+  } else {
+    console.log('[JWT] No auth object found in request');
   }
   next();
 };
@@ -91,12 +99,22 @@ const requirePermission = (permission) => {
 const requireRoleOrPermission = (roles, permissions) => {
   return (req, res, next) => {
     if (!req.userInfo) {
+      console.log('[Auth] No userInfo found in request');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     const userRoles = req.userInfo.roles || [];
     const userPermissions = req.userInfo.permissions || [];
     const userScopes = req.userInfo.scope ? req.userInfo.scope.split(' ') : [];
+
+    console.log('[Auth] Checking permissions:', {
+      required: { roles, permissions },
+      user: {
+        roles: userRoles,
+        permissions: userPermissions,
+        scopes: userScopes
+      }
+    });
 
     // Check if user has any of the required roles
     const hasRole = roles.some(role => userRoles.includes(role));
@@ -106,7 +124,16 @@ const requireRoleOrPermission = (roles, permissions) => {
       userPermissions.includes(perm) || userScopes.includes(perm)
     );
 
+    console.log('[Auth] Permission check result:', {
+      hasRole,
+      hasPermission,
+      userRoles,
+      userPermissions,
+      userScopes
+    });
+
     if (!hasRole && !hasPermission) {
+      console.log('[Auth] Access denied - insufficient permissions');
       return res.status(403).json({
         error: 'Insufficient permissions',
         required: { roles, permissions },
@@ -117,6 +144,7 @@ const requireRoleOrPermission = (roles, permissions) => {
       });
     }
 
+    console.log('[Auth] Access granted');
     next();
   };
 };
@@ -130,7 +158,7 @@ const requireAdmin = (req, res, next) => {
     }
 
     // Decode the token to check permissions
-    const decoded = jwtDecode.decode(token);
+    const decoded = jwtDecode(token);
     const permissions = decoded.scope?.split(' ') || [];
 
     // Check if the required permission is present

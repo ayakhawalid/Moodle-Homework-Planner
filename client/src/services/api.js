@@ -97,6 +97,14 @@ export const apiService = {
       const response = await api.get(`/users/${id}`);
       return response.data;
     },
+    updateById: async (id, data) => {
+      const response = await api.put(`/users/${id}`, data);
+      return response.data;
+    },
+    checkUsername: async (username) => {
+      const response = await api.get(`/users/username-available`, { params: { u: username } });
+      return response.data;
+    },
     updateRole: async (id, role) => {
       const response = await api.put(`/users/${id}/role`, { role });
       return response.data;
@@ -107,6 +115,50 @@ export const apiService = {
     },
     syncProfile: async (data) => {
       const response = await api.post('/users', data);
+      return response.data;
+    }
+  },
+
+  // Settings endpoints
+  settings: {
+    getAll: async () => {
+      const response = await api.get('/settings');
+      return response.data;
+    },
+    saveAll: async (items) => {
+      const response = await api.put('/settings', items);
+      return response.data;
+    }
+  },
+
+  // Analytics endpoints
+  analytics: {
+    getOverview: async () => {
+      const response = await api.get('/analytics/overview');
+      return response.data;
+    }
+  },
+
+  roleRequests: {
+    submit: async (role) => {
+      const response = await api.post('/role-requests', { role });
+      return response.data;
+    },
+    list: async (status) => {
+      const params = status ? { status } : {};
+      const response = await api.get('/role-requests', { params });
+      return response.data;
+    },
+    getMyRequests: async () => {
+      const response = await api.get('/role-requests/my');
+      return response.data;
+    },
+    approve: async (id) => {
+      const response = await api.post(`/role-requests/${id}/approve`);
+      return response.data;
+    },
+    reject: async (id, note) => {
+      const response = await api.post(`/role-requests/${id}/reject`, { note });
       return response.data;
     }
   },

@@ -9,6 +9,7 @@ function Home() {
       style={{
         backgroundImage: `url(${homeImage})`
       }}>
+      
     </div>
   )
 }

@@ -20,7 +20,9 @@ import {
   Quiz as QuizIcon,
   People as UsersIcon,
   Settings as SettingsIcon,
-  Analytics as AnalyticsIcon
+  Analytics as AnalyticsIcon,
+  AccountCircle as AccountCircleIcon,
+  SwapHoriz as SwapHorizIcon
 } from '@mui/icons-material';
 import '../styles/DashboardSidebar.css';
 
@@ -69,7 +71,9 @@ function DashboardSidebar({ userRole }) {
     { path: '/student/classroom', label: 'Courses Info', icon: <SchoolIcon /> },
     { path: '/student/exams', label: 'Exams', icon: <QuizIcon /> },
     { path: '/student/timer', label: 'Study Timer', icon: <TimerIcon /> },
-    { path: '/student/partner', label: 'Choose Partner', icon: <GroupIcon /> }
+    { path: '/student/partner', label: 'Choose Partner', icon: <GroupIcon /> },
+    { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
+    { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }
   ];
 
   // Lecturer navigation items
@@ -77,7 +81,9 @@ function DashboardSidebar({ userRole }) {
     { path: '/lecturer/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/lecturer/homework-checker', label: 'Homework Checker', icon: <GradingIcon /> },
     { path: '/lecturer/classroom', label: 'Courses Info', icon: <SchoolIcon /> },
-    { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> }
+    { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> },
+    { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
+    { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }
   ];
 
   // Admin navigation items
@@ -85,7 +91,8 @@ function DashboardSidebar({ userRole }) {
     { path: '/admin/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/admin/users', label: 'User Management', icon: <UsersIcon /> },
     { path: '/admin/analytics', label: 'System Analytics', icon: <AnalyticsIcon /> },
-    { path: '/admin/settings', label: 'System Settings', icon: <SettingsIcon /> }
+    { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
+    { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }
   ];
 
   const navItems = userRole === 'student' ? studentNavItems :
