@@ -3,6 +3,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
+import { apiService } from '../services/api';
 
 const Callback = () => {
   const { isLoading, error, user, isAuthenticated } = useAuth0();
@@ -14,12 +15,47 @@ const Callback = () => {
       console.log('Auth0 callback - User authenticated:', user);
       console.log('User roles from custom claims:', user['https://my-app.com/roles']);
 
-      // Small delay to ensure the useAuth hook has processed the user data
-      setTimeout(() => {
-        console.log('Redirecting user with role:', userRole);
-        console.log('All user roles:', userRoles);
-        redirectToDashboard();
-      }, 100);
+      (async () => {
+        try {
+          // Ensure user profile exists in our DB before proceeding
+          await apiService.user.syncProfile({
+            email: user.email,
+            name: user.name,
+            full_name: user.given_name || user.name,
+            username: user.nickname || null,
+            picture: user.picture,
+            email_verified: user.email_verified
+          });
+
+          // If a preferred signup username exists, update profile once after signup/login
+          const preferredUsername = localStorage.getItem('signup_username');
+          if (preferredUsername) {
+            await apiService.user.updateProfile({ username: preferredUsername });
+            localStorage.removeItem('signup_username');
+          } else if (user.nickname) {
+            // If no preferred username, try to set Auth0 nickname as username
+            await apiService.user.updateProfile({ username: user.nickname });
+          }
+
+          // If a signup role was selected, submit a role request
+          const signupRole = localStorage.getItem('signup_role');
+          if (signupRole) {
+            console.log('Submitting role request for:', signupRole);
+            await apiService.roleRequests.submit(signupRole);
+            localStorage.removeItem('signup_role');
+          }
+
+        } catch (e) {
+          console.warn('Failed during post-signup processing (username/role request):', e);
+        } finally {
+          // Small delay to ensure the useAuth hook has processed the user data
+          setTimeout(() => {
+            console.log('Redirecting user with role:', userRole);
+            console.log('All user roles:', userRoles);
+            redirectToDashboard();
+          }, 100);
+        }
+      })();
     }
   }, [isLoading, isAuthenticated, user, redirectToDashboard, userRole, userRoles]);
 

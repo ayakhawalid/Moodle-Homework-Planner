@@ -25,7 +25,7 @@ const {
 router.post('/', checkJwt, async (req, res) => {
   try {
     const auth0_id = req.auth.sub;
-    const { email, name, picture, email_verified } = req.body;
+    const { email, name, full_name, username, picture, email_verified } = req.body;
 
     if (!auth0_id || !email || !name) {
       return res.status(400).json({ message: 'auth0_id, email, and name are required.' });
@@ -54,6 +54,8 @@ router.post('/', checkJwt, async (req, res) => {
         auth0_id,
         email,
         name,
+        full_name: full_name || name, // Use full_name if provided, otherwise use name
+        username: username || null,
         picture,
         email_verified,
         role: initialRole, // Set initial role from Auth0 or default
@@ -63,6 +65,8 @@ router.post('/', checkJwt, async (req, res) => {
       // Update user details, especially linking the auth0_id if it was found by email
       user.auth0_id = auth0_id;
       user.name = name;
+      user.full_name = full_name || user.full_name || name;
+      user.username = username || user.username;
       user.picture = picture;
       user.email_verified = email_verified || user.email_verified;
       user.last_login = new Date();
@@ -92,7 +96,7 @@ router.post('/', checkJwt, async (req, res) => {
 // PUT /api/users/profile - Update current user's profile
 router.put('/profile', checkJwt, async (req, res) => {
   try {
-    const { birth_date, gender, name } = req.body;
+    const { birth_date, gender, name, full_name, username, picture } = req.body;
     const auth0_id = req.auth.sub;
 
     const user = await User.findOne({ auth0_id });
@@ -104,35 +108,46 @@ router.put('/profile', checkJwt, async (req, res) => {
     if (birth_date) user.birth_date = birth_date;
     if (gender) user.gender = gender;
     if (name) user.name = name;
+    if (full_name) user.full_name = full_name;
+    if (username) user.username = username;
+    if (picture) user.picture = picture;
 
     await user.save();
 
-    // Update profile in Auth0 if name changed
-    if (name && user.auth0_id) {
+    // Update profile in Auth0 if name, full_name, username, or picture changed
+    if ((name || full_name || username || picture) && user.auth0_id) {
       try {
-        await updateAuth0UserProfile(user.auth0_id, { name });
-        console.log(`✅ Updated name in Auth0 for ${user.email}`);
+        const profileData = {};
+        if (name) profileData.name = name;
+        if (full_name) profileData.given_name = full_name;
+        if (username) profileData.nickname = username;
+        if (picture) profileData.picture = picture;
+
+        await updateAuth0UserProfile(user.auth0_id, profileData);
+        console.log(`✅ Updated profile in Auth0 for ${user.email}:`, profileData);
       } catch (auth0Error) {
-        console.error(`⚠️ Failed to update name in Auth0 for ${user.email}:`, auth0Error.message);
+        console.error(`⚠️ Failed to update profile in Auth0 for ${user.email}:`, auth0Error.message);
         // Don't fail the request if Auth0 update fails
       }
     }
 
-    // Update metadata in Auth0
-    if ((birth_date || gender) && user.auth0_id) {
+    // Update metadata in Auth0 for additional fields
+    if ((birth_date || gender || full_name) && user.auth0_id) {
       try {
         const metadata = {};
         if (birth_date) metadata.birth_date = birth_date;
         if (gender) metadata.gender = gender;
+        if (full_name) metadata.full_name = full_name;
 
         await updateAuth0UserMetadata(user.auth0_id, metadata);
-        console.log(`✅ Updated metadata in Auth0 for ${user.email}`);
+        console.log(`✅ Updated metadata in Auth0 for ${user.email}:`, metadata);
       } catch (auth0Error) {
         console.error(`⚠️ Failed to update metadata in Auth0 for ${user.email}:`, auth0Error.message);
         // Don't fail the request if Auth0 update fails
       }
     }
 
+    console.log(`✅ Profile updated successfully for ${user.email} in database`);
     res.json(user);
   } catch (error) {
     console.error('Error updating user profile:', error);
@@ -154,6 +169,29 @@ router.get('/profile', checkJwt, extractUser, async (req, res) => {
   } catch (error) {
     console.error('Error getting user profile:', error);
     res.status(500).json({ error: 'Failed to get user profile' });
+  }
+});
+
+// GET /api/users/username-available - Check if username is available
+router.get('/username-available', checkJwt, extractUser, async (req, res) => {
+  try {
+    const { u: username } = req.query;
+    const auth0_id = req.auth.sub;
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username parameter required' });
+    }
+
+    // Check if username exists (excluding current user)
+    const existingUser = await User.findOne({ 
+      username: username,
+      auth0_id: { $ne: auth0_id } // Exclude current user
+    });
+
+    res.json({ available: !existingUser });
+  } catch (error) {
+    console.error('Error checking username availability:', error);
+    res.status(500).json({ error: 'Failed to check username availability' });
   }
 });
 
@@ -191,6 +229,11 @@ router.get('/', checkJwt, extractUser, requireAdminOrReadUsers, async (req, res)
 // GET /api/users/stats - Get user statistics (Admin only)
 router.get('/stats', checkJwt, extractUser, requireAdminOrReadStats, async (req, res) => {
   try {
+    console.log('[Stats] Request received from user:', req.userInfo);
+    console.log('[Stats] User roles:', req.userInfo.roles);
+    console.log('[Stats] User permissions:', req.userInfo.permissions);
+    console.log('[Stats] User scope:', req.userInfo.scope);
+    
     // Use a single, more efficient aggregation pipeline with $facet
     const stats = await User.aggregate([
       {
@@ -211,6 +254,8 @@ router.get('/stats', checkJwt, extractUser, requireAdminOrReadStats, async (req,
       }
     ]);
 
+    console.log('[Stats] Raw aggregation result:', stats);
+
     // Process the results from the single aggregation call
     const result = stats[0];
     const roleStats = {};
@@ -218,7 +263,7 @@ router.get('/stats', checkJwt, extractUser, requireAdminOrReadStats, async (req,
       roleStats[stat._id] = stat.count;
     });
 
-    res.json({
+    const responseData = {
       total_users: result.totalUsers[0]?.count || 0,
       verified_users: result.verifiedUsers[0]?.count || 0,
       roles: {
@@ -226,7 +271,10 @@ router.get('/stats', checkJwt, extractUser, requireAdminOrReadStats, async (req,
         lecturers: roleStats.lecturer || 0,
         admins: roleStats.admin || 0
       }
-    });
+    };
+
+    console.log('[Stats] Sending response:', responseData);
+    res.json(responseData);
   } catch (error) {
     console.error('Error getting user stats:', error);
     res.status(500).json({ error: 'Failed to get user statistics' });
@@ -249,7 +297,7 @@ router.get('/:id', checkJwt, extractUser, requireAdminOrReadUsers, async (req, r
 });
 
 // PUT /api/users/:id - Update user profile (Admin only)
-router.put('/:id', checkJwt, extractUser, requireAdmin, async (req, res) => {
+router.put('/:id', checkJwt, extractUser, requireAdminOrManageUsers, async (req, res) => {
   try {
     const { name, email, birth_date, gender } = req.body;
 
@@ -353,7 +401,7 @@ router.put('/:id/role', checkJwt, extractUser, requireAdmin, async (req, res) =>
 });
 
 // DELETE /api/users/:id - Delete user in DB and Auth0
-router.delete('/:id', checkJwt, extractUser, requireAdmin, async (req, res) => {
+router.delete('/:id', checkJwt, extractUser, requireAdminOrManageUsers, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -370,6 +418,11 @@ router.delete('/:id', checkJwt, extractUser, requireAdmin, async (req, res) => {
         return res.status(500).json({ error: 'Failed to delete user in Auth0' });
       }
     }
+
+    // Delete associated role requests
+    const RoleRequest = require('../models/RoleRequest');
+    await RoleRequest.deleteMany({ user: user._id });
+    console.log(`Deleted role requests for user: ${user.email}`);
 
     // Delete user in the database
     await User.findByIdAndDelete(req.params.id);

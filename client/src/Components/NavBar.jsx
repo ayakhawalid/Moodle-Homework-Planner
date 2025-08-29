@@ -51,11 +51,10 @@ function NavBar() {
         {/* Always visible items */}
         {!isLoggedIn && (
           <>
-            <Link to="/bookrooms" className="nav-circle">Book{'\n'}Rooms</Link>
-            <Link to="/timetable" className="nav-circle">
+            <a href={`chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.haifa.ac.il/wp-content/uploads/2025/07/mat-4-%D7%AA%D7%A9%D7%A4%D7%94.pdf`} target="_blank" rel="noreferrer" className="nav-circle">
               <EventNoteIcon style={{ fontSize: '20px', marginBottom: '2px' }} />
               <span>Timetable</span>
-            </Link>
+            </a>
           </>
         )}
 
@@ -125,11 +124,14 @@ function NavBar() {
           </>
         )}
 
-        {/* Login/Logout buttons */}
+        {/* Login/Signup/Logout buttons */}
         {!isLoggedIn ? (
-          <Link to="/login" className="nav-circle">
-            <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
-          </Link>
+          <>
+            <Link to="/login" className="nav-circle">
+              <LoginIcon style={{ marginRight: '5px', fontSize: '18px' }} />Login
+            </Link>
+            <Link to="/login?mode=signup" className="nav-circle">Sign Up</Link>
+          </>
         ) : (
           <Auth0LogoutButton />
         )}

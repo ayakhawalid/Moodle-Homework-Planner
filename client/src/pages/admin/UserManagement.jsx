@@ -55,12 +55,31 @@ const UserManagement = () => {
 
   // Helper to always get a fresh token and call the API
   const fetchWithToken = async (url, options = {}) => {
-    const token = await getAccessTokenSilently({
-      authorizationParams: {
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000'
-      },
-      ignoreCache: true // forces a fresh token when needed
-    });
+    let token;
+    try {
+      token = await getAccessTokenSilently({
+        authorizationParams: {
+          audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
+          scope: 'read:users read:roles write:users manage:users delete:users'
+        },
+        ignoreCache: true
+      });
+    } catch (err) {
+      // If user hasn't consented to these scopes yet, request interactive login
+      const needsConsent = err?.error === 'consent_required' || (err?.message && err.message.includes('consent'));
+      const missingRefresh = err?.message && err.message.includes('Missing Refresh Token');
+      if (needsConsent || missingRefresh) {
+        await loginWithRedirect({
+          authorizationParams: {
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
+            scope: 'openid profile email read:users read:roles write:users manage:users delete:users'
+          }
+        });
+        // Redirecting; return a pending promise to halt further execution
+        return new Promise(() => {});
+      }
+      throw err;
+    }
 
     const headers = {
       ...(options.headers || {}),

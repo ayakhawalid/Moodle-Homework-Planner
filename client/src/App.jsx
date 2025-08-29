@@ -14,8 +14,8 @@ import Auth0ConfigTester from './Components/Auth0ConfigTester';
 import AuthDebugPanel from './Components/AuthDebugPanel';
 import BackendTest from './Components/BackendTest';
 import RolePending from './pages/RolePending';
-import BookRooms from './pages/BookRooms';
 import TimeTable from './pages/TimeTable';
+import RoleRequests from './pages/RoleRequests';
 
 // Student Pages
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -39,7 +39,7 @@ import WorkloadStats from './pages/lecturer/WorkloadStats';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import SystemAnalytics from './pages/admin/SystemAnalytics';
-import SystemSettings from './pages/admin/SystemSettings';
+import Profile from './pages/Profile';
 
 import './App.css';
 import './styles/NavBar.css';
@@ -69,7 +69,13 @@ function AppContent() {
   const { syncStatus } = useUserSyncContext();
 
   // Hide navbar on dashboard pages (they have their own sidebar navigation)
-  const isDashboardPage = location.pathname.startsWith('/student/') || location.pathname.startsWith('/lecturer/') || location.pathname.startsWith('/admin/');
+  // Also hide on /profile since it renders inside DashboardLayout
+  const isDashboardPage =
+    location.pathname.startsWith('/student/') ||
+    location.pathname.startsWith('/lecturer/') ||
+    location.pathname.startsWith('/admin/') ||
+    location.pathname === '/profile' ||
+    location.pathname === '/role-requests';
 
   // Display a global loading indicator while the Auth0 SDK is initializing.
   // Or while the initial user sync is in progress.
@@ -97,8 +103,9 @@ function AppContent() {
           <Route path='/debug-panel' element={<AuthDebugPanel />} />
           <Route path='/backend-test' element={<BackendTest />} />
           <Route path='/role-pending' element={<RolePending />} />
-          <Route path='/bookrooms' element={<BookRooms />} />
           <Route path='/timetable' element={<TimeTable />} />
+          <Route path='/profile' element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path='/role-requests' element={<ProtectedRoute><RoleRequests /></ProtectedRoute>} />
 
           {/* Student Pages */}
           <Route path='/student/dashboard' element={<ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute>} />
@@ -111,18 +118,21 @@ function AppContent() {
           <Route path='/student/tracker' element={<ProtectedRoute requiredRole="student"><StudyTracker /></ProtectedRoute>} />
           <Route path='/student/exams' element={<ProtectedRoute requiredRole="student"><ExamsFinals /></ProtectedRoute>} />
           <Route path='/student/partner' element={<ProtectedRoute requiredRole="student"><ChoosePartner /></ProtectedRoute>} />
+          
 
           {/* Lecturer Pages */}
           <Route path='/lecturer/dashboard' element={<ProtectedRoute requiredRole="lecturer"><LecturerDashboard /></ProtectedRoute>} />
           <Route path='/lecturer/homework-checker' element={<ProtectedRoute requiredRole="lecturer"><HomeworkChecker /></ProtectedRoute>} />
           <Route path='/lecturer/classroom' element={<ProtectedRoute requiredRole="lecturer"><ClassroomInfoLecturer /></ProtectedRoute>} />
           <Route path='/lecturer/stats' element={<ProtectedRoute requiredRole="lecturer"><WorkloadStats /></ProtectedRoute>} />
+          
 
           {/* Admin Pages */}
           <Route path='/admin/dashboard' element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path='/admin/users' element={<ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute>} />
           <Route path='/admin/analytics' element={<ProtectedRoute requiredRole="admin"><SystemAnalytics /></ProtectedRoute>} />
-          <Route path='/admin/settings' element={<ProtectedRoute requiredRole="admin"><SystemSettings /></ProtectedRoute>} />
+          
+          
         </Routes>
         {!isDashboardPage && <Footer />}
       </>
