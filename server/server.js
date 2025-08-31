@@ -17,6 +17,11 @@ const { checkJwt, extractUser } = require('./middleware/auth');
 const userRoutes = require('./routes/users');
 const analyticsRoutes = require('./routes/analytics');
 const roleRequestsRoutes = require('./routes/roleRequests');
+const courseRoutes = require('./routes/courses');
+const homeworkRoutes = require('./routes/homework');
+const classRoutes = require('./routes/classes');
+const examRoutes = require('./routes/exams');
+const studyProgressRoutes = require('./routes/studyProgress');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,7 +51,11 @@ app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    process.env.CLIENT_URL
+  ].filter(Boolean),
   credentials: true
 }));
 
@@ -71,6 +80,11 @@ app.get('/api/health', (req, res) => {
 app.use('/api/users', checkJwt, extractUser, userRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/role-requests', roleRequestsRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/homework', homeworkRoutes);
+app.use('/api/classes', classRoutes);
+app.use('/api/exams', examRoutes);
+app.use('/api/study-progress', studyProgressRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -163,7 +163,7 @@ export const apiService = {
     }
   },
   
-  // Course endpoints (to be implemented)
+  // Course endpoints
   courses: {
     getAll: (params) => api.get('/courses', { params }),
     getById: (id) => api.get(`/courses/${id}`),
@@ -171,7 +171,9 @@ export const apiService = {
     update: (id, data) => api.put(`/courses/${id}`, data),
     delete: (id) => api.delete(`/courses/${id}`),
     getByLecturer: (lecturerId) => api.get(`/courses/lecturer/${lecturerId}`),
-    getByStudent: (studentId) => api.get(`/courses/student/${studentId}`)
+    getByStudent: (studentId) => api.get(`/courses/student/${studentId}`),
+    addStudent: (courseId, studentId) => api.post(`/courses/${courseId}/students`, { student_id: studentId }),
+    removeStudent: (courseId, studentId) => api.delete(`/courses/${courseId}/students/${studentId}`)
   },
   
   // Homework endpoints (to be implemented)
