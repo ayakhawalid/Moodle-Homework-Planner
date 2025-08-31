@@ -66,6 +66,7 @@ function DashboardSidebar({ userRole }) {
   // Student navigation items
   const studentNavItems = [
     { path: '/student/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+    { path: '/student/courses', label: 'Course Enrollment', icon: <SchoolIcon /> },
     { path: '/student/homework', label: 'Homework Planner', icon: <AssignmentIcon /> },
     { path: '/student/classes', label: 'Classes Planner', icon: <CalendarTodayIcon /> },
     { path: '/student/classroom', label: 'Courses Info', icon: <SchoolIcon /> },
@@ -79,6 +80,7 @@ function DashboardSidebar({ userRole }) {
   // Lecturer navigation items
   const lecturerNavItems = [
     { path: '/lecturer/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+    { path: '/lecturer/courses', label: 'Course Management', icon: <SchoolIcon /> },
     { path: '/lecturer/homework-checker', label: 'Homework Checker', icon: <GradingIcon /> },
     { path: '/lecturer/classroom', label: 'Courses Info', icon: <SchoolIcon /> },
     { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> },

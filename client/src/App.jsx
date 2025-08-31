@@ -28,12 +28,14 @@ import StudyTimer from './pages/student/StudyTimer';
 import StudyTracker from './pages/student/StudyTracker';
 import ExamsFinals from './pages/student/ExamsFinals';
 import ChoosePartner from './pages/student/ChoosePartner';
+import CourseEnrollment from './pages/student/CourseEnrollment';
 
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
 import HomeworkChecker from './pages/lecturer/HomeworkChecker';
 import ClassroomInfoLecturer from './pages/lecturer/ClassroomInfoLecturer';
 import WorkloadStats from './pages/lecturer/WorkloadStats';
+import CourseManagement from './pages/lecturer/CourseManagement';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -118,6 +120,7 @@ function AppContent() {
           <Route path='/student/tracker' element={<ProtectedRoute requiredRole="student"><StudyTracker /></ProtectedRoute>} />
           <Route path='/student/exams' element={<ProtectedRoute requiredRole="student"><ExamsFinals /></ProtectedRoute>} />
           <Route path='/student/partner' element={<ProtectedRoute requiredRole="student"><ChoosePartner /></ProtectedRoute>} />
+          <Route path='/student/courses' element={<ProtectedRoute requiredRole="student"><CourseEnrollment /></ProtectedRoute>} />
           
 
           {/* Lecturer Pages */}
@@ -125,6 +128,7 @@ function AppContent() {
           <Route path='/lecturer/homework-checker' element={<ProtectedRoute requiredRole="lecturer"><HomeworkChecker /></ProtectedRoute>} />
           <Route path='/lecturer/classroom' element={<ProtectedRoute requiredRole="lecturer"><ClassroomInfoLecturer /></ProtectedRoute>} />
           <Route path='/lecturer/stats' element={<ProtectedRoute requiredRole="lecturer"><WorkloadStats /></ProtectedRoute>} />
+          <Route path='/lecturer/courses' element={<ProtectedRoute requiredRole="lecturer"><CourseManagement /></ProtectedRoute>} />
           
 
           {/* Admin Pages */}
