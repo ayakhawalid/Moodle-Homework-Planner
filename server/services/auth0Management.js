@@ -20,28 +20,23 @@ const management = new ManagementClient({
 });
 
 const getMgmtToken = async () => {
-  const auth0Domain = process.env.AUTH0_DOMAIN;
-  const audience = process.env.AUTH0_MANAGEMENT_AUDIENCE;
-
-  const tokenResponse = await axios.post(`https://${auth0Domain}/oauth/token`, {
-    client_id: process.env.AUTH0_M2M_CLIENT_ID,
-    client_secret: process.env.AUTH0_M2M_CLIENT_SECRET,
-    audience: audience,
-    grant_type: 'client_credentials',
-  });
-
-  return tokenResponse.data.access_token;
+  try {
+    // Use the ManagementClient to get a token with proper scopes
+    const token = await management.getAccessToken();
+    return token;
+  } catch (error) {
+    console.error('Error getting management token:', error);
+    throw error;
+  }
 };
 
 const deleteAuth0User = async (auth0UserId) => {
   if (!auth0UserId) throw new Error('Missing Auth0 user ID');
-  const token = await getMgmtToken();
-  const url = `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(auth0UserId)}`;
   try {
-    await axios.delete(url, { headers: { Authorization: `Bearer ${token}` } });
+    await management.users.delete({ id: auth0UserId });
     console.log(`✅ Successfully deleted Auth0 user: ${auth0UserId}`);
   } catch (error) {
-    console.error(`❌ Failed to delete Auth0 user: ${auth0UserId}`, error.response?.data || error.message);
+    console.error(`❌ Failed to delete Auth0 user: ${auth0UserId}`, error.message);
     throw new Error('Failed to delete user in Auth0');
   }
 };

@@ -39,10 +39,7 @@ function LecturerNavBar() {
           <GradingIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
           <span>Grading</span>
         </Link>
-        <Link to="/lecturer/classroom" className="nav-circle">
-          <ClassIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-          <span>Classroom</span>
-        </Link>
+
         <Link to="/lecturer/stats" className="nav-circle">
           <BarChartIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
           <span>Stats</span>

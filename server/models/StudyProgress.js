@@ -4,13 +4,11 @@ const studyProgressSchema = new mongoose.Schema({
   student_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   date: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   hours_studied: {
     type: Number,

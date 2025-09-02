@@ -1,13 +1,13 @@
-import React from 'react';
-import { Grid, Box, Typography, Alert } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Grid, Box, Typography, Alert, CircularProgress } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import StatCard from '../../Components/charts/StatCard';
 import ProgressChart from '../../Components/charts/ProgressChart';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuth0 } from '@auth0/auth0-react';
-
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import UserSyncStatus from '../../Components/UserSyncStatus';
+import { apiService } from '../../services/api';
 import {
   Assignment as AssignmentIcon,
   TrendingUp as TrendingUpIcon,
@@ -18,18 +18,49 @@ import {
 } from '@mui/icons-material';
 import '../../styles/DashboardLayout.css';
 
-// Mock data for charts
-const studyProgressData = {
-  categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  values: [2, 3, 1, 4, 2, 5, 3],
-  seriesName: 'Study Hours',
-  yAxisTitle: 'Hours'
-};
-
 function StudentDashboard() {
   const { user } = useAuth();
   const { user: auth0User } = useAuth0();
   const { syncStatus } = useUserSyncContext();
+  
+  // State for dashboard data
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await apiService.studentDashboard.getOverview();
+        setDashboardData(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (syncStatus === 'synced') {
+      fetchDashboardData();
+    }
+  }, [syncStatus]);
+
+  // Prepare study progress data for chart
+  const studyProgressData = dashboardData?.study_progress ? {
+    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    values: [2, 3, 1, 4, 2, 5, 3], // This would come from weekly breakdown
+    seriesName: 'Study Hours',
+    yAxisTitle: 'Hours'
+  } : {
+    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    values: [0, 0, 0, 0, 0, 0, 0],
+    seriesName: 'Study Hours',
+    yAxisTitle: 'Hours'
+  };
 
   // Get user name with multiple fallbacks
   const getUserName = () => {
@@ -72,47 +103,63 @@ function StudentDashboard() {
           </Typography>
         </Box>
 
+        {/* Loading State */}
+        {loading && (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
         {/* Statistics Cards */}
-        <Grid container spacing={3} mb={4}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Study Hours"
-              value="24h"
-              icon={<TimerIcon sx={{ fontSize: 40 }} />}
-              color="#1976d2"
-              trend={12.5}
-              subtitle="This week"
-            />
+        {!loading && !error && dashboardData && (
+          <Grid container spacing={3} mb={4}>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard
+                title="Study Hours"
+                value={`${dashboardData.study_progress?.weekly_hours || 0}h`}
+                icon={<TimerIcon sx={{ fontSize: 40 }} />}
+                color="#1976d2"
+                trend={dashboardData.study_progress?.daily_average || 0}
+                subtitle="This week"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard
+                title="Pending Tasks"
+                value={dashboardData.homework?.upcoming || 0}
+                icon={<AssignmentIcon sx={{ fontSize: 40 }} />}
+                color="#f57c00"
+                subtitle="Due this week"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard
+                title="Completed"
+                value={dashboardData.homework?.completed || 0}
+                icon={<CheckCircleIcon sx={{ fontSize: 40 }} />}
+                color="#4caf50"
+                trend={dashboardData.homework?.average_grade || 0}
+                subtitle="This month"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard
+                title="Courses"
+                value={dashboardData.courses?.total || 0}
+                icon={<SchoolIcon sx={{ fontSize: 40 }} />}
+                color="#7b1fa2"
+                subtitle="Active"
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Pending Tasks"
-              value="8"
-              icon={<AssignmentIcon sx={{ fontSize: 40 }} />}
-              color="#f57c00"
-              subtitle="Due this week"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Completed"
-              value="15"
-              icon={<CheckCircleIcon sx={{ fontSize: 40 }} />}
-              color="#4caf50"
-              trend={8.2}
-              subtitle="This month"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Courses"
-              value="6"
-              icon={<SchoolIcon sx={{ fontSize: 40 }} />}
-              color="#7b1fa2"
-              subtitle="Active"
-            />
-          </Grid>
-        </Grid>
+        )}
 
         {/* Charts Section */}
         <Grid container spacing={3} mb={4}>
@@ -138,18 +185,20 @@ function StudentDashboard() {
               </div>
               <div className="card-content">
                 <div style={{marginTop: '15px'}}>
-                  <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                    <strong>Mathematics 101</strong><br />
-                    <small style={{color: '#666'}}>Prof. Johnson - Room 204</small>
-                  </div>
-                  <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                    <strong>Physics Advanced</strong><br />
-                    <small style={{color: '#666'}}>Prof. Smith - Room 301</small>
-                  </div>
-                  <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                    <strong>Computer Science</strong><br />
-                    <small style={{color: '#666'}}>Prof. Davis - Lab 102</small>
-                  </div>
+                  {dashboardData?.courses?.list?.length > 0 ? (
+                    dashboardData.courses.list.slice(0, 3).map((course, index) => (
+                      <div key={course._id} style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                        <strong>{course.course_name}</strong><br />
+                        <small style={{color: '#666'}}>
+                          {course.lecturer?.name || 'TBA'} - {course.course_code}
+                        </small>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                      No courses enrolled yet
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -157,36 +206,39 @@ function StudentDashboard() {
         </Grid>
 
         {/* Dashboard Grid */}
-        <div className="dashboard-grid">
+        {!loading && !error && dashboardData && (
+          <div className="dashboard-grid">
 
-        {/* Homework Deadlines Card */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <div className="card-icon secondary">
-              <AssignmentIcon />
+          {/* Homework Deadlines Card */}
+          <div className="dashboard-card">
+            <div className="card-header">
+              <div className="card-icon secondary">
+                <AssignmentIcon />
+              </div>
+              <div>
+                <h3 className="card-title">Homework Deadlines</h3>
+                <p className="card-subtitle">Upcoming assignments</p>
+              </div>
             </div>
-            <div>
-              <h3 className="card-title">Homework Deadlines</h3>
-              <p className="card-subtitle">Upcoming assignments</p>
+            <div className="card-content">
+              <div style={{marginTop: '15px'}}>
+                {dashboardData.recent_activity?.recent_grades?.length > 0 ? (
+                  dashboardData.recent_activity.recent_grades.slice(0, 3).map((homework, index) => (
+                    <div key={index} style={{marginBottom: '10px', padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
+                      <strong>{homework.title}</strong><br />
+                      <small style={{color: '#856404'}}>
+                        {homework.grade ? `Grade: ${homework.grade}%` : 'Not graded yet'}
+                      </small>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                    No recent homework activity
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="card-content">
-            <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
-                <strong>Math Assignment #5</strong><br />
-                <small style={{color: '#856404'}}>Due: Tomorrow</small>
-              </div>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Physics Lab Report</strong><br />
-                <small style={{color: '#666'}}>Due: In 3 days</small>
-              </div>
-              <div style={{padding: '10px', background: '#d1ecf1', borderRadius: '8px'}}>
-                <strong>CS Project</strong><br />
-                <small style={{color: '#0c5460'}}>Due: Next week</small>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Exam Deadlines Card */}
         <div className="dashboard-card">
@@ -217,9 +269,9 @@ function StudentDashboard() {
           </div>
         </div>
 
-
-
         </div>
+        )}
+
       </Box>
     </DashboardLayout>
   );

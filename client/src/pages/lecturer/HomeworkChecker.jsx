@@ -1,9 +1,63 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
+import { apiService } from '../../services/api';
 import { Grade as GradingIcon, Assignment as AssignmentIcon, Comment as CommentIcon, Assessment as AssessmentIcon } from '@mui/icons-material';
 import '../../styles/DashboardLayout.css';
 
 function HomeworkChecker() {
+  const [homeworkData, setHomeworkData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [courseFilter, setCourseFilter] = useState('');
+
+  useEffect(() => {
+    const fetchHomeworkData = async () => {
+      try {
+        setLoading(true);
+        const response = await apiService.lecturerDashboard.getHomeworkChecker(statusFilter, courseFilter || null);
+        setHomeworkData(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching homework data:', err);
+        setError('Failed to load homework data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeworkData();
+  }, [statusFilter, courseFilter]);
+
+  const handleStatusChange = (newStatus) => {
+    setStatusFilter(newStatus);
+  };
+
+  const handleCourseChange = (courseId) => {
+    setCourseFilter(courseId);
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout userRole="lecturer">
+        <div className="welcome-section">
+          <h1 className="welcome-title">Loading Homework Checker...</h1>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout userRole="lecturer">
+        <div className="welcome-section">
+          <h1 className="welcome-title">Error Loading Homework</h1>
+          <p className="welcome-subtitle">{error}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout userRole="lecturer">
       <div className="welcome-section">
@@ -11,7 +65,51 @@ function HomeworkChecker() {
         <p className="welcome-subtitle">Review, grade, and provide feedback on student homework submissions</p>
       </div>
 
-      <div className="dashboard-grid">
+            <div className="dashboard-grid">
+        {/* Filters */}
+        <div className="dashboard-card">
+          <div className="card-header">
+            <div className="card-icon primary">
+              <AssignmentIcon />
+            </div>
+            <div>
+              <h3 className="card-title">Filters</h3>
+              <p className="card-subtitle">Filter homework by status and course</p>
+            </div>
+          </div>
+          <div className="card-content">
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Status:</label>
+                <select 
+                  value={statusFilter} 
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Course:</label>
+                <select 
+                  value={courseFilter} 
+                  onChange={(e) => handleCourseChange(e.target.value)}
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                >
+                  <option value="">All Courses</option>
+                  {homeworkData?.courses?.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.name} ({course.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon primary">
@@ -24,28 +122,45 @@ function HomeworkChecker() {
           </div>
           <div className="card-content">
             <p>View and grade recently submitted assignments from your students.</p>
-            <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
-                <strong>Math Assignment #5</strong><br />
-                <small style={{color: '#856404'}}>12 submissions - Due: Yesterday</small>
+            {homeworkData?.homework && homeworkData.homework.length > 0 ? (
+              <div style={{marginTop: '15px'}}>
+                {homeworkData.homework.map((hw) => (
+                  <div 
+                    key={hw._id} 
+                    style={{
+                      marginBottom: '10px', 
+                      padding: '10px', 
+                      background: hw.is_overdue ? '#f8d7da' : '#fff3cd', 
+                      borderRadius: '8px',
+                      border: hw.is_overdue ? '1px solid #f5c6cb' : '1px solid #ffeaa7'
+                    }}
+                  >
+                    <strong>{hw.title}</strong><br />
+                    <small style={{color: hw.is_overdue ? '#721c24' : '#856404'}}>
+                      {hw.statistics.submitted} submissions - Due: {new Date(hw.due_date).toLocaleDateString()}
+                      {hw.is_overdue && ' (OVERDUE)'}
+                    </small>
+                    <div style={{marginTop: '5px', fontSize: '12px'}}>
+                      Course: {hw.course.name} ({hw.course.code}) | 
+                      Status: {hw.status.replace('_', ' ')} | 
+                      Graded: {hw.statistics.graded}/{hw.statistics.submitted}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Physics Lab Report</strong><br />
-                <small style={{color: '#666'}}>8 submissions - Due: Today</small>
+            ) : (
+              <div style={{marginTop: '15px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                <p style={{margin: 0, color: '#666'}}>No homework found with the current filters.</p>
               </div>
-              <div style={{padding: '10px', background: '#d1ecf1', borderRadius: '8px'}}>
-                <strong>History Essay</strong><br />
-                <small style={{color: '#0c5460'}}>15 submissions - Due: Tomorrow</small>
-              </div>
-            </div>
+            )}
           </div>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">35</span>
+              <span className="stat-value">{homeworkData?.grading_progress?.pending || 0}</span>
               <span className="stat-label">To Grade</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">3</span>
+              <span className="stat-value">{homeworkData?.homework?.filter(hw => hw.is_overdue).length || 0}</span>
               <span className="stat-label">Overdue</span>
             </div>
           </div>
@@ -84,11 +199,11 @@ function HomeworkChecker() {
           </div>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">24</span>
+              <span className="stat-value">{homeworkData?.grading_progress?.fully_graded || 0}</span>
               <span className="stat-label">Graded</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">11</span>
+              <span className="stat-value">{homeworkData?.grading_progress?.pending || 0}</span>
               <span className="stat-label">Remaining</span>
             </div>
           </div>

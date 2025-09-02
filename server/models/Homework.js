@@ -4,8 +4,7 @@ const homeworkSchema = new mongoose.Schema({
   course_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
-    required: true,
-    index: true
+    required: true
   },
   title: {
     type: String,
@@ -19,8 +18,7 @@ const homeworkSchema = new mongoose.Schema({
   },
   due_date: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   
   // Additional useful fields

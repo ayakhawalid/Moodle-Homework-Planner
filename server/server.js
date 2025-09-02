@@ -22,6 +22,10 @@ const homeworkRoutes = require('./routes/homework');
 const classRoutes = require('./routes/classes');
 const examRoutes = require('./routes/exams');
 const studyProgressRoutes = require('./routes/studyProgress');
+const lecturerDashboardRoutes = require('./routes/lecturerDashboard');
+const studentDashboardRoutes = require('./routes/studentDashboard');
+const lecturerManagementRoutes = require('./routes/lecturerManagement');
+const studentSubmissionRoutes = require('./routes/studentSubmission');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -85,6 +89,10 @@ app.use('/api/homework', homeworkRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/study-progress', studyProgressRoutes);
+app.use('/api/lecturer-dashboard', lecturerDashboardRoutes);
+app.use('/api/student-dashboard', studentDashboardRoutes);
+app.use('/api/lecturer-management', lecturerManagementRoutes);
+app.use('/api/student-submission', studentSubmissionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

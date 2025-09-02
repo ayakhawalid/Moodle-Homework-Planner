@@ -4,13 +4,11 @@ const examSchema = new mongoose.Schema({
   course_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
-    required: true,
-    index: true
+    required: true
   },
   due_date: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   
   // Additional useful fields
