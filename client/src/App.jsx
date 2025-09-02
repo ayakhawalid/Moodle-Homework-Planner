@@ -33,7 +33,7 @@ import CourseEnrollment from './pages/student/CourseEnrollment';
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
 import HomeworkChecker from './pages/lecturer/HomeworkChecker';
-import ClassroomInfoLecturer from './pages/lecturer/ClassroomInfoLecturer';
+
 import WorkloadStats from './pages/lecturer/WorkloadStats';
 import CourseManagement from './pages/lecturer/CourseManagement';
 
@@ -126,7 +126,6 @@ function AppContent() {
           {/* Lecturer Pages */}
           <Route path='/lecturer/dashboard' element={<ProtectedRoute requiredRole="lecturer"><LecturerDashboard /></ProtectedRoute>} />
           <Route path='/lecturer/homework-checker' element={<ProtectedRoute requiredRole="lecturer"><HomeworkChecker /></ProtectedRoute>} />
-          <Route path='/lecturer/classroom' element={<ProtectedRoute requiredRole="lecturer"><ClassroomInfoLecturer /></ProtectedRoute>} />
           <Route path='/lecturer/stats' element={<ProtectedRoute requiredRole="lecturer"><WorkloadStats /></ProtectedRoute>} />
           <Route path='/lecturer/courses' element={<ProtectedRoute requiredRole="lecturer"><CourseManagement /></ProtectedRoute>} />
           

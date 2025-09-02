@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useAuth } from '../../hooks/useAuth';
+import { apiService } from '../../services/api';
 import {
   Grade as GradingIcon,
   Class as ClassIcon,
@@ -16,6 +17,48 @@ import '../../styles/DashboardLayout.css';
 
 function LecturerDashboard() {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await apiService.lecturerDashboard.getOverview();
+        setDashboardData(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout userRole="lecturer">
+        <div className="welcome-section">
+          <h1 className="welcome-title">Loading Dashboard...</h1>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout userRole="lecturer">
+        <div className="welcome-section">
+          <h1 className="welcome-title">Error Loading Dashboard</h1>
+          <p className="welcome-subtitle">{error}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userRole="lecturer">
@@ -66,16 +109,16 @@ function LecturerDashboard() {
           </div>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">24</span>
+              <span className="stat-value">{dashboardData?.homework?.graded || 0}</span>
               <span className="stat-label">Graded</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">11</span>
+              <span className="stat-value">{dashboardData?.homework?.pending || 0}</span>
               <span className="stat-label">Pending</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">3</span>
-              <span className="stat-label">Late</span>
+              <span className="stat-value">{dashboardData?.homework?.total || 0}</span>
+              <span className="stat-label">Total</span>
             </div>
           </div>
         </div>
@@ -140,12 +183,12 @@ function LecturerDashboard() {
           </div>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">85%</span>
-              <span className="stat-label">Pass Rate</span>
+              <span className="stat-value">{dashboardData?.homework?.average_grade || 0}%</span>
+              <span className="stat-label">Avg Grade</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">3.2</span>
-              <span className="stat-label">Avg GPA</span>
+              <span className="stat-value">{dashboardData?.courses?.total || 0}</span>
+              <span className="stat-label">Courses</span>
             </div>
           </div>
         </div>

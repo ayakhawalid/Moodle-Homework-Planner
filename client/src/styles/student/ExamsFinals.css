@@ -3,7 +3,7 @@
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  background-color: #fff0f5;
+  background-color: #D6F7AD;
   min-height: 100vh;
 }
 
@@ -19,7 +19,7 @@
   padding: 2rem;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #F38181;
+  border-left: 4px solid #95E1D3;
 }
 
 .exam-preparation {

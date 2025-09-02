@@ -4,20 +4,17 @@ const partnerSchema = new mongoose.Schema({
   homework_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Homework',
-    required: true,
-    index: true
+    required: true
   },
   student1_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   student2_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   
   // Additional useful fields

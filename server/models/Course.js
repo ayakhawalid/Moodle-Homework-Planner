@@ -9,8 +9,7 @@ const courseSchema = new mongoose.Schema({
   lecturer_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   syllabus: {
     type: String,

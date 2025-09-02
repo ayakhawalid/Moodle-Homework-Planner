@@ -175,6 +175,94 @@ export const apiService = {
     addStudent: (courseId, studentId) => api.post(`/courses/${courseId}/students`, { student_id: studentId }),
     removeStudent: (courseId, studentId) => api.delete(`/courses/${courseId}/students/${studentId}`)
   },
+
+  // Lecturer dashboard
+  lecturerDashboard: {
+    getOverview: () => api.get('/lecturer-dashboard/overview'),
+    getWorkloadStats: () => api.get('/lecturer-dashboard/workload-stats'),
+    getCoursesInfo: () => api.get('/lecturer-dashboard/courses-info'),
+    getHomeworkChecker: (status = 'pending', courseId = null) => {
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      if (courseId) params.append('course_id', courseId);
+      return api.get(`/lecturer-dashboard/homework-checker?${params.toString()}`);
+    }
+  },
+
+  // Student dashboard
+  studentDashboard: {
+    getOverview: () => api.get('/student-dashboard/overview'),
+    getHomeworkPlanner: (status = 'all', courseId = null, upcomingDays = 7) => {
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      if (courseId) params.append('course_id', courseId);
+      if (upcomingDays) params.append('upcoming_days', upcomingDays);
+      return api.get(`/student-dashboard/homework-planner?${params.toString()}`);
+    },
+    getClassesPlanner: (weekStart = null) => {
+      const params = new URLSearchParams();
+      if (weekStart) params.append('week_start', weekStart);
+      return api.get(`/student-dashboard/classes-planner?${params.toString()}`);
+    },
+    getExams: (status = 'all', courseId = null) => {
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      if (courseId) params.append('course_id', courseId);
+      return api.get(`/student-dashboard/exams?${params.toString()}`);
+    },
+    getStudyTimer: (days = 7) => {
+      const params = new URLSearchParams();
+      if (days) params.append('days', days);
+      return api.get(`/student-dashboard/study-timer?${params.toString()}`);
+    },
+    saveStudySession: (data) => api.post('/student-dashboard/study-timer/session', data),
+    getChoosePartner: (courseId = null, homeworkId = null) => {
+      const params = new URLSearchParams();
+      if (courseId) params.append('course_id', courseId);
+      if (homeworkId) params.append('homework_id', homeworkId);
+      return api.get(`/student-dashboard/choose-partner?${params.toString()}`);
+    },
+    getCoursesInfo: () => api.get('/student-dashboard/courses-info'),
+    getStudyProgress: (days = 30) => {
+      const params = new URLSearchParams();
+      if (days) params.append('days', days);
+      return api.get(`/student-dashboard/study-progress?${params.toString()}`);
+    },
+    getGrades: (courseId = null) => {
+      const params = new URLSearchParams();
+      if (courseId) params.append('course_id', courseId);
+      return api.get(`/student-dashboard/grades?${params.toString()}`);
+    }
+  },
+
+  // Lecturer management
+  lecturerManagement: {
+    getCourses: () => api.get('/lecturer-management/courses'),
+    createHomework: (data) => api.post('/lecturer-management/homework', data),
+    updateHomework: (id, data) => api.put(`/lecturer-management/homework/${id}`, data),
+    deleteHomework: (id) => api.delete(`/lecturer-management/homework/${id}`),
+    createClass: (data) => api.post('/lecturer-management/classes', data),
+    updateClass: (id, data) => api.put(`/lecturer-management/classes/${id}`, data),
+    deleteClass: (id) => api.delete(`/lecturer-management/classes/${id}`),
+    createExam: (data) => api.post('/lecturer-management/exams', data),
+    updateExam: (id, data) => api.put(`/lecturer-management/exams/${id}`, data),
+    deleteExam: (id) => api.delete(`/lecturer-management/exams/${id}`)
+  },
+
+  // Student submission
+  studentSubmission: {
+    getHomeworkDetails: (homeworkId) => api.get(`/student-submission/homework/${homeworkId}`),
+    submitHomework: (homeworkId, formData) => api.post(`/student-submission/homework/${homeworkId}/submit`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }),
+    getSubmittedFiles: (homeworkId) => api.get(`/student-submission/homework/${homeworkId}/files`),
+    downloadFile: (fileId) => api.get(`/student-submission/files/${fileId}/download`),
+    deleteFile: (fileId) => api.delete(`/student-submission/files/${fileId}`),
+    selectPartner: (homeworkId, partnerId) => api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId }),
+    removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`)
+  },
   
   // Homework endpoints (to be implemented)
   homework: {

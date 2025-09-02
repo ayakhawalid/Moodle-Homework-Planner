@@ -4,8 +4,7 @@ const classSchema = new mongoose.Schema({
   course_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
-    required: true,
-    index: true
+    required: true
   },
   room: {
     type: String,
@@ -20,8 +19,7 @@ const classSchema = new mongoose.Schema({
   },
   class_date: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   start_time: {
     type: String, // Format: "HH:MM"

@@ -185,7 +185,7 @@ const requireReadStats = requirePermission('read:stats');
 const requireAdminOrReadUsers = requireRoleOrPermission(['admin'], ['read:users']);
 const requireAdminOrReadStats = requireRoleOrPermission(['admin'], ['read:stats']);
 const requireAdminOrWriteUsers = requireRoleOrPermission(['admin'], ['write:users']);
-const requireAdminOrManageUsers = requireRoleOrPermission(['admin'], ['write:users', 'manage:users']);
+const requireAdminOrManageUsers = requireRoleOrPermission(['admin'], ['delete:users', 'write:users', 'manage:users']);
 
 // Middleware to check if user owns resource or is admin
 const requireOwnershipOrAdmin = (userIdField = 'student_id') => {

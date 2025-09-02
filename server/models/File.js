@@ -26,22 +26,19 @@ const fileSchema = new mongoose.Schema({
   homework_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Homework',
-    default: null,
-    index: true
+    default: null
   },
   class_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Class',
-    default: null,
-    index: true
+    default: null
   },
   
   // Who uploaded the file
   uploaded_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   
   // File metadata

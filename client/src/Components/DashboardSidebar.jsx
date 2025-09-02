@@ -69,7 +69,6 @@ function DashboardSidebar({ userRole }) {
     { path: '/student/courses', label: 'Course Enrollment', icon: <SchoolIcon /> },
     { path: '/student/homework', label: 'Homework Planner', icon: <AssignmentIcon /> },
     { path: '/student/classes', label: 'Classes Planner', icon: <CalendarTodayIcon /> },
-    { path: '/student/classroom', label: 'Courses Info', icon: <SchoolIcon /> },
     { path: '/student/exams', label: 'Exams', icon: <QuizIcon /> },
     { path: '/student/timer', label: 'Study Timer', icon: <TimerIcon /> },
     { path: '/student/partner', label: 'Choose Partner', icon: <GroupIcon /> },
@@ -82,7 +81,6 @@ function DashboardSidebar({ userRole }) {
     { path: '/lecturer/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/lecturer/courses', label: 'Course Management', icon: <SchoolIcon /> },
     { path: '/lecturer/homework-checker', label: 'Homework Checker', icon: <GradingIcon /> },
-    { path: '/lecturer/classroom', label: 'Courses Info', icon: <SchoolIcon /> },
     { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> },
     { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
     { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }

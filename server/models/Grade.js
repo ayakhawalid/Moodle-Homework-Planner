@@ -4,22 +4,19 @@ const gradeSchema = new mongoose.Schema({
   student_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   
   // Either homework_id or exam_id should be present (nullable as per your schema)
   homework_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Homework',
-    default: null,
-    index: true
+    default: null
   },
   exam_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Exam',
-    default: null,
-    index: true
+    default: null
   },
   
   grade: {
