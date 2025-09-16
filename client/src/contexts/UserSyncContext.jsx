@@ -48,9 +48,7 @@ export const UserSyncProvider = ({ children }) => {
       let freshUser;
       try {
         freshUser = await apiService.user.getProfile();
-        console.log('Found existing user profile:', freshUser);
       } catch (profileError) {
-        console.log('No existing profile found, creating new user...');
 
         // If profile doesn't exist, sync/create it first
         const userData = {

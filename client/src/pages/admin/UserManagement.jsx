@@ -60,23 +60,19 @@ const UserManagement = () => {
       token = await getAccessTokenSilently({
         authorizationParams: {
           audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
-          scope: 'read:users read:roles write:users manage:users delete:users'
+          scope: 'openid profile email offline_access'
         },
         ignoreCache: true
       });
     } catch (err) {
-      // If user hasn't consented to these scopes yet, request interactive login
+      // If user hasn't consented to these scopes yet, show error instead of redirecting
       const needsConsent = err?.error === 'consent_required' || (err?.message && err.message.includes('consent'));
       const missingRefresh = err?.message && err.message.includes('Missing Refresh Token');
       if (needsConsent || missingRefresh) {
-        await loginWithRedirect({
-          authorizationParams: {
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
-            scope: 'openid profile email read:users read:roles write:users manage:users delete:users'
-          }
-        });
-        // Redirecting; return a pending promise to halt further execution
-        return new Promise(() => {});
+        console.log('Consent issue detected, setting error message');
+        setError('Additional permissions required. Please refresh the page to grant permissions.');
+        setLoading(false);
+        return null;
       }
       throw err;
     }
@@ -92,13 +88,21 @@ const UserManagement = () => {
   const fetchUsers = async (pageNum = 1) => {
     try {
       setLoading(true);
-      setError(null);
+      // Don't clear error - let fetchWithToken handle error state
 
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
       const url = `${base.replace(/\/$/, '')}/users?page=${pageNum}&limit=10`;
 
       // use fetchWithToken to avoid sending an expired token
       const resp = await fetchWithToken(url);
+      console.log('fetchWithToken response:', resp);
+      if (!resp) {
+        // fetchWithToken returned null due to consent issues
+        // Error message should already be set by fetchWithToken
+        console.log('fetchWithToken returned null, setting loading to false');
+        setLoading(false);
+        return;
+      }
       if (!resp.ok) {
         const text = await resp.text();
         throw new Error(`Failed to fetch users: ${resp.status} ${text}`);
@@ -164,7 +168,18 @@ const UserManagement = () => {
 
   // Replace deactivate to use fetchWithToken
   const handleDeactivate = async (userId) => {
-    if (window.confirm('Are you sure you want to deactivate this user?')) {
+    const userToDelete = users.find(u => u._id === userId);
+    if (!userToDelete) return;
+
+    let confirmMessage = 'Are you sure you want to delete this user?';
+    
+    if (userToDelete.role === 'lecturer') {
+      confirmMessage = 'WARNING: Deleting this lecturer will permanently delete ALL their courses, homework assignments, exams, and class schedules. Students enrolled in these courses will lose access to all course materials.\n\nAre you sure you want to proceed?';
+    } else if (userToDelete.role === 'student') {
+      confirmMessage = 'Deleting this student will remove them from all courses they are enrolled in.\n\nAre you sure you want to delete this user?';
+    }
+
+    if (window.confirm(confirmMessage)) {
       try {
         setLoading(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
@@ -174,12 +189,12 @@ const UserManagement = () => {
         const resp = await fetchWithToken(url, { method: 'DELETE' });
         if (!resp.ok) {
           const text = await resp.text();
-          throw new Error(`Failed to deactivate user: ${resp.status} ${text}`);
+          throw new Error(`Failed to delete user: ${resp.status} ${text}`);
         }
 
         await fetchUsers(page);
       } catch (err) {
-        console.error('Failed to deactivate user:', err);
+        console.error('Failed to delete user:', err);
         setError(err);
       } finally {
         setLoading(false);
@@ -192,12 +207,18 @@ const UserManagement = () => {
     try {
       setRefreshingRoles(true);
       setRefreshResults(null);
-      setError(null);
+      // Don't clear error - let fetchWithToken handle error state
 
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
       const url = `${base.replace(/\/$/, '')}/users/refresh-roles`;
 
       const resp = await fetchWithToken(url, { method: 'POST' });
+      if (!resp) {
+        // fetchWithToken returned null due to consent issues
+        // Error message should already be set by fetchWithToken
+        setRefreshingRoles(false);
+        return;
+      }
       if (!resp.ok) {
         const text = await resp.text();
         throw new Error(`Failed to refresh roles: ${resp.status} ${text}`);
@@ -227,7 +248,7 @@ const UserManagement = () => {
         token = await getAccessTokenSilently({
           authorizationParams: {
             audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
-            scope: 'openid profile email offline_access read:roles'
+            scope: 'openid profile email offline_access'
           },
           ignoreCache: true
         });
@@ -237,21 +258,17 @@ const UserManagement = () => {
         // If missing refresh token / consent is required, do an interactive login so user can grant offline_access
         const needsInteractive = err?.error === 'consent_required' || (err?.message && err.message.includes('Missing Refresh Token'));
         if (needsInteractive) {
-          // This will redirect the admin to Auth0 to grant consent / get refresh token.
-          await loginWithRedirect({
-            authorizationParams: {
-              audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
-              scope: 'openid profile email offline_access read:roles'
-            }
-          });
-          return; // redirecting — sync will be started again by the admin after they return
+          // Show error instead of redirecting
+          setError('Additional permissions required. Please refresh the page to grant permissions.');
+          setRefreshingRoles(false);
+          return;
         }
 
         // Fallback: obtain an access token without offline_access (no refresh token) to attempt the sync
         token = await getAccessTokenSilently({
           authorizationParams: {
             audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
-            scope: 'openid profile email read:roles'
+            scope: 'openid profile email'
           },
           ignoreCache: true
         });
@@ -331,7 +348,7 @@ const UserManagement = () => {
       </Box>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error.message}
+          {typeof error === 'string' ? error : error.message}
         </Alert>
       )}
 

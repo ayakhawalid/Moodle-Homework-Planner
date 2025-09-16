@@ -103,6 +103,17 @@
     font-size: 14px;
   }
 
+  /* Login button styling */
+  .navbar .rightSide .login-btn {
+    background-color: #D6F7AD !important; /* Green background matching dashboard */
+    color: #000000 !important; /* Black text */
+  }
+
+  .navbar .rightSide .login-btn:hover {
+    background-color: #C8F0A0 !important; /* Slightly darker green on hover */
+    color: #000000 !important; /* Keep black text on hover */
+  }
+
   /* Hover effects */
   .navbar .rightSide .nav-circle:hover,
   .navbar .rightSide .logout-btn:hover {

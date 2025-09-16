@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -12,28 +13,36 @@ import {
   TextField
 } from '@mui/material';
 import { Login as LoginIcon, School as StudentIcon, MenuBook as LecturerIcon } from '@mui/icons-material';
+import logo from '../assets/logo.png';
 import '../styles/Login.css';
 
 const Auth0Login = () => {
   const { loginWithRedirect, isLoading, error, isAuthenticated } = useAuth0();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [selectedRole, setSelectedRole] = useState('student');
-  const initialMode = (() => {
+  
+  // Get mode from URL parameters
+  const getModeFromURL = () => {
     try {
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(location.search);
       return params.get('mode') === 'signup' ? 'signup' : 'login';
     } catch (_) {
       return 'login';
     }
-  })();
-  const [mode, setMode] = useState(initialMode); // 'login' | 'signup'
+  };
+  
+  const [mode, setMode] = useState(getModeFromURL()); // 'login' | 'signup'
 
-  // Keep mode in sync if URL changes (optional)
+  // Keep mode in sync if URL changes
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const m = params.get('mode') === 'signup' ? 'signup' : 'login';
-    if (m !== mode) setMode(m);
-  }, [mode]);
+    const newMode = getModeFromURL();
+    if (newMode !== mode) {
+      console.log('Mode changed from', mode, 'to', newMode);
+      setMode(newMode);
+    }
+  }, [location.search, mode]); // Watch for URL changes
 
   const handleLogin = () => {
     console.log('Attempting login...');
@@ -57,12 +66,43 @@ const Auth0Login = () => {
     });
   };
 
-  // If not signup mode, redirect directly to Auth0 login
+  // Auto-redirect to Auth0 login when component loads (for login mode)
   useEffect(() => {
+    console.log('useEffect triggered - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'mode:', mode);
     if (!isLoading && !isAuthenticated && mode !== 'signup') {
-      handleLogin();
+      console.log('Auto-redirecting to Auth0 login...');
+      // Add a small delay to ensure the component is fully mounted
+      setTimeout(() => {
+        handleLogin();
+      }, 100);
     }
   }, [isLoading, isAuthenticated, mode]);
+
+  // For login mode, redirect immediately without showing UI
+  if (mode !== 'signup' && !isAuthenticated && !isLoading) {
+    console.log('Immediate redirect to Auth0... mode:', mode);
+    // Redirect immediately
+    setTimeout(() => {
+      handleLogin();
+    }, 50);
+    return (
+      <div className="login-container">
+        <div className="login-logo-container">
+          <img 
+            src={logo} 
+            alt="University Logo" 
+            className="login-logo"
+            onClick={() => navigate('/')}
+            style={{ cursor: 'pointer' }}
+          />
+        </div>
+        <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+          <CircularProgress />
+          <Typography>Redirecting to login...</Typography>
+        </Box>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -86,6 +126,16 @@ const Auth0Login = () => {
   // In signup mode, show a minimal role selection then redirect to Auth0
   return (
     <div className="login-container">
+      {/* Logo at the top */}
+      <div className="login-logo-container">
+        <img 
+          src={logo} 
+          alt="University Logo" 
+          className="login-logo"
+          onClick={() => navigate('/')}
+          style={{ cursor: 'pointer' }}
+        />
+      </div>
 
       <Card className="login-form" sx={{ maxWidth: 500, width: '100%', borderRadius: 3, boxShadow: 3 }}>
         <CardContent sx={{ p: 4 }}>
@@ -109,12 +159,15 @@ const Auth0Login = () => {
           ) : (
             <>
               <Box textAlign="center" mb={2}>
-                <Typography variant="h6">Redirecting to login...</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Redirecting to Login...</Typography>
+                <Typography variant="body2" color="textSecondary">Please wait while we redirect you to Auth0</Typography>
               </Box>
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>{error.message}</Alert>
               )}
-              <Box display="flex" justifyContent="center"><CircularProgress /></Box>
+              <Box display="flex" justifyContent="center">
+                <CircularProgress size={40} />
+              </Box>
             </>
           )}
 

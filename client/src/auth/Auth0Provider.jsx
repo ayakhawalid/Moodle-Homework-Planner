@@ -16,7 +16,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
       domain={domain}
       clientId={clientId}
       authorizationParams={{
-        redirect_uri: redirectUri,
+        redirect_uri: redirectUri || window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         scope: "openid profile email offline_access"
       }}

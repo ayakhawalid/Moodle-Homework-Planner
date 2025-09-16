@@ -72,6 +72,7 @@ function AppContent() {
 
   // Hide navbar on dashboard pages (they have their own sidebar navigation)
   // Also hide on /profile since it renders inside DashboardLayout
+  // Hide navbar on login/signup pages (they have their own logo)
   const isDashboardPage =
     location.pathname.startsWith('/student/') ||
     location.pathname.startsWith('/lecturer/') ||
@@ -79,9 +80,13 @@ function AppContent() {
     location.pathname === '/profile' ||
     location.pathname === '/role-requests';
 
+  const isLoginPage = 
+    location.pathname === '/login' ||
+    location.pathname.startsWith('/login?');
+
   // Display a global loading indicator while the Auth0 SDK is initializing.
   // Or while the initial user sync is in progress.
-  if (isLoading || (isAuthenticated && (syncStatus === 'syncing' || syncStatus === 'idle'))) {
+  if (isLoading || (isAuthenticated && syncStatus === 'syncing')) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <h2>Loading Application...</h2>
@@ -91,7 +96,7 @@ function AppContent() {
 
   return (
     <>
-      {!isDashboardPage && <NavBar />}
+      {!isDashboardPage && !isLoginPage && <NavBar />}
       <Routes>
           {/* Main Pages */}
           <Route path='/' element={<Home/>} />

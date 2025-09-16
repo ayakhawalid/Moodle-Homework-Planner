@@ -408,6 +408,32 @@ router.delete('/:id', checkJwt, extractUser, requireAdminOrManageUsers, async (r
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // If deleting a lecturer, delete their courses and related data
+    if (user.role === 'lecturer') {
+      const Course = require('../models/Course');
+      const Homework = require('../models/Homework');
+      const Exam = require('../models/Exam');
+      const Class = require('../models/Class');
+      
+      // Find all courses taught by this lecturer
+      const lecturerCourses = await Course.find({ lecturer_id: user._id });
+      const courseIds = lecturerCourses.map(course => course._id);
+      
+      console.log(`Deleting ${lecturerCourses.length} courses for lecturer: ${user.email}`);
+      
+      // Delete all homework, exams, and classes for these courses
+      await Promise.all([
+        Homework.deleteMany({ course_id: { $in: courseIds } }),
+        Exam.deleteMany({ course_id: { $in: courseIds } }),
+        Class.deleteMany({ course_id: { $in: courseIds } })
+      ]);
+      
+      // Delete the courses themselves
+      await Course.deleteMany({ lecturer_id: user._id });
+      
+      console.log(`Successfully deleted all courses and related data for lecturer: ${user.email}`);
+    }
+
     // Delete user in Auth0
     if (user.auth0_id) {
       try {
@@ -430,6 +456,75 @@ router.delete('/:id', checkJwt, extractUser, requireAdminOrManageUsers, async (r
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// DELETE /api/users/me - Delete current user's account (self-deletion)
+router.delete('/me', checkJwt, extractUser, async (req, res) => {
+  try {
+    const currentUser = await User.findOne({ auth0_id: req.auth.sub });
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If deleting a lecturer, delete their courses and related data
+    if (currentUser.role === 'lecturer') {
+      const Course = require('../models/Course');
+      const Homework = require('../models/Homework');
+      const Exam = require('../models/Exam');
+      const Class = require('../models/Class');
+      
+      // Find all courses taught by this lecturer
+      const lecturerCourses = await Course.find({ lecturer_id: currentUser._id });
+      const courseIds = lecturerCourses.map(course => course._id);
+      
+      console.log(`Self-deletion: Deleting ${lecturerCourses.length} courses for lecturer: ${currentUser.email}`);
+      
+      // Delete all homework, exams, and classes for these courses
+      await Promise.all([
+        Homework.deleteMany({ course_id: { $in: courseIds } }),
+        Exam.deleteMany({ course_id: { $in: courseIds } }),
+        Class.deleteMany({ course_id: { $in: courseIds } })
+      ]);
+      
+      // Delete the courses themselves
+      await Course.deleteMany({ lecturer_id: currentUser._id });
+      
+      console.log(`Self-deletion: Successfully deleted all courses and related data for lecturer: ${currentUser.email}`);
+    }
+
+    // If deleting a student, remove them from all courses
+    if (currentUser.role === 'student') {
+      const Course = require('../models/Course');
+      await Course.updateMany(
+        { students: currentUser._id },
+        { $pull: { students: currentUser._id } }
+      );
+      console.log(`Self-deletion: Removed student from all courses: ${currentUser.email}`);
+    }
+
+    // Delete user in Auth0
+    if (currentUser.auth0_id) {
+      try {
+        await deleteAuth0User(currentUser.auth0_id);
+        console.log(`Self-deletion: Deleted Auth0 user: ${currentUser.auth0_id}`);
+      } catch (err) {
+        console.error('Self-deletion: Failed to delete user in Auth0:', err.message);
+        return res.status(500).json({ error: 'Failed to delete user in Auth0' });
+      }
+    }
+
+    // Delete associated role requests
+    const RoleRequest = require('../models/RoleRequest');
+    await RoleRequest.deleteMany({ user: currentUser._id });
+    console.log(`Self-deletion: Deleted role requests for user: ${currentUser.email}`);
+
+    // Delete user in the database
+    await User.findByIdAndDelete(currentUser._id);
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Error in self-deletion:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
   }
 });
 
