@@ -21,9 +21,17 @@ const management = new ManagementClient({
 
 const getMgmtToken = async () => {
   try {
-    // Use the ManagementClient to get a token with proper scopes
-    const token = await management.getAccessToken();
-    return token;
+    // The ManagementClient automatically handles token management
+    // We need to get a token manually using the M2M credentials
+    const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+      client_id: process.env.AUTH0_M2M_CLIENT_ID,
+      client_secret: process.env.AUTH0_M2M_CLIENT_SECRET,
+      audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+      grant_type: 'client_credentials',
+      scope: 'read:users update:users delete:users read:roles read:role_members create:role_members delete:role_members update:users_app_metadata'
+    });
+    
+    return response.data.access_token;
   } catch (error) {
     console.error('Error getting management token:', error);
     throw error;

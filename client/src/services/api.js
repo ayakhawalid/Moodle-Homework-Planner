@@ -116,6 +116,10 @@ export const apiService = {
     syncProfile: async (data) => {
       const response = await api.post('/users', data);
       return response.data;
+    },
+    deleteAccount: async () => {
+      const response = await api.delete('/users/me');
+      return response.data;
     }
   },
 

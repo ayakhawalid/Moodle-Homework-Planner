@@ -52,14 +52,13 @@ const Callback = () => {
           setTimeout(() => {
             console.log('Redirecting user with role:', userRole);
             console.log('All user roles:', userRoles);
+            console.log('Current location:', window.location.href);
             redirectToDashboard();
           }, 100);
         }
       })();
     }
-  }, [isLoading, isAuthenticated, user, redirectToDashboard, userRole, userRoles]);
-
-
+  }, [isLoading, isAuthenticated, user, userRole, userRoles, redirectToDashboard]);
 
   if (isLoading) {
     return (

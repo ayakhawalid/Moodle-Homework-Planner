@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Card, CardContent, Typography, TextField, Button, Grid, Avatar, CircularProgress, Alert } from '@mui/material';
+import { Box, Card, CardContent, Typography, TextField, Button, Grid, Avatar, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import DashboardLayout from '../Components/DashboardLayout';
 import { useUserSyncContext } from '../contexts/UserSyncContext';
 import { apiService } from '../services/api';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useNavigate } from 'react-router-dom';
 
 function Profile() {
   const { user, refreshUser } = useUserSyncContext();
+  const { logout } = useAuth0();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [data, setData] = useState({ name: '', full_name: '', username: '', picture: '' });
   const [usernameCheck, setUsernameCheck] = useState({ checking: false, available: null, message: '' });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   let usernameTimeout;
   const isValidUsername = (val) => /^[a-z0-9_.]{3,30}$/.test(val || '');
@@ -73,6 +80,47 @@ function Profile() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'DELETE') {
+      setError('Please type "DELETE" to confirm account deletion');
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+    try {
+      await apiService.user.deleteAccount();
+      
+      // Clear local storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Logout from Auth0 and redirect to home
+      await logout({
+        logoutParams: {
+          returnTo: window.location.origin
+        }
+      });
+      
+      navigate('/');
+    } catch (e) {
+      setError(e?.response?.data?.error || 'Failed to delete account');
+      setDeleting(false);
+    }
+  };
+
+  const openDeleteDialog = () => {
+    setDeleteDialogOpen(true);
+    setDeleteConfirmation('');
+    setError(null);
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDeleteConfirmation('');
+    setError(null);
   };
 
   const content = (
@@ -145,8 +193,74 @@ function Profile() {
             </Button>
             <Button variant="text" onClick={load} disabled={loading}>Reset</Button>
           </Box>
+
+          {/* Danger Zone */}
+          <Box mt={4} pt={3} borderTop="1px solid #e0e0e0">
+            <Typography variant="h6" color="error" gutterBottom>
+              Danger Zone
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Once you delete your account, there is no going back. Please be certain.
+            </Typography>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={openDeleteDialog}
+              disabled={deleting}
+            >
+              Delete Account
+            </Button>
+          </Box>
         </CardContent>
       </Card>
+
+      {/* Delete Account Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog} maxWidth="sm" fullWidth>
+        <DialogTitle color="error">Delete Account</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+          </Typography>
+          
+          {user?.role === 'lecturer' && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                <strong>Warning:</strong> As a lecturer, deleting your account will also permanently delete all your courses, homework assignments, exams, and class schedules. Students enrolled in your courses will lose access to all course materials.
+              </Typography>
+            </Alert>
+          )}
+          
+          {user?.role === 'student' && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                As a student, you will be removed from all courses you're enrolled in.
+              </Typography>
+            </Alert>
+          )}
+
+          <TextField
+            label="Type DELETE to confirm"
+            value={deleteConfirmation}
+            onChange={(e) => setDeleteConfirmation(e.target.value)}
+            fullWidth
+            margin="normal"
+            helperText="This action is irreversible"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteAccount}
+            color="error"
+            variant="contained"
+            disabled={deleting || deleteConfirmation !== 'DELETE'}
+          >
+            {deleting ? <CircularProgress size={20} /> : 'Delete Account'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 
