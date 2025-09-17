@@ -14,6 +14,8 @@ const Callback = () => {
     if (!isLoading && isAuthenticated && user) {
       console.log('Auth0 callback - User authenticated:', user);
       console.log('User roles from custom claims:', user['https://my-app.com/roles']);
+      console.log('Current URL:', window.location.href);
+      console.log('Callback component loaded successfully');
 
       (async () => {
         try {
@@ -48,13 +50,11 @@ const Callback = () => {
         } catch (e) {
           console.warn('Failed during post-signup processing (username/role request):', e);
         } finally {
-          // Small delay to ensure the useAuth hook has processed the user data
-          setTimeout(() => {
-            console.log('Redirecting user with role:', userRole);
-            console.log('All user roles:', userRoles);
-            console.log('Current location:', window.location.href);
-            redirectToDashboard();
-          }, 100);
+          // Immediate redirect without delay
+          console.log('Redirecting user with role:', userRole);
+          console.log('All user roles:', userRoles);
+          console.log('Current location:', window.location.href);
+          redirectToDashboard();
         }
       })();
     }

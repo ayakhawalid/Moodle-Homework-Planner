@@ -46,18 +46,38 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
       .populate('homework_id', 'title due_date points_possible')
       .populate('exam_id', 'exam_title due_date points_possible');
     
-    // Get study progress
-    const studyProgress = await StudyProgress.find({ student_id: studentId })
-      .sort({ date: -1 })
-      .limit(7); // Last 7 days
+    // Get exams for enrolled courses
+    const exams = await Exam.find({ 
+      course_id: { $in: courseIds }, 
+      is_active: true 
+    })
+    .populate('course_id', 'course_name course_code')
+    .sort({ due_date: 1 });
+
+    // Get study progress for the last 7 days
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+    
+    const studyProgress = await StudyProgress.find({ 
+      student_id: studentId,
+      date: { $gte: startDate, $lte: endDate }
+    })
+    .sort({ date: 1 }); // Sort by date ascending for weekly chart
     
     // Calculate statistics
     const totalCourses = courses.length;
     const totalHomework = homework.length;
+    const totalExams = exams.length;
     const completedHomework = grades.filter(grade => grade.homework_id).length;
     const upcomingHomework = homework.filter(hw => new Date(hw.due_date) > new Date()).length;
     const overdueHomework = homework.filter(hw => new Date(hw.due_date) < new Date() && 
       !grades.some(grade => grade.homework_id && grade.homework_id._id.equals(hw._id))).length;
+    
+    // Calculate exam statistics
+    const upcomingExams = exams.filter(exam => new Date(exam.due_date) > new Date());
+    const overdueExams = exams.filter(exam => new Date(exam.due_date) < new Date() && 
+      !grades.some(grade => grade.exam_id && grade.exam_id.equals(exam._id)));
     
     // Calculate average grade
     const averageGrade = grades.length > 0 
@@ -88,10 +108,44 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
         overdue: overdueHomework,
         average_grade: Math.round(averageGrade * 100) / 100
       },
+      exams: {
+        total: totalExams,
+        upcoming: upcomingExams.length,
+        overdue: overdueExams.length,
+        upcoming_list: upcomingExams.slice(0, 3).map(exam => ({
+          _id: exam._id,
+          exam_title: exam.exam_title,
+          due_date: exam.due_date,
+          exam_type: exam.exam_type,
+          course: {
+            name: exam.course_id.course_name,
+            code: exam.course_id.course_code
+          },
+          days_until_due: Math.ceil((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        }))
+      },
       study_progress: {
         weekly_hours: weeklyStudyHours,
         daily_average: studyProgress.length > 0 ? Math.round((weeklyStudyHours / studyProgress.length) * 10) / 10 : 0,
-        goal_achieved_days: studyProgress.filter(progress => progress.goal_achieved).length
+        goal_achieved_days: studyProgress.filter(progress => progress.goal_achieved).length,
+        weekly_breakdown: (() => {
+          // Create array for last 7 days with study hours
+          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          const weeklyData = [];
+          
+          for (let i = 0; i < 7; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i)); // Start from 7 days ago
+            
+            const dayProgress = studyProgress.find(progress => 
+              new Date(progress.date).toDateString() === date.toDateString()
+            );
+            
+            weeklyData.push(dayProgress ? dayProgress.hours_studied : 0);
+          }
+          
+          return weeklyData;
+        })()
       },
       recent_activity: {
         recent_grades: grades.slice(0, 5).map(grade => ({
@@ -832,18 +886,35 @@ router.get('/study-timer', checkJwt, extractUser, requireStudent, async (req, re
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
+    // Calculate today's specific data
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+    
+    const todayProgress = studyProgress.find(progress => {
+      const progressDate = new Date(progress.date);
+      return progressDate >= today && progressDate <= todayEnd;
+    });
+    
+    const todayHours = todayProgress ? todayProgress.hours_studied : 0;
+    const sessionsToday = studyProgress.filter(progress => {
+      const progressDate = new Date(progress.date);
+      return progressDate >= today && progressDate <= todayEnd;
+    }).length;
+
     const studyTimerData = {
-      overview: {
-        total_hours: totalHours,
-        average_hours_per_day: Math.round(averageHoursPerDay * 10) / 10,
-        goal_achieved_days: goalAchievedDays,
-        total_study_days: totalStudyDays,
-        study_consistency: totalStudyDays > 0 ? Math.round((totalStudyDays / parseInt(days)) * 100) : 0
-      },
+      today_hours: todayHours,
+      sessions_today: sessionsToday,
+      total_hours: totalHours,
+      average_hours_per_day: Math.round(averageHoursPerDay * 10) / 10,
+      goal_achieved_days: goalAchievedDays,
+      total_study_days: totalStudyDays,
+      study_consistency: totalStudyDays > 0 ? Math.round((totalStudyDays / parseInt(days)) * 100) : 0,
       daily_breakdown: dailyData,
       recent_sessions: studyProgress.slice(0, 5).map(progress => ({
-        date: progress.date,
-        hours_studied: progress.hours_studied,
+        duration: Math.round(progress.hours_studied * 60), // Convert hours to minutes
+        completed_at: progress.date,
         tasks_completed: progress.tasks_completed,
         goal_achieved: progress.goal_achieved,
         focus_rating: progress.focus_rating,

@@ -11,12 +11,19 @@ const Auth0ProviderWithHistory = ({ children }) => {
     return <div>Auth0 configuration error</div>;
   }
 
+  console.log('Auth0 Provider Config:', {
+    domain,
+    clientId,
+    redirectUri,
+    fallbackRedirect: `${window.location.origin}/callback`
+  });
+
   return (
     <Auth0Provider
       domain={domain}
       clientId={clientId}
       authorizationParams={{
-        redirect_uri: redirectUri || window.location.origin,
+        redirect_uri: redirectUri || `${window.location.origin}/callback`,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         scope: "openid profile email offline_access"
       }}
