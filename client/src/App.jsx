@@ -1,8 +1,9 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import NavBar from './Components/NavBar';
 import Footer from './Components/footer';
 import Home from './pages/Home';
+
 import Auth0Login from './pages/Auth0Login';
 import Callback from './pages/Callback';
 import ProtectedRoute from './Components/ProtectedRoute';
@@ -67,8 +68,6 @@ function App() {
 
 function AppContent() {
   const location = useLocation();
-  const { isLoading, isAuthenticated } = useAuth();
-  const { syncStatus } = useUserSyncContext();
 
   // Hide navbar on dashboard pages (they have their own sidebar navigation)
   // Also hide on /profile since it renders inside DashboardLayout
@@ -84,22 +83,12 @@ function AppContent() {
     location.pathname === '/login' ||
     location.pathname.startsWith('/login?');
 
-  // Display a global loading indicator while the Auth0 SDK is initializing.
-  // Or while the initial user sync is in progress.
-  if (isLoading || (isAuthenticated && syncStatus === 'syncing')) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <h2>Loading Application...</h2>
-      </div>
-    );
-  }
-
   return (
     <>
       {!isDashboardPage && !isLoginPage && <NavBar />}
       <Routes>
           {/* Main Pages */}
-          <Route path='/' element={<Home/>} />
+          <Route path='/' element={<Home />} />
           <Route path='/login' element={<Auth0Login />} />
           <Route path='/callback' element={<Callback />} />
           <Route path='/auth0-debug' element={<Auth0Debug />} />

@@ -138,20 +138,25 @@ export const useAuth = () => {
       return;
     }
 
+    let dashboardPath;
     switch (userRole) {
       case 'student':
-        navigate('/student/dashboard');
+        dashboardPath = '/student/dashboard';
         break;
       case 'lecturer':
-        navigate('/lecturer/dashboard');
+        dashboardPath = '/lecturer/dashboard';
         break;
       case 'admin':
-        navigate('/admin/dashboard');
+        dashboardPath = '/admin/dashboard';
         break;
       default:
-        navigate('/role-pending');
+        dashboardPath = '/role-pending';
     }
-  }, [userRole, navigate]);
+
+    console.log('Redirecting to dashboard path:', dashboardPath);
+    // Use window.location for immediate redirect to prevent any flash
+    window.location.href = dashboardPath;
+  }, [userRole]);
 
   // Store user data in localStorage for app-wide access
   useEffect(() => {

@@ -265,7 +265,8 @@ export const apiService = {
     downloadFile: (fileId) => api.get(`/student-submission/files/${fileId}/download`),
     deleteFile: (fileId) => api.delete(`/student-submission/files/${fileId}`),
     selectPartner: (homeworkId, partnerId) => api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId }),
-    removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`)
+    removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`),
+    saveStudySession: (data) => api.post('/student-dashboard/study-timer/session', data)
   },
   
   // Homework endpoints (to be implemented)

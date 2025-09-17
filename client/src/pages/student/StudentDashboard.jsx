@@ -52,7 +52,7 @@ function StudentDashboard() {
   // Prepare study progress data for chart
   const studyProgressData = dashboardData?.study_progress ? {
     categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    values: [2, 3, 1, 4, 2, 5, 3], // This would come from weekly breakdown
+    values: dashboardData.study_progress.weekly_breakdown || [0, 0, 0, 0, 0, 0, 0],
     seriesName: 'Study Hours',
     yAxisTitle: 'Hours'
   } : {
@@ -151,11 +151,11 @@ function StudentDashboard() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
-                title="Courses"
-                value={dashboardData.courses?.total || 0}
-                icon={<SchoolIcon sx={{ fontSize: 40 }} />}
+                title="Upcoming Exams"
+                value={dashboardData.exams?.upcoming || 0}
+                icon={<QuizIcon sx={{ fontSize: 40 }} />}
                 color="#7b1fa2"
-                subtitle="Active"
+                subtitle="This semester"
               />
             </Grid>
           </Grid>
@@ -173,8 +173,8 @@ function StudentDashboard() {
             />
           </Grid>
           <Grid item xs={12} md={4}>
-            <div className="dashboard-card" style={{ height: '100%' }}>
-              <div className="card-header">
+            <div className="dashboard-card" style={{ height: '280px', display: 'flex', flexDirection: 'column' }}>
+              <div className="card-header" style={{ paddingBottom: '10px' }}>
                 <div className="card-icon primary">
                   <SchoolIcon />
                 </div>
@@ -183,19 +183,19 @@ function StudentDashboard() {
                   <p className="card-subtitle">Your enrolled courses</p>
                 </div>
               </div>
-              <div className="card-content">
-                <div style={{marginTop: '15px'}}>
+              <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
+                <div style={{marginTop: '10px', height: '100%', overflowY: 'auto'}}>
                   {dashboardData?.courses?.list?.length > 0 ? (
                     dashboardData.courses.list.slice(0, 3).map((course, index) => (
-                      <div key={course._id} style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                        <strong>{course.course_name}</strong><br />
-                        <small style={{color: '#666'}}>
+                      <div key={course._id} style={{marginBottom: '8px', padding: '8px', background: '#f8f9fa', borderRadius: '6px', fontSize: '0.9em'}}>
+                        <strong style={{fontSize: '0.95em'}}>{course.course_name}</strong><br />
+                        <small style={{color: '#666', fontSize: '0.8em'}}>
                           {course.lecturer?.name || 'TBA'} - {course.course_code}
                         </small>
                       </div>
                     ))
                   ) : (
-                    <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                    <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '6px', textAlign: 'center', color: '#666', fontSize: '0.9em'}}>
                       No courses enrolled yet
                     </div>
                   )}
@@ -253,18 +253,40 @@ function StudentDashboard() {
           </div>
           <div className="card-content">
             <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#f8d7da', borderRadius: '8px'}}>
-                <strong>Mathematics Final</strong><br />
-                <small style={{color: '#721c24'}}>December 15, 2024</small>
-              </div>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
-                <strong>Physics Midterm</strong><br />
-                <small style={{color: '#856404'}}>December 20, 2024</small>
-              </div>
-              <div style={{padding: '10px', background: '#d1ecf1', borderRadius: '8px'}}>
-                <strong>CS Final Project</strong><br />
-                <small style={{color: '#0c5460'}}>January 5, 2025</small>
-              </div>
+              {dashboardData.exams?.upcoming_list?.length > 0 ? (
+                dashboardData.exams.upcoming_list.map((exam, index) => {
+                  // Determine background color based on urgency
+                  let bgColor = '#d1ecf1'; // Default blue
+                  let textColor = '#0c5460';
+                  
+                  if (exam.days_until_due <= 3) {
+                    bgColor = '#f8d7da'; // Red for urgent
+                    textColor = '#721c24';
+                  } else if (exam.days_until_due <= 7) {
+                    bgColor = '#fff3cd'; // Yellow for warning
+                    textColor = '#856404';
+                  }
+                  
+                  return (
+                    <div key={exam._id} style={{marginBottom: '10px', padding: '10px', background: bgColor, borderRadius: '8px'}}>
+                      <strong>{exam.exam_title}</strong><br />
+                      <small style={{color: textColor}}>
+                        {new Date(exam.due_date).toLocaleDateString()} - {exam.course.name}
+                      </small>
+                      <br />
+                      <small style={{color: textColor}}>
+                        {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 
+                         exam.days_until_due === 0 ? 'Today' : 
+                         `${Math.abs(exam.days_until_due)} days overdue`}
+                      </small>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                  No upcoming exams
+                </div>
+              )}
             </div>
           </div>
         </div>
