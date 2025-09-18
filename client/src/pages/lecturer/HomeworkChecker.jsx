@@ -180,20 +180,20 @@ function HomeworkChecker() {
             <p>Monitor your grading progress and maintain consistent feedback quality.</p>
             <div className="progress-container">
               <div className="progress-label">
-                <span>This Week's Grading</span>
-                <span>68%</span>
+                <span>Grading Progress</span>
+                <span>{homeworkData?.grading_progress?.completion_rate || 0}%</span>
               </div>
               <div className="progress-bar">
-                <div className="progress-fill" style={{width: '68%'}}></div>
+                <div className="progress-fill" style={{width: `${homeworkData?.grading_progress?.completion_rate || 0}%`}}></div>
               </div>
             </div>
             <div className="progress-container">
               <div className="progress-label">
-                <span>Average Grading Time</span>
-                <span>8 min/assignment</span>
+                <span>Total Assignments</span>
+                <span>{homeworkData?.grading_progress?.total || 0}</span>
               </div>
               <div className="progress-bar">
-                <div className="progress-fill" style={{width: '75%'}}></div>
+                <div className="progress-fill" style={{width: `${homeworkData?.grading_progress?.completion_rate || 0}%`}}></div>
               </div>
             </div>
           </div>
@@ -246,16 +246,16 @@ function HomeworkChecker() {
             <p>Analyze grade distributions and student performance trends.</p>
             <div style={{marginTop: '15px'}}>
               <div style={{marginBottom: '10px', padding: '10px', background: '#d4edda', borderRadius: '8px'}}>
-                <strong>Class Average</strong><br />
-                <small style={{color: '#155724'}}>B+ (87%)</small>
+                <strong>Grading Progress</strong><br />
+                <small style={{color: '#155724'}}>{homeworkData?.grading_progress?.completion_rate || 0}% Complete</small>
               </div>
               <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Highest Score</strong><br />
-                <small style={{color: '#666'}}>98% - Excellent work!</small>
+                <strong>Fully Graded</strong><br />
+                <small style={{color: '#666'}}>{homeworkData?.grading_progress?.fully_graded || 0} assignments</small>
               </div>
               <div style={{padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
-                <strong>Students Needing Help</strong><br />
-                <small style={{color: '#856404'}}>3 students below 70%</small>
+                <strong>Pending Grading</strong><br />
+                <small style={{color: '#856404'}}>{homeworkData?.grading_progress?.pending || 0} assignments</small>
               </div>
             </div>
           </div>
@@ -274,18 +274,22 @@ function HomeworkChecker() {
           <div className="card-content">
             <p>Stay updated with the most recent homework submissions.</p>
             <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '8px', fontSize: '14px', color: '#666', borderBottom: '1px solid #eee', paddingBottom: '5px'}}>
-                <strong>Sarah Johnson</strong> - Math Assignment #5<br />
-                <small>Submitted 2 hours ago</small>
-              </div>
-              <div style={{marginBottom: '8px', fontSize: '14px', color: '#666', borderBottom: '1px solid #eee', paddingBottom: '5px'}}>
-                <strong>Mike Chen</strong> - Physics Lab Report<br />
-                <small>Submitted 4 hours ago</small>
-              </div>
-              <div style={{fontSize: '14px', color: '#666'}}>
-                <strong>Emma Davis</strong> - History Essay<br />
-                <small>Submitted 6 hours ago</small>
-              </div>
+              {homeworkData?.homework && homeworkData.homework.length > 0 ? (
+                homeworkData.homework.slice(0, 5).map((hw, index) => (
+                  <div key={hw._id} style={{marginBottom: '8px', fontSize: '14px', color: '#666', borderBottom: '1px solid #eee', paddingBottom: '5px'}}>
+                    <strong>{hw.title}</strong><br />
+                    <small>
+                      {hw.statistics.submitted} submissions - {hw.course.name} ({hw.course.code})<br />
+                      Due: {new Date(hw.due_date).toLocaleDateString()}
+                      {hw.is_overdue && ' (OVERDUE)'}
+                    </small>
+                  </div>
+                ))
+              ) : (
+                <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                  No recent homework submissions
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -301,41 +305,28 @@ function HomeworkChecker() {
             </div>
           </div>
           <div className="card-content">
-            <p>Access frequently used grading and feedback tools.</p>
-            <div style={{marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
-              <button style={{
-                background: '#F38181',
-                border: 'none',
-                padding: '12px',
-                borderRadius: '8px',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}>
-                Grade Next Assignment
-              </button>
-              <button style={{
-                background: '#95E1D3',
-                border: 'none',
-                padding: '12px',
-                borderRadius: '8px',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}>
-                Export Grade Report
-              </button>
-              <button style={{
-                background: '#FCE38A',
-                border: 'none',
-                padding: '12px',
-                borderRadius: '8px',
-                color: '#333',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}>
-                Send Feedback Reminders
-              </button>
+            <p>Quick access to grading tools and statistics.</p>
+            <div style={{marginTop: '15px'}}>
+              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                <strong>Grading Summary</strong><br />
+                <small style={{color: '#666'}}>
+                  Total: {homeworkData?.grading_progress?.total || 0} | 
+                  Graded: {homeworkData?.grading_progress?.fully_graded || 0} | 
+                  Pending: {homeworkData?.grading_progress?.pending || 0}
+                </small>
+              </div>
+              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                <strong>Overdue Assignments</strong><br />
+                <small style={{color: '#666'}}>
+                  {homeworkData?.homework?.filter(hw => hw.is_overdue).length || 0} assignments need immediate attention
+                </small>
+              </div>
+              <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                <strong>Completion Rate</strong><br />
+                <small style={{color: '#666'}}>
+                  {homeworkData?.grading_progress?.completion_rate || 0}% of assignments fully graded
+                </small>
+              </div>
             </div>
           </div>
         </div>

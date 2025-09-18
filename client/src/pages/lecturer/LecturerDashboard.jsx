@@ -100,10 +100,10 @@ function LecturerDashboard() {
             <div className="progress-container">
               <div className="progress-label">
                 <span>Grading Progress</span>
-                <span>68%</span>
+                <span>{dashboardData?.workload?.grading_progress || 0}%</span>
               </div>
               <div className="progress-bar">
-                <div className="progress-fill" style={{width: '68%'}}></div>
+                <div className="progress-fill" style={{width: `${dashboardData?.workload?.grading_progress || 0}%`}}></div>
               </div>
             </div>
           </div>
@@ -139,20 +139,20 @@ function LecturerDashboard() {
             <div className="progress-container">
               <div className="progress-label">
                 <span>Average Attendance</span>
-                <span>87%</span>
+                <span>{dashboardData?.classroom?.attendance_rate || 0}%</span>
               </div>
               <div className="progress-bar">
-                <div className="progress-fill" style={{width: '87%'}}></div>
+                <div className="progress-fill" style={{width: `${dashboardData?.classroom?.attendance_rate || 0}%`}}></div>
               </div>
             </div>
           </div>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">4</span>
+              <span className="stat-value">{dashboardData?.classroom?.total_classes || 0}</span>
               <span className="stat-label">Classes</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">127</span>
+              <span className="stat-value">{dashboardData?.classroom?.total_students || 0}</span>
               <span className="stat-label">Students</span>
             </div>
           </div>
@@ -173,22 +173,26 @@ function LecturerDashboard() {
             <p>View detailed statistics about your teaching workload and student performance.</p>
             <div className="progress-container">
               <div className="progress-label">
-                <span>Class Average Grade</span>
-                <span>B+</span>
+                <span>Grading Progress</span>
+                <span>{dashboardData?.workload?.grading_progress || 0}%</span>
               </div>
               <div className="progress-bar">
-                <div className="progress-fill" style={{width: '85%'}}></div>
+                <div className="progress-fill" style={{width: `${dashboardData?.workload?.grading_progress || 0}%`}}></div>
               </div>
             </div>
           </div>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">{dashboardData?.homework?.average_grade || 0}%</span>
+              <span className="stat-value">{dashboardData?.workload?.letter_grade || 'N/A'}</span>
               <span className="stat-label">Avg Grade</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{dashboardData?.courses?.total || 0}</span>
+              <span className="stat-value">{dashboardData?.workload?.total_courses || 0}</span>
               <span className="stat-label">Courses</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value">{dashboardData?.workload?.total_exams || 0}</span>
+              <span className="stat-label">Exams</span>
             </div>
           </div>
         </div>
@@ -209,11 +213,15 @@ function LecturerDashboard() {
             <div style={{marginTop: '15px'}}>
               <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
                 <strong>Top Performers</strong><br />
-                <small style={{color: '#666'}}>15 students with A grades</small>
+                <small style={{color: '#666'}}>
+                  {dashboardData?.student_performance?.total_a_grades || 0} students with A grades
+                </small>
               </div>
               <div style={{padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
                 <strong>Need Attention</strong><br />
-                <small style={{color: '#856404'}}>3 students below C grade</small>
+                <small style={{color: '#856404'}}>
+                  {dashboardData?.student_performance?.total_below_c || 0} students below C grade
+                </small>
               </div>
             </div>
           </div>
@@ -233,15 +241,17 @@ function LecturerDashboard() {
           <div className="card-content">
             <p>Stay updated with recent submissions and class activities.</p>
             <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '8px', fontSize: '14px', color: '#666'}}>
-                • 5 new homework submissions
-              </div>
-              <div style={{marginBottom: '8px', fontSize: '14px', color: '#666'}}>
-                • 2 students requested extensions
-              </div>
-              <div style={{fontSize: '14px', color: '#666'}}>
-                • Class average improved by 5%
-              </div>
+              {dashboardData?.recent_activity?.length > 0 ? (
+                dashboardData.recent_activity.map((activity, index) => (
+                  <div key={index} style={{marginBottom: '8px', fontSize: '14px', color: '#666'}}>
+                    • {activity.message}
+                  </div>
+                ))
+              ) : (
+                <div style={{fontSize: '14px', color: '#666'}}>
+                  No recent activity
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -260,14 +270,25 @@ function LecturerDashboard() {
           <div className="card-content">
             <p>View your teaching schedule for today.</p>
             <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Mathematics 101</strong><br />
-                <small style={{color: '#666'}}>10:00 AM - Room 204</small>
-              </div>
-              <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
-                <strong>Advanced Calculus</strong><br />
-                <small style={{color: '#666'}}>2:00 PM - Room 301</small>
-              </div>
+              {dashboardData?.todays_schedule?.length > 0 ? (
+                dashboardData.todays_schedule.map((cls, index) => (
+                  <div key={cls._id} style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                    <strong>{cls.course_name}</strong><br />
+                    <small style={{color: '#666'}}>
+                      {new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                      {new Date(cls.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                      {cls.location}
+                    </small>
+                    {cls.class_title && (
+                      <><br /><small style={{color: '#888', fontStyle: 'italic'}}>{cls.class_title}</small></>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                  No classes scheduled for today
+                </div>
+              )}
             </div>
           </div>
         </div>
