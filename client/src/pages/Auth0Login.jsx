@@ -22,6 +22,7 @@ const Auth0Login = () => {
   const navigate = useNavigate();
 
   const [selectedRole, setSelectedRole] = useState('student');
+  const [username, setUsername] = useState('');
   
   // Get mode from URL parameters
   const getModeFromURL = () => {
@@ -54,9 +55,12 @@ const Auth0Login = () => {
   };
 
   const handleSignupWithRole = async () => {
-    console.log('Attempting signup with role:', selectedRole);
+    console.log('Attempting signup with role:', selectedRole, 'username:', username);
     try {
       localStorage.setItem('signup_role', selectedRole);
+      if (username.trim()) {
+        localStorage.setItem('signup_username', username.trim());
+      }
     } catch (_) {}
     loginWithRedirect({
       authorizationParams: {
@@ -150,6 +154,14 @@ const Auth0Login = () => {
               )}
               
               <Box display="flex" flexDirection="column" gap={2}>
+                <TextField
+                  label="Username (optional)"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  placeholder="Enter your preferred username"
+                  helperText="3-30 characters: letters, numbers, underscore, dot"
+                  inputProps={{ pattern: '^[a-z0-9_.]{3,30}$' }}
+                />
                 <Button variant={selectedRole === 'student' ? 'contained' : 'outlined'} startIcon={<StudentIcon />} onClick={() => setSelectedRole('student')}>I'm a Student</Button>
                 <Button variant={selectedRole === 'lecturer' ? 'contained' : 'outlined'} startIcon={<LecturerIcon />} onClick={() => setSelectedRole('lecturer')}>I'm a Lecturer</Button>
                 <Button variant={selectedRole === 'admin' ? 'contained' : 'outlined'} onClick={() => setSelectedRole('admin')}>I'm an Admin (request)</Button>

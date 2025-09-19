@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { apiService } from '../../services/api';
 import { Grade as GradingIcon, Assignment as AssignmentIcon, Comment as CommentIcon, Assessment as AssessmentIcon } from '@mui/icons-material';
 import '../../styles/DashboardLayout.css';
 
 function HomeworkChecker() {
+  const location = useLocation();
   const [homeworkData, setHomeworkData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('pending');
   const [courseFilter, setCourseFilter] = useState('');
+  
+  // Get pre-selected course from navigation state
+  const selectedCourseId = location.state?.selectedCourseId;
+
+  // Set the course filter when a course is pre-selected
+  useEffect(() => {
+    if (selectedCourseId && !courseFilter) {
+      setCourseFilter(selectedCourseId);
+    }
+  }, [selectedCourseId, courseFilter]);
 
   useEffect(() => {
     const fetchHomeworkData = async () => {
@@ -58,11 +70,22 @@ function HomeworkChecker() {
     );
   }
 
+  // Get the selected course name for display
+  const selectedCourse = homeworkData?.courses?.find(course => course._id === courseFilter);
+  const courseName = location.state?.courseName || selectedCourse?.name;
+
   return (
     <DashboardLayout userRole="lecturer">
       <div className="welcome-section">
         <h1 className="welcome-title">Homework Checker ✅</h1>
-        <p className="welcome-subtitle">Review, grade, and provide feedback on student homework submissions</p>
+        <p className="welcome-subtitle">
+          Review, grade, and provide feedback on student homework submissions
+          {courseName && (
+            <span style={{ display: 'block', marginTop: '8px', fontSize: '16px', fontWeight: 'bold', color: '#1976d2' }}>
+              📚 Currently viewing: {courseName}
+            </span>
+          )}
+        </p>
       </div>
 
             <div className="dashboard-grid">
@@ -78,13 +101,24 @@ function HomeworkChecker() {
             </div>
           </div>
           <div className="card-content">
-            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '15px',
+              alignItems: 'end'
+            }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Status:</label>
                 <select 
                   value={statusFilter} 
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                  style={{ 
+                    padding: '8px', 
+                    borderRadius: '4px', 
+                    border: '1px solid #ddd',
+                    width: '100%',
+                    minWidth: '120px'
+                  }}
                 >
                   <option value="pending">Pending</option>
                   <option value="overdue">Overdue</option>
@@ -96,12 +130,19 @@ function HomeworkChecker() {
                 <select 
                   value={courseFilter} 
                   onChange={(e) => handleCourseChange(e.target.value)}
-                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                  style={{ 
+                    padding: '8px', 
+                    borderRadius: '4px', 
+                    border: '1px solid #ddd',
+                    width: '100%',
+                    minWidth: '200px',
+                    maxWidth: '350px'
+                  }}
                 >
                   <option value="">All Courses</option>
                   {homeworkData?.courses?.map((course) => (
                     <option key={course._id} value={course._id}>
-                      {course.name} ({course.code})
+                      {course.code ? `${course.code} - ${course.name}` : course.name}
                     </option>
                   ))}
                 </select>

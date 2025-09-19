@@ -176,10 +176,19 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
     
     // Check if user is the course lecturer or admin
     const userRole = req.userInfo.roles[0];
-    const userId = req.userInfo.auth0_id;
     
-    if (userRole === 'lecturer' && !course.lecturer_id.equals(userId)) {
-      return res.status(403).json({ error: 'Access denied' });
+    if (userRole === 'lecturer') {
+      // Get current user from database to compare ObjectIds
+      const currentUser = await User.findOne({ auth0_id: req.auth.sub });
+      if (!currentUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      if (!course.lecturer_id.equals(currentUser._id)) {
+        return res.status(403).json({ error: 'You can only update your own courses' });
+      }
+    } else if (userRole !== 'admin') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
     
     const {
@@ -339,12 +348,31 @@ router.get('/student/:studentId', checkJwt, extractUser, async (req, res) => {
   }
 });
 
-// DELETE /api/courses/:id - Delete course (Admin only)
-router.delete('/:id', checkJwt, extractUser, requireAdminOrReadUsers, async (req, res) => {
+// DELETE /api/courses/:id - Delete course (Lecturer can delete own courses, Admin can delete any)
+router.delete('/:id', checkJwt, extractUser, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
     if (!course) {
       return res.status(404).json({ error: 'Course not found' });
+    }
+    
+    // Get current user from database
+    const currentUser = await User.findOne({ auth0_id: req.auth.sub });
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Check permissions: Admin can delete any course, Lecturer can only delete their own courses
+    const userRole = req.userInfo.roles[0];
+    if (userRole === 'admin') {
+      // Admin can delete any course
+    } else if (userRole === 'lecturer') {
+      // Lecturer can only delete their own courses
+      if (!course.lecturer_id.equals(currentUser._id)) {
+        return res.status(403).json({ error: 'You can only delete your own courses' });
+      }
+    } else {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
     
     course.is_active = false;

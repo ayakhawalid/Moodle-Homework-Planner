@@ -21,6 +21,28 @@ function LecturerDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Get user name with multiple fallbacks, prioritizing full name
+  const getUserName = () => {
+    // Try from our processed user object first (full_name, then name)
+    if (user?.full_name && user.full_name.trim()) {
+      return user.full_name;
+    }
+    if (user?.name && user.name !== 'User' && user.name.trim()) {
+      return user.name;
+    }
+
+    // Try from Auth0 user object
+    if (user?.email) {
+      const auth0Name = user.given_name || user.nickname || user.name;
+      if (auth0Name && auth0Name.trim()) {
+        return auth0Name;
+      }
+    }
+
+    // Final fallback
+    return user?.email?.split('@')[0] || 'Professor';
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -64,7 +86,7 @@ function LecturerDashboard() {
     <DashboardLayout userRole="lecturer">
       {/* Welcome Section */}
       <div className="welcome-section">
-        <h1 className="welcome-title">Welcome Back, {user?.name || user?.email?.split('@')[0] || 'Professor'}! 👨‍🏫</h1>
+        <h1 className="welcome-title">Welcome Back, {getUserName()}! 👨‍🏫</h1>
         <p className="welcome-subtitle">Ready to inspire and educate your students?</p>
         <div className="quick-actions">
           <Link to="/lecturer/homework-checker" className="action-btn">

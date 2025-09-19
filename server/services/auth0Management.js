@@ -293,6 +293,8 @@ async function updateAuth0UserProfile(auth0UserId, profileData) {
     if (profileData.name) updateData.name = profileData.name;
     if (profileData.email) updateData.email = profileData.email;
     if (profileData.picture) updateData.picture = profileData.picture;
+    if (profileData.nickname) updateData.nickname = profileData.nickname;
+    if (profileData.given_name) updateData.given_name = profileData.given_name;
 
     const response = await management.users.update({ id: auth0UserId }, updateData);
 

@@ -26,7 +26,11 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
-  Tooltip
+  Tooltip,
+  List,
+  ListItem,
+  ListItemText,
+  Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,18 +39,25 @@ import {
   Group as GroupIcon,
   Assignment as AssignmentIcon,
   School as SchoolIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  CalendarToday as CalendarIcon,
+  Person as PersonIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { apiService } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const CourseManagement = () => {
   const { user } = useUserSyncContext();
+  const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingCourse, setViewingCourse] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -172,6 +183,26 @@ const CourseManagement = () => {
       console.error('Error deleting course:', error);
       setError(error?.response?.data?.error || 'Failed to delete course');
     }
+  };
+
+  const handleViewCourse = (course) => {
+    setViewingCourse(course);
+    setViewDialogOpen(true);
+  };
+
+  const handleCloseViewDialog = () => {
+    setViewDialogOpen(false);
+    setViewingCourse(null);
+  };
+
+  const handleManageAssignments = (course) => {
+    // Navigate to homework checker with course pre-selected
+    navigate('/lecturer/homework-checker', { 
+      state: { 
+        selectedCourseId: course._id, 
+        courseName: course.course_name 
+      } 
+    });
   };
 
   const getSemesterChipColor = (semester) => {
@@ -306,7 +337,11 @@ const CourseManagement = () => {
                         </TableCell>
                         <TableCell>
                           <Tooltip title="View Course">
-                            <IconButton size="small" color="primary">
+                            <IconButton 
+                              size="small" 
+                              color="primary"
+                              onClick={() => handleViewCourse(course)}
+                            >
                               <ViewIcon />
                             </IconButton>
                           </Tooltip>
@@ -320,7 +355,11 @@ const CourseManagement = () => {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Manage Assignments">
-                            <IconButton size="small" color="secondary">
+                            <IconButton 
+                              size="small" 
+                              color="secondary"
+                              onClick={() => handleManageAssignments(course)}
+                            >
                               <AssignmentIcon />
                             </IconButton>
                           </Tooltip>
@@ -451,6 +490,167 @@ const CourseManagement = () => {
             <Button onClick={handleCloseDialog}>Cancel</Button>
             <Button onClick={handleSubmit} variant="contained">
               {editingCourse ? 'Update Course' : 'Create Course'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* View Course Dialog */}
+        <Dialog open={viewDialogOpen} onClose={handleCloseViewDialog} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <Box display="flex" alignItems="center">
+              <SchoolIcon sx={{ mr: 1 }} />
+              Course Details
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            {viewingCourse && (
+              <Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="h5" gutterBottom>
+                      {viewingCourse.course_name}
+                    </Typography>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Chip 
+                        label={viewingCourse.course_code || 'No Code'} 
+                        variant="outlined" 
+                        sx={{ mr: 2 }}
+                      />
+                      <Chip 
+                        label={viewingCourse.semester ? viewingCourse.semester.charAt(0).toUpperCase() + viewingCourse.semester.slice(1) : 'No Semester'} 
+                        color={getSemesterChipColor(viewingCourse.semester)}
+                        sx={{ mr: 2 }}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        {viewingCourse.year}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          <CalendarIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          Course Information
+                        </Typography>
+                        <List dense>
+                          <ListItem>
+                            <ListItemText 
+                              primary="Credits" 
+                              secondary={viewingCourse.credits ? `${viewingCourse.credits} credits` : 'Not specified'} 
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemText 
+                              primary="Semester" 
+                              secondary={viewingCourse.semester ? viewingCourse.semester.charAt(0).toUpperCase() + viewingCourse.semester.slice(1) : 'Not specified'} 
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemText 
+                              primary="Year" 
+                              secondary={viewingCourse.year || 'Not specified'} 
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemText 
+                              primary="Students Enrolled" 
+                              secondary={viewingCourse.students?.length || 0} 
+                            />
+                          </ListItem>
+                        </List>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          Enrollment
+                        </Typography>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                          <Typography variant="body1">
+                            {viewingCourse.students?.length || 0} students enrolled
+                          </Typography>
+                        </Box>
+                        {viewingCourse.students && viewingCourse.students.length > 0 && (
+                          <Box>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Enrolled Students:
+                            </Typography>
+                            <List dense>
+                              {viewingCourse.students.slice(0, 5).map((student, index) => (
+                                <ListItem key={index}>
+                                  <ListItemText 
+                                    primary={student.name || student.full_name || student.email}
+                                    secondary={student.email}
+                                  />
+                                </ListItem>
+                              ))}
+                              {viewingCourse.students.length > 5 && (
+                                <ListItem>
+                                  <ListItemText 
+                                    primary={`... and ${viewingCourse.students.length - 5} more students`}
+                                    sx={{ fontStyle: 'italic' }}
+                                  />
+                                </ListItem>
+                              )}
+                            </List>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {viewingCourse.description && (
+                    <Grid item xs={12}>
+                      <Card variant="outlined">
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            <DescriptionIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                            Description
+                          </Typography>
+                          <Typography variant="body1">
+                            {viewingCourse.description}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  )}
+
+                  {viewingCourse.syllabus && (
+                    <Grid item xs={12}>
+                      <Card variant="outlined">
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            <DescriptionIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                            Syllabus
+                          </Typography>
+                          <Typography variant="body1">
+                            {viewingCourse.syllabus}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  )}
+                </Grid>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseViewDialog}>Close</Button>
+            <Button 
+              onClick={() => {
+                handleCloseViewDialog();
+                handleOpenDialog(viewingCourse);
+              }} 
+              variant="contained"
+            >
+              Edit Course
             </Button>
           </DialogActions>
         </Dialog>

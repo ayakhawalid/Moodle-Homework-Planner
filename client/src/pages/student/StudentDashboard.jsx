@@ -62,20 +62,23 @@ function StudentDashboard() {
     yAxisTitle: 'Hours'
   };
 
-  // Get user name with multiple fallbacks
+  // Get user name with multiple fallbacks, prioritizing full name
   const getUserName = () => {
-    // Try from our processed user object first
-    if (user?.name && user.name !== 'User') {
+    // Try from our processed user object first (full_name, then name)
+    if (user?.full_name && user.full_name.trim()) {
+      return user.full_name;
+    }
+    if (user?.name && user.name !== 'User' && user.name.trim()) {
       return user.name;
     }
 
     // Try directly from Auth0 user object
     if (auth0User) {
-      const name = auth0User.name ||
+      const name = auth0User.given_name ||
                    auth0User.nickname ||
-                   auth0User.given_name ||
+                   auth0User.name ||
                    auth0User.email?.split('@')[0];
-      if (name) return name;
+      if (name && name.trim()) return name;
     }
 
     // Final fallback
