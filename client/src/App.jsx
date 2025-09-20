@@ -83,9 +83,11 @@ function AppContent() {
     location.pathname === '/login' ||
     location.pathname.startsWith('/login?');
 
+  const isHomePage = location.pathname === '/';
+
   return (
     <>
-      {!isDashboardPage && !isLoginPage && <NavBar />}
+      {!isDashboardPage && !isLoginPage && !isHomePage && <NavBar />}
       <Routes>
           {/* Main Pages */}
           <Route path='/' element={<Home />} />

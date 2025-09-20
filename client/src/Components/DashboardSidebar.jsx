@@ -113,7 +113,7 @@ function DashboardSidebar({ userRole }) {
         {/* Sidebar Header */}
         <div className="sidebar-header">
           <div className="logo-section">
-            <img src="/src/assets/unnamed.png" alt="Logo" className="sidebar-logo" />
+            <img src="/favicon.svg" alt="Logo" className="sidebar-logo" />
           </div>
           <button className="toggle-btn" onClick={toggleSidebar}>
             {isCollapsed ? <MenuIcon /> : <CloseIcon />}
