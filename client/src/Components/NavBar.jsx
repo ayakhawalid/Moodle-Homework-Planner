@@ -42,99 +42,13 @@ function NavBar() {
   };
   return (
     <div className="navbar">
-      <div className="leftSide" id = {openLinks ? "open" : "close"}>
-        <Link to="/">
-          <img src={logo} alt="logo" className="logo" />
-        </Link>
+      <div className="leftSide">
+        {/* Logo removed */}
       </div>
       <div className="rightSide">
-        {/* Always visible items */}
-        {!isLoggedIn && (
-          <>
-            {/* Timetable removed as requested */}
-          </>
-        )}
-
-        {/* Student navigation items */}
-        {isLoggedIn && userRole === "student" && (
-          <>
-            <Link to="/student/dashboard" className="nav-circle">
-              <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Dashboard</span>
-            </Link>
-            <Link to="/student/homework" className="nav-circle">
-              <AssignmentIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Homework</span>
-            </Link>
-            <Link to="/student/timer" className="nav-circle">
-              <TimerIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Timer</span>
-            </Link>
-            <Link to="/student/progress" className="nav-circle">
-              <TrendingUpIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Progress</span>
-            </Link>
-          </>
-        )}
-
-        {/* Lecturer navigation items */}
-        {isLoggedIn && userRole === "lecturer" && (
-          <>
-            <Link to="/lecturer/dashboard" className="nav-circle">
-              <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Dashboard</span>
-            </Link>
-            <Link to="/lecturer/homework-checker" className="nav-circle">
-              <GradingIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Grading</span>
-            </Link>
-            <Link to="/lecturer/stats" className="nav-circle">
-              <BarChartIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Stats</span>
-            </Link>
-          </>
-        )}
-
-        {/* Admin navigation items */}
-        {isLoggedIn && userRole === "admin" && (
-          <>
-            <Link to="/admin/dashboard" className="nav-circle">
-              <DashboardIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Dashboard</span>
-            </Link>
-            <Link to="/admin/users" className="nav-circle">
-              <UsersIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Users</span>
-            </Link>
-            <Link to="/admin/analytics" className="nav-circle">
-              <BarChartIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Analytics</span>
-            </Link>
-            <Link to="/admin/settings" className="nav-circle">
-              <SettingsIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-              <span>Settings</span>
-            </Link>
-          </>
-        )}
-
-        {/* Login/Signup/Logout buttons */}
-        {!isLoggedIn ? (
-          <>
-            <Link to="/login" className="nav-circle login-btn">
-              Login
-            </Link>
-            <Link to="/login?mode=signup" className="nav-circle">Sign Up</Link>
-          </>
-        ) : (
-          <Auth0LogoutButton />
-        )}
-
-        <button onClick={toggleNavBar}>
-          <ReorderIcon style={{ marginRight: '5px', fontSize: '18px' }} />
-        </button>
+        {/* Empty right side - all navigation removed */}
       </div>
     </div>
-
   );
 }
 

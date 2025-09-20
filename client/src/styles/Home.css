@@ -1,10 +1,209 @@
 /* Home Page Styles */
 .home-container {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   min-height: 100vh;
   width: 100%;
   margin: 0;
   padding: 0;
+  display: flex;
+  padding-top: 0; /* No navbar */
+}
+
+/* Left Side - Background Image */
+.home-left {
+  flex: 3;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Right Side - Content */
+.home-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: 
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 19px,
+      #e0e0e0 19px,
+      #e0e0e0 20px
+    ),
+    linear-gradient(
+      45deg,
+      transparent 25%,
+      rgba(255,255,255,0.1) 25%,
+      rgba(255,255,255,0.1) 50%,
+      transparent 50%,
+      transparent 75%,
+      rgba(255,255,255,0.1) 75%
+    ),
+    #fefefe;
+  background-size: 
+    100% 20px,
+    20px 20px,
+    100% 100%;
+  padding: 0 1.5rem;
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+.background-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+.content-section {
+  max-width: 500px;
+  width: 100%;
+}
+
+/* Typography */
+.main-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #2E7D32, #4CAF50);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: #2E7D32; /* Fallback color */
+}
+
+.main-description {
+  font-size: 1.2rem;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+}
+
+/* Features List */
+.features-list {
+  margin-bottom: 2rem;
+}
+
+.feature-item {
+  margin-bottom: 0.5rem;
+}
+
+.feature-text {
+  font-size: 1rem;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  min-width: 140px;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299);
+  color: #333;
+  box-shadow: 0 4px 15px rgba(214, 247, 173, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(214, 247, 173, 0.4);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299);
+  color: #333;
+  box-shadow: 0 4px 15px rgba(214, 247, 173, 0.3);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(214, 247, 173, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .home-container {
+    flex-direction: column;
+  }
+  
+  .home-left {
+    min-height: 40vh;
+  }
+  
+  .home-right {
+    padding: 2rem 1.5rem;
+  }
+  
+  .main-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-right {
+    padding: 2rem 1rem;
+  }
+  
+  .main-title {
+    font-size: 2rem;
+  }
+  
+  .main-description {
+    font-size: 1.1rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-title {
+    font-size: 1.75rem;
+  }
+  
+  .main-description {
+    font-size: 1rem;
+  }
+  
+  .feature-item {
+    margin-bottom: 0.75rem;
+  }
+  
+  .feature-icon {
+    font-size: 1.25rem;
+    margin-right: 0.75rem;
+  }
+  
+  .feature-text {
+    font-size: 0.95rem;
+  }
 }

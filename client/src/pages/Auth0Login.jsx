@@ -13,7 +13,8 @@ import {
   TextField
 } from '@mui/material';
 import { Login as LoginIcon, School as StudentIcon, MenuBook as LecturerIcon } from '@mui/icons-material';
-import logo from '../assets/logo.png';
+// Using favicon as logo
+const logo = '/favicon.svg';
 import '../styles/Login.css';
 
 const Auth0Login = () => {
@@ -70,10 +71,10 @@ const Auth0Login = () => {
     });
   };
 
-  // Auto-redirect to Auth0 login when component loads (for login mode)
+  // Auto-redirect to Auth0 login when component loads (for login mode only)
   useEffect(() => {
     console.log('useEffect triggered - isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'mode:', mode);
-    if (!isLoading && !isAuthenticated && mode !== 'signup') {
+    if (!isLoading && !isAuthenticated && mode === 'login') {
       console.log('Auto-redirecting to Auth0 login...');
       // Add a small delay to ensure the component is fully mounted
       setTimeout(() => {
@@ -83,7 +84,7 @@ const Auth0Login = () => {
   }, [isLoading, isAuthenticated, mode]);
 
   // For login mode, redirect immediately without showing UI
-  if (mode !== 'signup' && !isAuthenticated && !isLoading) {
+  if (mode === 'login' && !isAuthenticated && !isLoading) {
     console.log('Immediate redirect to Auth0... mode:', mode);
     // Redirect immediately
     setTimeout(() => {
