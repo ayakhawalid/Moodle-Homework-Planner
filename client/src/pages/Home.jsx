@@ -30,38 +30,40 @@ function Home() {
   // Show home page for non-authenticated users
   return (
     <div className="home-container">
-      {/* Left Side - Background Image (75%) */}
-      <div className="home-left">
+      {/* Full Background Image */}
+      <div className="home-background">
         <div 
           className="background-image"
           style={{
             backgroundImage: `url(${homeImage})`
           }}
         ></div>
-      </div>
-      
-      {/* Right Side - Description and Actions (25%) */}
-      <div className="home-right">
-        <div className="content-section">
-          <h1 className="main-title">Moodle Homework Planner</h1>
-          <p className="main-description">
-            Manage homework, track progress, and collaborate effectively in your academic journey.
-          </p>
-          
-          
-          <div className="action-buttons">
-            <button 
-              className="btn btn-primary"
-              onClick={() => navigate('/login?mode=signup')}
-            >
-              SIGN UP
-            </button>
-            <button 
-              className="btn btn-secondary"
-              onClick={() => navigate('/login')}
-            >
-              LOG IN
-            </button>
+        
+        {/* Centered Content Overlay */}
+        <div className="content-overlay">
+          <div className="content-section">
+            <div className="title-section">
+              <img src="/favicon.svg" alt="Logo" className="home-logo" />
+              <h1 className="main-title">Moodle Homework Planner</h1>
+            </div>
+            <p className="main-description">
+              Manage homework, track progress, and collaborate effectively in your academic journey.
+            </p>
+            
+            <div className="action-buttons">
+              <button 
+                className="btn btn-primary"
+                onClick={() => navigate('/login?mode=signup')}
+              >
+                SIGN UP
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => navigate('/login')}
+              >
+                LOG IN
+              </button>
+            </div>
           </div>
         </div>
       </div>
