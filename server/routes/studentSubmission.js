@@ -34,21 +34,74 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: function (req, file, cb) {
-    // Allow common document and image formats
+    // Allow common document, image, and code formats
     const allowedTypes = [
+      // Documents
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'text/plain',
+      'text/csv',
+      'text/html',
+      'text/css',
+      'text/javascript',
+      'application/json',
+      'application/xml',
+      'text/xml',
+      
+      // Images
       'image/jpeg',
+      'image/jpg',
       'image/png',
-      'image/gif'
+      'image/gif',
+      'image/bmp',
+      'image/svg+xml',
+      'image/webp',
+      
+      // Code files
+      'application/x-python-code',
+      'text/x-python',
+      'text/x-java-source',
+      'text/x-c',
+      'text/x-c++',
+      'text/x-csharp',
+      'text/x-php',
+      'text/x-ruby',
+      'text/x-sql',
+      
+      // Archives
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
+      
+      // Other common formats
+      'application/octet-stream' // Generic binary file
     ];
     
-    if (allowedTypes.includes(file.mimetype)) {
+    // Also check file extension as fallback
+    const allowedExtensions = [
+      '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+      '.txt', '.csv', '.html', '.css', '.js', '.json', '.xml',
+      '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp',
+      '.py', '.java', '.c', '.cpp', '.cs', '.php', '.rb', '.sql',
+      '.zip', '.rar', '.7z'
+    ];
+    
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, Word, text, and image files are allowed.'), false);
+      console.log('Rejected file:', {
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        extension: fileExtension
+      });
+      cb(new Error(`Invalid file type. File: ${file.originalname}, Type: ${file.mimetype}`), false);
     }
   }
 });
@@ -232,12 +285,13 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
       for (const file of req.files) {
         const fileDoc = new File({
           original_name: file.originalname,
-          file_name: file.filename,
+          filename: file.filename,
           file_path: file.path,
           file_size: file.size,
           mime_type: file.mimetype,
           homework_id: homeworkId,
-          uploaded_by: studentId
+          uploaded_by: studentId,
+          file_type: 'submission'
         });
         
         await fileDoc.save();
@@ -260,10 +314,13 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
     const grade = new Grade({
       student_id: studentId,
       homework_id: homeworkId,
-      submitted_at: new Date(),
-      comments: comments,
+      submission_date: new Date(),
+      feedback: comments,
       is_late: false,
-      grade: null // Will be graded by lecturer later
+      grade: 0, // Temporary grade, will be updated by lecturer
+      graded_by: studentId, // Temporary, will be updated by lecturer
+      points_earned: 0,
+      points_possible: homework.points_possible
     });
     
     await grade.save();
@@ -275,13 +332,13 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
         files: savedFiles.map(file => ({
           _id: file._id,
           original_name: file.original_name,
-          file_name: file.file_name
+          filename: file.filename
         })),
         partner: partnerRelationship ? {
           partner_id: partnerRelationship._id,
           partner_student_id: partner_id
         } : null,
-        submitted_at: grade.submitted_at
+        submitted_at: grade.submission_date
       }
     });
   } catch (error) {
@@ -569,6 +626,238 @@ router.delete('/homework/:homeworkId/partner', checkJwt, extractUser, requireStu
   } catch (error) {
     console.error('Error removing partner:', error);
     res.status(500).json({ error: 'Failed to remove partner' });
+  }
+});
+
+// PUT /api/student-submission/homework/:homeworkId/submission - Update homework submission
+router.put('/homework/:homeworkId/submission', checkJwt, extractUser, requireStudent, upload.array('files', 5), async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const homeworkId = req.params.homeworkId;
+    const { partner_id, comments } = req.body;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Get homework details
+    const homework = await Homework.findById(homeworkId);
+    if (!homework || !homework.is_active) {
+      return res.status(404).json({ error: 'Homework not found or inactive' });
+    }
+    
+    // Check if student is enrolled in the course
+    const course = await Course.findOne({
+      _id: homework.course_id,
+      students: studentId,
+      is_active: true
+    });
+    
+    if (!course) {
+      return res.status(403).json({ error: 'You are not enrolled in this course' });
+    }
+    
+    // Find existing submission
+    const existingGrade = await Grade.findOne({
+      homework_id: homeworkId,
+      student_id: studentId
+    });
+    
+    if (!existingGrade) {
+      return res.status(404).json({ error: 'No submission found to update' });
+    }
+    
+    // Check if homework is still editable (not graded or within allowed time)
+    if (existingGrade.grade !== 0) {
+      return res.status(400).json({ error: 'Cannot update graded submission' });
+    }
+    
+    // Check if overdue
+    if (new Date() > homework.due_date && !homework.allow_late_submission) {
+      return res.status(400).json({ error: 'Homework submission is overdue' });
+    }
+    
+    // Validate partner if provided
+    if (partner_id) {
+      const partner = await User.findById(partner_id);
+      if (!partner) {
+        return res.status(400).json({ error: 'Invalid partner selected' });
+      }
+      
+      // Check if partner is enrolled in the same course
+      const partnerEnrolled = await Course.findOne({
+        _id: homework.course_id,
+        students: partner_id,
+        is_active: true
+      });
+      
+      if (!partnerEnrolled) {
+        return res.status(400).json({ error: 'Selected partner is not enrolled in this course' });
+      }
+      
+      // Check if partner is already partnered with someone else for this homework
+      const existingPartner = await Partner.findOne({
+        homework_id: homeworkId,
+        $or: [
+          { student1_id: partner_id },
+          { student2_id: partner_id }
+        ]
+      });
+      
+      if (existingPartner && !existingPartner.student1_id.equals(studentId) && !existingPartner.student2_id.equals(studentId)) {
+        return res.status(400).json({ error: 'Selected partner is already working with someone else' });
+      }
+    }
+    
+    // Delete old files
+    const oldFiles = await File.find({ homework_id: homeworkId, uploaded_by: studentId });
+    for (const file of oldFiles) {
+      if (fs.existsSync(file.file_path)) {
+        fs.unlinkSync(file.file_path);
+      }
+      await File.findByIdAndDelete(file._id);
+    }
+    
+    // Save new uploaded files
+    const savedFiles = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const fileDoc = new File({
+          original_name: file.originalname,
+          filename: file.filename,
+          file_path: file.path,
+          file_size: file.size,
+          mime_type: file.mimetype,
+          homework_id: homeworkId,
+          uploaded_by: studentId,
+          file_type: 'submission'
+        });
+        
+        await fileDoc.save();
+        savedFiles.push(fileDoc);
+      }
+    }
+    
+    // Update partner relationship if partner is selected
+    if (partner_id) {
+      // Remove existing partner relationship
+      await Partner.findOneAndDelete({
+        homework_id: homeworkId,
+        $or: [
+          { student1_id: studentId },
+          { student2_id: studentId }
+        ]
+      });
+      
+      // Create new partner relationship
+      const partnerRelationship = new Partner({
+        homework_id: homeworkId,
+        student1_id: studentId,
+        student2_id: partner_id
+      });
+      await partnerRelationship.save();
+    }
+    
+    // Update grade entry (submission record)
+    existingGrade.feedback = comments;
+    existingGrade.submission_date = new Date();
+    await existingGrade.save();
+    
+    res.status(200).json({
+      message: 'Homework submission updated successfully',
+      submission: {
+        grade_id: existingGrade._id,
+        files: savedFiles.map(file => ({
+          _id: file._id,
+          original_name: file.original_name,
+          filename: file.filename
+        })),
+        submitted_at: existingGrade.submission_date
+      }
+    });
+  } catch (error) {
+    console.error('Error updating homework submission:', error);
+    res.status(500).json({ error: 'Failed to update homework submission' });
+  }
+});
+
+// DELETE /api/student-submission/homework/:homeworkId/submission - Delete homework submission
+router.delete('/homework/:homeworkId/submission', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const homeworkId = req.params.homeworkId;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Get homework details
+    const homework = await Homework.findById(homeworkId);
+    if (!homework || !homework.is_active) {
+      return res.status(404).json({ error: 'Homework not found or inactive' });
+    }
+    
+    // Check if student is enrolled in the course
+    const course = await Course.findOne({
+      _id: homework.course_id,
+      students: studentId,
+      is_active: true
+    });
+    
+    if (!course) {
+      return res.status(403).json({ error: 'You are not enrolled in this course' });
+    }
+    
+    // Find the submission
+    const submission = await Grade.findOne({
+      homework_id: homeworkId,
+      student_id: studentId
+    });
+    
+    if (!submission) {
+      return res.status(404).json({ error: 'No submission found for this homework' });
+    }
+    
+    // Check if homework is still editable (not graded or within allowed time)
+    if (submission.grade !== 0) {
+      return res.status(400).json({ error: 'Cannot delete graded submission' });
+    }
+    
+    // Delete associated files
+    const files = await File.find({ homework_id: homeworkId, uploaded_by: studentId });
+    for (const file of files) {
+      // Delete physical file
+      if (fs.existsSync(file.file_path)) {
+        fs.unlinkSync(file.file_path);
+      }
+      // Delete file record
+      await File.findByIdAndDelete(file._id);
+    }
+    
+    // Delete partner relationship if exists
+    await Partner.findOneAndDelete({
+      homework_id: homeworkId,
+      $or: [
+        { student1_id: studentId },
+        { student2_id: studentId }
+      ]
+    });
+    
+    // Delete the submission
+    await Grade.findByIdAndDelete(submission._id);
+    
+    res.json({ message: 'Submission deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting submission:', error);
+    res.status(500).json({ error: 'Failed to delete submission' });
   }
 });
 

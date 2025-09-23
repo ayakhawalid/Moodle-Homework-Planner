@@ -30,11 +30,12 @@ import StudyTracker from './pages/student/StudyTracker';
 import ExamsFinals from './pages/student/ExamsFinals';
 import ChoosePartner from './pages/student/ChoosePartner';
 import CourseEnrollment from './pages/student/CourseEnrollment';
+import HomeworkSubmission from './pages/student/HomeworkSubmission';
 
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
 import HomeworkChecker from './pages/lecturer/HomeworkChecker';
-
+import AddHomework from './pages/lecturer/AddHomework';
 import WorkloadStats from './pages/lecturer/WorkloadStats';
 import CourseManagement from './pages/lecturer/CourseManagement';
 
@@ -110,6 +111,7 @@ function AppContent() {
           <Route path='/student/classroom' element={<ProtectedRoute requiredRole="student"><ClassroomInfoStudent /></ProtectedRoute>} />
           <Route path='/student/planner' element={<ProtectedRoute requiredRole="student"><Planner /></ProtectedRoute>} />
           <Route path='/student/homework' element={<ProtectedRoute requiredRole="student"><HomeworkPlanner /></ProtectedRoute>} />
+          <Route path='/student/submit-homework' element={<ProtectedRoute requiredRole="student"><HomeworkSubmission /></ProtectedRoute>} />
           <Route path='/student/progress' element={<ProtectedRoute requiredRole="student"><Progress /></ProtectedRoute>} />
           <Route path='/student/classes' element={<ProtectedRoute requiredRole="student"><ClassesPlanner /></ProtectedRoute>} />
           <Route path='/student/timer' element={<ProtectedRoute requiredRole="student"><StudyTimer /></ProtectedRoute>} />
@@ -122,6 +124,7 @@ function AppContent() {
           {/* Lecturer Pages */}
           <Route path='/lecturer/dashboard' element={<ProtectedRoute requiredRole="lecturer"><LecturerDashboard /></ProtectedRoute>} />
           <Route path='/lecturer/homework-checker' element={<ProtectedRoute requiredRole="lecturer"><HomeworkChecker /></ProtectedRoute>} />
+          <Route path='/lecturer/add-homework' element={<ProtectedRoute requiredRole="lecturer"><AddHomework /></ProtectedRoute>} />
           <Route path='/lecturer/stats' element={<ProtectedRoute requiredRole="lecturer"><WorkloadStats /></ProtectedRoute>} />
           <Route path='/lecturer/courses' element={<ProtectedRoute requiredRole="lecturer"><CourseManagement /></ProtectedRoute>} />
           

@@ -176,26 +176,68 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       });
     }
 
-    // Add extension requests (you might want to implement this feature)
-    // For now, we'll simulate some data
-    const extensionRequests = 2; // This could come from a separate model
-    if (extensionRequests > 0) {
+    // Add recent homework assignments (last 7 days)
+    const recentHomework = await Homework.find({
+      course_id: { $in: courseIds },
+      assigned_date: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
+      is_active: true
+    }).populate('course_id', 'course_name course_code').sort({ assigned_date: -1 }).limit(5);
+
+    if (recentHomework.length > 0) {
       recentActivity.push({
-        type: 'extension',
-        message: `${extensionRequests} students requested extensions`,
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        count: extensionRequests
+        type: 'assignment',
+        message: `${recentHomework.length} new homework assignments created`,
+        timestamp: recentHomework[0].assigned_date,
+        count: recentHomework.length,
+        homework: recentHomework.map(hw => ({
+          title: hw.title,
+          course: hw.course_id.course_name
+        }))
       });
     }
 
-    // Add grade improvement
-    const gradeImprovement = 5; // This could be calculated from historical data
-    if (gradeImprovement > 0) {
+    // Add overdue homework notifications
+    const overdueHomework = await Homework.find({
+      course_id: { $in: courseIds },
+      due_date: { $lt: new Date() },
+      is_active: true
+    }).populate('course_id', 'course_name course_code').limit(3);
+
+    if (overdueHomework.length > 0) {
       recentActivity.push({
-        type: 'improvement',
-        message: `Class average improved by ${gradeImprovement}%`,
-        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-        improvement: gradeImprovement
+        type: 'overdue',
+        message: `${overdueHomework.length} homework assignments are overdue`,
+        timestamp: new Date(),
+        count: overdueHomework.length,
+        homework: overdueHomework.map(hw => ({
+          title: hw.title,
+          course: hw.course_id.course_name,
+          due_date: hw.due_date
+        }))
+      });
+    }
+
+    // Add upcoming homework due soon (next 3 days)
+    const upcomingDue = new Date();
+    upcomingDue.setDate(upcomingDue.getDate() + 3);
+    
+    const upcomingHomework = await Homework.find({
+      course_id: { $in: courseIds },
+      due_date: { $gte: new Date(), $lte: upcomingDue },
+      is_active: true
+    }).populate('course_id', 'course_name course_code').sort({ due_date: 1 }).limit(3);
+
+    if (upcomingHomework.length > 0) {
+      recentActivity.push({
+        type: 'upcoming',
+        message: `${upcomingHomework.length} homework assignments due soon`,
+        timestamp: new Date(),
+        count: upcomingHomework.length,
+        homework: upcomingHomework.map(hw => ({
+          title: hw.title,
+          course: hw.course_id.course_name,
+          due_date: hw.due_date
+        }))
       });
     }
     

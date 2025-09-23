@@ -18,6 +18,7 @@ import {
   CalendarToday as CalendarTodayIcon,
   Group as GroupIcon,
   Quiz as QuizIcon,
+  Send as SendIcon,
   People as UsersIcon,
   Settings as SettingsIcon,
   Analytics as AnalyticsIcon,
@@ -71,6 +72,7 @@ function DashboardSidebar({ userRole }) {
     { path: '/student/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/student/courses', label: 'Course Enrollment', icon: <SchoolIcon /> },
     { path: '/student/homework', label: 'Homework Planner', icon: <AssignmentIcon /> },
+    { path: '/student/submit-homework', label: 'Submit Homework', icon: <SendIcon /> },
     { path: '/student/classes', label: 'Classes Planner', icon: <CalendarTodayIcon /> },
     { path: '/student/exams', label: 'Exams', icon: <QuizIcon /> },
     { path: '/student/timer', label: 'Study Timer', icon: <TimerIcon /> },
@@ -83,6 +85,7 @@ function DashboardSidebar({ userRole }) {
   const lecturerNavItems = [
     { path: '/lecturer/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/lecturer/courses', label: 'Course Management', icon: <SchoolIcon /> },
+    { path: '/lecturer/add-homework', label: 'Add Homework', icon: <AssignmentIcon /> },
     { path: '/lecturer/homework-checker', label: 'Homework Checker', icon: <GradingIcon /> },
     { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> },
     { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
