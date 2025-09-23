@@ -4,6 +4,7 @@ const Homework = require('../models/Homework');
 const Course = require('../models/Course');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
+const File = require('../models/File');
 const { checkJwt, extractUser, requireLecturer } = require('../middleware/auth');
 
 // GET /api/homework - Get all homework with filters
@@ -207,6 +208,9 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
 // GET /api/homework/course/:courseId - Get homework for specific course
 router.get('/course/:courseId', checkJwt, extractUser, async (req, res) => {
   try {
+    const userRole = req.userInfo.roles[0];
+    const userId = req.userInfo.auth0_id;
+    
     const homework = await Homework.findByCourse(req.params.courseId)
       .populate('course_id', 'course_name course_code')
       .populate({
@@ -216,6 +220,42 @@ router.get('/course/:courseId', checkJwt, extractUser, async (req, res) => {
           select: 'name email'
         }
       });
+    
+    // For students, add submission information
+    if (userRole === 'student') {
+      const user = await User.findOne({ auth0_id: userId });
+      if (user) {
+        const processedHomework = await Promise.all(homework.map(async (hw) => {
+          const studentSubmission = await Grade.findOne({
+            homework_id: hw._id,
+            student_id: user._id
+          }).populate('student_id', 'name email');
+          
+          const submissionFiles = await File.find({
+            homework_id: hw._id,
+            uploaded_by: user._id
+          });
+          
+          return {
+            ...hw.toObject(),
+            submitted: !!studentSubmission,
+            submission: studentSubmission ? {
+              _id: studentSubmission._id,
+              submitted_at: studentSubmission.submission_date,
+              comments: studentSubmission.feedback,
+              grade: studentSubmission.grade,
+              files: submissionFiles.map(file => ({
+                _id: file._id,
+                original_name: file.original_name,
+                filename: file.filename
+              }))
+            } : null
+          };
+        }));
+        
+        return res.json(processedHomework);
+      }
+    }
     
     res.json(homework);
   } catch (error) {

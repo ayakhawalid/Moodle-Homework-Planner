@@ -264,6 +264,12 @@ export const apiService = {
     getSubmittedFiles: (homeworkId) => api.get(`/student-submission/homework/${homeworkId}/files`),
     downloadFile: (fileId) => api.get(`/student-submission/files/${fileId}/download`),
     deleteFile: (fileId) => api.delete(`/student-submission/files/${fileId}`),
+    updateSubmission: (homeworkId, formData) => api.put(`/student-submission/homework/${homeworkId}/submission`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }),
+    deleteSubmission: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/submission`),
     selectPartner: (homeworkId, partnerId) => api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId }),
     removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`),
     saveStudySession: (data) => api.post('/student-dashboard/study-timer/session', data)
