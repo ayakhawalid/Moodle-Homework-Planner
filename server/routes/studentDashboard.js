@@ -1488,9 +1488,14 @@ router.post('/partner-requests/:requestId/respond', checkJwt, extractUser, requi
       action: action
     });
     
-    // For accept/decline actions, only the target student can respond
-    if ((action === 'accept' || action === 'decline') && !partnership.student2_id.equals(studentId)) {
-      return res.status(403).json({ error: 'You can only respond to requests sent to you' });
+    // For accept actions, only the target student can respond
+    if (action === 'accept' && !partnership.student2_id.equals(studentId)) {
+      return res.status(403).json({ error: 'You can only accept requests sent to you' });
+    }
+    
+    // For decline actions, either student in the partnership can decline
+    if (action === 'decline' && !partnership.student1_id.equals(studentId) && !partnership.student2_id.equals(studentId)) {
+      return res.status(403).json({ error: 'You can only decline partnerships you are part of' });
     }
     
     // For completed action, either student in the partnership can mark it complete
@@ -1498,9 +1503,14 @@ router.post('/partner-requests/:requestId/respond', checkJwt, extractUser, requi
       return res.status(403).json({ error: 'You can only update partnerships you are part of' });
     }
     
-    // Check if request is still pending (for accept/decline actions)
-    if ((action === 'accept' || action === 'decline') && partnership.partnership_status !== 'pending') {
+    // Check if request is still pending (for accept actions only)
+    if (action === 'accept' && partnership.partnership_status !== 'pending') {
       return res.status(400).json({ error: 'This request has already been responded to' });
+    }
+    
+    // For decline actions, allow declining partnerships in any status (for changing partners)
+    if (action === 'decline' && partnership.partnership_status === 'declined') {
+      return res.status(400).json({ error: 'This partnership has already been declined' });
     }
     
     // Check if partnership is active (for completed action)
