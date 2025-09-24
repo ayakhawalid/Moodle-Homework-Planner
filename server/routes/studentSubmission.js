@@ -205,7 +205,7 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
   try {
     const auth0Id = req.userInfo.auth0_id;
     const homeworkId = req.params.homeworkId;
-    const { partner_id, comments } = req.body;
+    const { partner_id, comments, notes } = req.body;
     
     // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
@@ -310,7 +310,8 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
         student1_id: studentId,
         student2_id: partner_id,
         initiated_by: studentId,
-        partnership_status: 'pending'
+        partnership_status: 'pending',
+        notes: notes || ''
       });
       await partnerRelationship.save();
       partnerId = partner_id;
@@ -535,7 +536,7 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
   try {
     const auth0Id = req.userInfo.auth0_id;
     const homeworkId = req.params.homeworkId;
-    const { partner_id } = req.body;
+    const { partner_id, notes } = req.body;
     
     // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
@@ -588,9 +589,10 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
       return res.status(400).json({ error: 'Selected partner is not enrolled in this course' });
     }
     
-    // Check if either student is already partnered
-    const existingPartner = await Partner.findOne({
+    // Check if either student is already partnered (only active partnerships)
+    const existingActivePartner = await Partner.findOne({
       homework_id: homeworkId,
+      partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] },
       $or: [
         { student1_id: studentId },
         { student2_id: studentId },
@@ -599,20 +601,41 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
       ]
     });
     
-    if (existingPartner) {
+    if (existingActivePartner) {
       return res.status(400).json({ error: 'One or both students are already partnered for this homework' });
     }
     
-    // Create partner relationship
-    const partnerRelationship = new Partner({
+    // Check if there's a declined partnership that we can reactivate
+    const existingDeclinedPartner = await Partner.findOne({
       homework_id: homeworkId,
       student1_id: studentId,
       student2_id: partner_id,
-      initiated_by: studentId,
-      partnership_status: 'pending'
+      partnership_status: 'declined'
     });
     
-    await partnerRelationship.save();
+    let partnerRelationship;
+    if (existingDeclinedPartner) {
+      // Update the existing declined partnership
+      existingDeclinedPartner.partnership_status = 'pending';
+      existingDeclinedPartner.initiated_by = studentId;
+      existingDeclinedPartner.notes = notes || '';
+      existingDeclinedPartner.createdAt = new Date();
+      existingDeclinedPartner.updatedAt = new Date();
+      await existingDeclinedPartner.save();
+      partnerRelationship = existingDeclinedPartner;
+    } else {
+      // Create new partner relationship
+      partnerRelationship = new Partner({
+        homework_id: homeworkId,
+        student1_id: studentId,
+        student2_id: partner_id,
+        initiated_by: studentId,
+        partnership_status: 'pending',
+        notes: notes || ''
+      });
+      
+      await partnerRelationship.save();
+    }
     
     res.status(201).json({
       message: 'Partnership request sent successfully',

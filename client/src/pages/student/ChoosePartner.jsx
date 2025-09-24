@@ -119,7 +119,7 @@ function ChoosePartner() {
     
     try {
       setSendingRequest(true);
-      await apiService.studentSubmission.selectPartner(selectedHomework, selectedPartner._id);
+      await apiService.studentSubmission.selectPartner(selectedHomework, selectedPartner._id, partnerMessage);
       
       // Refresh data
       await fetchPartnerData();
@@ -363,7 +363,7 @@ function ChoosePartner() {
                                     <strong>Requested:</strong> {new Date(request.initiated_at).toLocaleDateString()} at {new Date(request.initiated_at).toLocaleTimeString()}
                                   </Typography>
                                   
-                                  {request.notes && (
+                                  {request.notes && request.notes.trim() && (
                                     <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
                                       <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
                                         <strong>Message:</strong> "{request.notes}"
@@ -458,7 +458,7 @@ function ChoosePartner() {
                                     <strong>Sent:</strong> {new Date(request.initiated_at).toLocaleDateString()} at {new Date(request.initiated_at).toLocaleTimeString()}
                                   </Typography>
                                   
-                                  {request.notes && (
+                                  {request.notes && request.notes.trim() && (
                                     <Box sx={{ mt: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
                                       <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
                                         <strong>Your Message:</strong> "{request.notes}"
@@ -905,7 +905,6 @@ function ChoosePartner() {
                                 variant="outlined"
                                 color="error"
                                 onClick={() => handleChangePartner(partnership)}
-                                disabled={partnership.partnership_status === 'completed'}
                               >
                                 Change Partner
                               </Button>

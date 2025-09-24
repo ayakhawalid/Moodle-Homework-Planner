@@ -284,7 +284,7 @@ export const apiService = {
       }
     }),
     deleteSubmission: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/submission`),
-    selectPartner: (homeworkId, partnerId) => api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId }),
+    selectPartner: (homeworkId, partnerId, notes) => api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId, notes: notes || '' }),
     removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`),
     saveStudySession: (data) => api.post('/student-dashboard/study-timer/session', data)
   },
