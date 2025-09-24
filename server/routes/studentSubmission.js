@@ -299,18 +299,41 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
       }
     }
     
-    // Create partner relationship if partner is selected
+    // Check for existing partner relationship or create new one
     let partnerRelationship = null;
+    let partnerId = null;
+    
     if (partner_id) {
+      // Create new partner relationship
       partnerRelationship = new Partner({
         homework_id: homeworkId,
         student1_id: studentId,
-        student2_id: partner_id
+        student2_id: partner_id,
+        initiated_by: studentId,
+        partnership_status: 'pending'
       });
       await partnerRelationship.save();
+      partnerId = partner_id;
+    } else {
+      // Check for existing partnership
+      const existingPartnership = await Partner.findOne({
+        homework_id: homeworkId,
+        $or: [
+          { student1_id: studentId },
+          { student2_id: studentId }
+        ],
+        partnership_status: { $in: ['accepted', 'active'] }
+      });
+      
+      if (existingPartnership) {
+        partnerRelationship = existingPartnership;
+        partnerId = existingPartnership.student1_id.equals(studentId) 
+          ? existingPartnership.student2_id 
+          : existingPartnership.student1_id;
+      }
     }
     
-    // Create grade entry (submission record)
+    // Create grade entry (submission record) for the submitting student
     const grade = new Grade({
       student_id: studentId,
       homework_id: homeworkId,
@@ -325,6 +348,24 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
     
     await grade.save();
     
+    // If there's a partner, also create a grade entry for the partner
+    let partnerGrade = null;
+    if (partnerRelationship && partnerId) {
+      partnerGrade = new Grade({
+        student_id: partnerId,
+        homework_id: homeworkId,
+        submission_date: new Date(),
+        feedback: `Submitted by partner: ${comments || 'No comments provided'}`,
+        is_late: false,
+        grade: 0, // Temporary grade, will be updated by lecturer
+        graded_by: studentId, // Temporary, will be updated by lecturer
+        points_earned: 0,
+        points_possible: homework.points_possible
+      });
+      
+      await partnerGrade.save();
+    }
+    
     res.status(201).json({
       message: 'Homework submitted successfully',
       submission: {
@@ -336,7 +377,8 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
         })),
         partner: partnerRelationship ? {
           partner_id: partnerRelationship._id,
-          partner_student_id: partner_id
+          partner_student_id: partnerId,
+          partner_grade_id: partnerGrade ? partnerGrade._id : null
         } : null,
         submitted_at: grade.submission_date
       }
@@ -565,17 +607,20 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
     const partnerRelationship = new Partner({
       homework_id: homeworkId,
       student1_id: studentId,
-      student2_id: partner_id
+      student2_id: partner_id,
+      initiated_by: studentId,
+      partnership_status: 'pending'
     });
     
     await partnerRelationship.save();
     
     res.status(201).json({
-      message: 'Partner selected successfully',
+      message: 'Partnership request sent successfully',
       partner: {
         partner_id: partnerRelationship._id,
         student1_id: studentId,
-        student2_id: partner_id
+        student2_id: partner_id,
+        status: 'pending'
       }
     });
   } catch (error) {

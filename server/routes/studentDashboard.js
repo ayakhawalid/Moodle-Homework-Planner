@@ -1004,15 +1004,19 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
     
     const studentId = user._id;
     
-    // Get student's enrolled courses
+    // Get student's enrolled courses with partner settings
     const courses = await Course.find({ 
       students: studentId, 
       is_active: true 
     });
     
+    // Import Partner model
+    const Partner = require('../models/Partner');
+    
     let potentialPartners = [];
     let selectedCourse = null;
     let selectedHomework = null;
+    let currentPartners = [];
     
     if (course_id) {
       // Get potential partners for specific course
@@ -1021,7 +1025,81 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
         .populate('lecturer_id', 'name email full_name');
       
       if (selectedCourse) {
-        potentialPartners = selectedCourse.students.filter(student => !student._id.equals(studentId));
+        // Check if partner functionality is enabled for this course
+        if (!selectedCourse.partner_settings?.enabled) {
+          return res.status(403).json({ 
+            error: 'Partner functionality is disabled for this course',
+            partner_disabled: true 
+          });
+        }
+        
+        // Get current partners for this student in this course (exclude completed partnerships)
+        const existingPartners = await Partner.find({
+          $or: [
+            { student1_id: studentId },
+            { student2_id: studentId }
+          ],
+          partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+        })
+        .populate('student1_id', 'name email full_name')
+        .populate('student2_id', 'name email full_name')
+        .populate('homework_id', 'title course_id')
+        .populate({
+          path: 'homework_id',
+          populate: {
+            path: 'course_id',
+            select: 'course_name course_code'
+          }
+        });
+        
+        // Filter partners for the current course
+        currentPartners = existingPartners.filter(partner => 
+          partner.homework_id.course_id._id.toString() === course_id
+        );
+        
+        // Get IDs of students who already have partnerships with current student
+        const existingPartnerIds = new Set();
+        currentPartners.forEach(partner => {
+          if (partner.student1_id.equals(studentId)) {
+            existingPartnerIds.add(partner.student2_id.toString());
+          } else {
+            existingPartnerIds.add(partner.student1_id.toString());
+          }
+        });
+        
+        // Check if student already has max partners for this course
+        if (currentPartners.length >= selectedCourse.partner_settings.max_partners_per_student) {
+          potentialPartners = []; // No more partners allowed
+        } else {
+          // Get students who don't already have max partners
+          const studentsWithMaxPartners = new Set();
+          
+          for (const student of selectedCourse.students) {
+            if (student._id.equals(studentId)) continue;
+            
+            const studentPartners = await Partner.find({
+              $or: [
+                { student1_id: student._id },
+                { student2_id: student._id }
+              ],
+              partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+            }).populate('homework_id', 'course_id');
+            
+            const coursePartners = studentPartners.filter(partner => 
+              partner.homework_id.course_id._id.toString() === course_id
+            );
+            
+            if (coursePartners.length >= selectedCourse.partner_settings.max_partners_per_student) {
+              studentsWithMaxPartners.add(student._id.toString());
+            }
+          }
+          
+          potentialPartners = selectedCourse.students.filter(student => 
+            !student._id.equals(studentId) && 
+            !studentsWithMaxPartners.has(student._id.toString()) &&
+            !existingPartnerIds.has(student._id.toString())
+          );
+        }
       }
       
       if (homework_id) {
@@ -1030,19 +1108,96 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           .populate('course_id', 'course_name course_code');
       }
     } else {
-      // Get all courses with potential partners
+      // Get all courses with potential partners (only those with partner functionality enabled)
       const coursesWithPartners = await Promise.all(
         courses.map(async (course) => {
+          // Skip courses where partner functionality is disabled
+          if (!course.partner_settings?.enabled) {
+            return {
+              _id: course._id,
+              course_name: course.course_name,
+              course_code: course.course_code,
+              partner_enabled: false,
+              potential_partners: []
+            };
+          }
+          
           const populatedCourse = await Course.findById(course._id)
             .populate('students', 'name email full_name');
           
-          const coursePartners = populatedCourse.students.filter(student => !student._id.equals(studentId));
+          // Get current partners for this student in this course (exclude completed partnerships)
+          const existingPartners = await Partner.find({
+            $or: [
+              { student1_id: studentId },
+              { student2_id: studentId }
+            ],
+            partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+          })
+          .populate('student1_id', 'name email full_name')
+          .populate('student2_id', 'name email full_name')
+          .populate('homework_id', 'title course_id')
+          .populate({
+            path: 'homework_id',
+            populate: {
+              path: 'course_id',
+              select: 'course_name course_code'
+            }
+          });
+          
+          const coursePartners = existingPartners.filter(partner => 
+            partner.homework_id.course_id._id.toString() === course._id.toString()
+          );
+          
+          // Get IDs of students who already have partnerships with current student
+          const existingPartnerIds = new Set();
+          coursePartners.forEach(partner => {
+            if (partner.student1_id.equals(studentId)) {
+              existingPartnerIds.add(partner.student2_id.toString());
+            } else {
+              existingPartnerIds.add(partner.student1_id.toString());
+            }
+          });
+          
+          let coursePotentialPartners = [];
+          if (coursePartners.length < course.partner_settings.max_partners_per_student) {
+            // Get students who don't already have max partners
+            const studentsWithMaxPartners = new Set();
+            
+            for (const student of populatedCourse.students) {
+              if (student._id.equals(studentId)) continue;
+              
+              const studentPartners = await Partner.find({
+                $or: [
+                  { student1_id: student._id },
+                  { student2_id: student._id }
+                ],
+                partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+              }).populate('homework_id', 'course_id');
+              
+              const studentCoursePartners = studentPartners.filter(partner => 
+                partner.homework_id.course_id._id.toString() === course._id.toString()
+              );
+              
+              if (studentCoursePartners.length >= course.partner_settings.max_partners_per_student) {
+                studentsWithMaxPartners.add(student._id.toString());
+              }
+            }
+            
+            coursePotentialPartners = populatedCourse.students.filter(student => 
+              !student._id.equals(studentId) && 
+              !studentsWithMaxPartners.has(student._id.toString()) &&
+              !existingPartnerIds.has(student._id.toString())
+            );
+          }
           
           return {
             _id: course._id,
             course_name: course.course_name,
             course_code: course.course_code,
-            potential_partners: coursePartners
+            partner_enabled: true,
+            current_partners: coursePartners.length,
+            max_partners: course.partner_settings.max_partners_per_student,
+            potential_partners: coursePotentialPartners
           };
         })
       );
@@ -1050,17 +1205,45 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
       potentialPartners = coursesWithPartners.flatMap(course => course.potential_partners);
     }
     
+    // Get homework assignments for the selected course
+    let homeworkAssignments = [];
+    if (course_id) {
+      homeworkAssignments = await Homework.find({
+        course_id: course_id,
+        is_active: true
+      })
+      .populate('course_id', 'course_name course_code')
+      .sort({ due_date: 1 });
+    }
+
     const partnerData = {
+      user_id: studentId,
       courses: courses.map(course => ({
         _id: course._id,
         course_name: course.course_name,
-        course_code: course.course_code
+        course_code: course.course_code,
+        partner_enabled: course.partner_settings?.enabled || false,
+        max_partners: course.partner_settings?.max_partners_per_student || 1
       })),
       potential_partners: potentialPartners,
+      current_partners: currentPartners,
+      homework_assignments: homeworkAssignments.map(hw => ({
+        _id: hw._id,
+        title: hw.title,
+        due_date: hw.due_date,
+        points_possible: hw.points_possible,
+        course: {
+          _id: hw.course_id._id,
+          name: hw.course_id.course_name,
+          code: hw.course_id.course_code
+        }
+      })),
       selected_course: selectedCourse ? {
         _id: selectedCourse._id,
         course_name: selectedCourse.course_name,
         course_code: selectedCourse.course_code,
+        partner_enabled: selectedCourse.partner_settings?.enabled || false,
+        max_partners: selectedCourse.partner_settings?.max_partners_per_student || 1,
         lecturer: selectedCourse.lecturer_id ? {
           name: selectedCourse.lecturer_id.name || selectedCourse.lecturer_id.full_name,
           email: selectedCourse.lecturer_id.email
@@ -1082,6 +1265,276 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
   } catch (error) {
     console.error('Error fetching partner selection data:', error);
     res.status(500).json({ error: 'Failed to fetch partner selection data' });
+  }
+});
+
+// GET /api/student-dashboard/partner-requests - Get partnership requests for student
+router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Import Partner model
+    const Partner = require('../models/Partner');
+    
+    // Get partnership requests where this student is the target (student2_id) and status is pending
+    const pendingRequests = await Partner.find({
+      student2_id: studentId,
+      partnership_status: 'pending'
+    })
+    .populate('student1_id', 'name email full_name')
+    .populate('homework_id', 'title due_date')
+    .populate({
+      path: 'homework_id',
+      populate: {
+        path: 'course_id',
+        select: 'course_name course_code'
+      }
+    });
+    
+    // Get partnerships where this student initiated (student1_id) and status is pending
+    const sentRequests = await Partner.find({
+      student1_id: studentId,
+      partnership_status: 'pending'
+    })
+    .populate('student2_id', 'name email full_name')
+    .populate('homework_id', 'title due_date')
+    .populate({
+      path: 'homework_id',
+      populate: {
+        path: 'course_id',
+        select: 'course_name course_code'
+      }
+    });
+    
+    // Get active partnerships
+    const activePartnerships = await Partner.find({
+      $or: [
+        { student1_id: studentId },
+        { student2_id: studentId }
+      ],
+      partnership_status: { $in: ['accepted', 'active'] }
+    })
+    .populate('student1_id', 'name email full_name')
+    .populate('student2_id', 'name email full_name')
+    .populate('homework_id', 'title due_date')
+    .populate({
+      path: 'homework_id',
+      populate: {
+        path: 'course_id',
+        select: 'course_name course_code'
+      }
+    });
+    
+    // Get completed partnerships
+    const completedPartnerships = await Partner.find({
+      $or: [
+        { student1_id: studentId },
+        { student2_id: studentId }
+      ],
+      partnership_status: 'completed'
+    })
+    .populate('student1_id', 'name email full_name')
+    .populate('student2_id', 'name email full_name')
+    .populate('homework_id', 'title due_date')
+    .populate({
+      path: 'homework_id',
+      populate: {
+        path: 'course_id',
+        select: 'course_name course_code'
+      }
+    });
+    
+    const partnerRequests = {
+      pending_requests: pendingRequests.map(req => ({
+        _id: req._id,
+        partner: {
+          _id: req.student1_id._id,
+          name: req.student1_id.name || req.student1_id.full_name,
+          email: req.student1_id.email
+        },
+        homework: {
+          _id: req.homework_id._id,
+          title: req.homework_id.title,
+          due_date: req.homework_id.due_date,
+          course: {
+            _id: req.homework_id.course_id._id,
+            name: req.homework_id.course_id.course_name,
+            code: req.homework_id.course_id.course_code
+          }
+        },
+        initiated_at: req.createdAt,
+        notes: req.notes
+      })),
+      sent_requests: sentRequests.map(req => ({
+        _id: req._id,
+        partner: {
+          _id: req.student2_id._id,
+          name: req.student2_id.name || req.student2_id.full_name,
+          email: req.student2_id.email
+        },
+        homework: {
+          _id: req.homework_id._id,
+          title: req.homework_id.title,
+          due_date: req.homework_id.due_date,
+          course: {
+            _id: req.homework_id.course_id._id,
+            name: req.homework_id.course_id.course_name,
+            code: req.homework_id.course_id.course_code
+          }
+        },
+        initiated_at: req.createdAt,
+        notes: req.notes
+      })),
+      active_partnerships: activePartnerships.map(req => ({
+        _id: req._id,
+        partner: {
+          _id: req.student1_id._id.equals(studentId) ? req.student2_id._id : req.student1_id._id,
+          name: req.student1_id._id.equals(studentId) 
+            ? (req.student2_id.name || req.student2_id.full_name)
+            : (req.student1_id.name || req.student1_id.full_name),
+          email: req.student1_id._id.equals(studentId) 
+            ? req.student2_id.email 
+            : req.student1_id.email
+        },
+        homework: {
+          _id: req.homework_id._id,
+          title: req.homework_id.title,
+          due_date: req.homework_id.due_date,
+          course: {
+            _id: req.homework_id.course_id._id,
+            name: req.homework_id.course_id.course_name,
+            code: req.homework_id.course_id.course_code
+          }
+        },
+        status: req.partnership_status,
+        accepted_at: req.accepted_at
+      })),
+      completed_partnerships: completedPartnerships.map(req => ({
+        _id: req._id,
+        partner: {
+          _id: req.student1_id._id.equals(studentId) ? req.student2_id._id : req.student1_id._id,
+          name: req.student1_id._id.equals(studentId) 
+            ? (req.student2_id.name || req.student2_id.full_name)
+            : (req.student1_id.name || req.student1_id.full_name),
+          email: req.student1_id._id.equals(studentId) 
+            ? req.student2_id.email 
+            : req.student1_id.email
+        },
+        homework: {
+          _id: req.homework_id._id,
+          title: req.homework_id.title,
+          due_date: req.homework_id.due_date,
+          course: {
+            _id: req.homework_id.course_id._id,
+            name: req.homework_id.course_id.course_name,
+            code: req.homework_id.course_id.course_code
+          }
+        },
+        status: req.partnership_status,
+        accepted_at: req.accepted_at,
+        completed_at: req.completed_at
+      }))
+    };
+    
+    res.json(partnerRequests);
+  } catch (error) {
+    console.error('Error fetching partner requests:', error);
+    res.status(500).json({ error: 'Failed to fetch partner requests' });
+  }
+});
+
+// POST /api/student-dashboard/partner-requests/:requestId/respond - Accept or decline partnership request
+router.post('/partner-requests/:requestId/respond', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const requestId = req.params.requestId;
+    const { action } = req.body; // 'accept' or 'decline'
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Import Partner model
+    const Partner = require('../models/Partner');
+    console.log('Partner model imported successfully for respond endpoint');
+    
+    // Find the partnership request
+    console.log('Looking for partnership with ID:', requestId);
+    const partnership = await Partner.findById(requestId);
+    console.log('Found partnership:', partnership ? 'Yes' : 'No');
+    if (!partnership) {
+      return res.status(404).json({ error: 'Partnership request not found' });
+    }
+    
+    // Check if this student is involved in the partnership
+    console.log('Checking student permissions:', {
+      studentId: studentId.toString(),
+      student2_id: partnership.student2_id.toString(),
+      student1_id: partnership.student1_id.toString(),
+      isTarget: partnership.student2_id.equals(studentId),
+      isInitiator: partnership.student1_id.equals(studentId),
+      action: action
+    });
+    
+    // For accept/decline actions, only the target student can respond
+    if ((action === 'accept' || action === 'decline') && !partnership.student2_id.equals(studentId)) {
+      return res.status(403).json({ error: 'You can only respond to requests sent to you' });
+    }
+    
+    // For completed action, either student in the partnership can mark it complete
+    if (action === 'completed' && !partnership.student1_id.equals(studentId) && !partnership.student2_id.equals(studentId)) {
+      return res.status(403).json({ error: 'You can only update partnerships you are part of' });
+    }
+    
+    // Check if request is still pending (for accept/decline actions)
+    if ((action === 'accept' || action === 'decline') && partnership.partnership_status !== 'pending') {
+      return res.status(400).json({ error: 'This request has already been responded to' });
+    }
+    
+    // Check if partnership is active (for completed action)
+    if (action === 'completed' && partnership.partnership_status !== 'accepted') {
+      return res.status(400).json({ error: 'Can only mark active partnerships as completed' });
+    }
+    
+    // Update partnership status
+    if (action === 'accept') {
+      partnership.partnership_status = 'accepted';
+      partnership.accepted_at = new Date();
+    } else if (action === 'decline') {
+      partnership.partnership_status = 'declined';
+    } else if (action === 'completed') {
+      partnership.partnership_status = 'completed';
+      partnership.completed_at = new Date();
+    } else {
+      return res.status(400).json({ error: 'Invalid action. Use "accept", "decline", or "completed"' });
+    }
+    
+    await partnership.save();
+    
+    res.json({
+      message: `Partnership ${action}ed successfully`,
+      partnership: {
+        _id: partnership._id,
+        status: partnership.partnership_status,
+        accepted_at: partnership.accepted_at,
+        completed_at: partnership.completed_at
+      }
+    });
+  } catch (error) {
+    console.error('Error responding to partnership request:', error);
+    res.status(500).json({ error: 'Failed to respond to partnership request' });
   }
 });
 

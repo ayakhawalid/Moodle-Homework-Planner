@@ -42,7 +42,10 @@ import {
   Visibility as ViewIcon,
   CalendarToday as CalendarIcon,
   Person as PersonIcon,
-  Description as DescriptionIcon
+  Description as DescriptionIcon,
+  Settings as SettingsIcon,
+  ToggleOn as ToggleOnIcon,
+  ToggleOff as ToggleOffIcon
 } from '@mui/icons-material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
@@ -58,6 +61,8 @@ const CourseManagement = () => {
   const [editingCourse, setEditingCourse] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewingCourse, setViewingCourse] = useState(null);
+  const [partnerSettingsDialogOpen, setPartnerSettingsDialogOpen] = useState(false);
+  const [editingPartnerSettings, setEditingPartnerSettings] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -69,6 +74,11 @@ const CourseManagement = () => {
     credits: '',
     semester: '',
     year: new Date().getFullYear()
+  });
+
+  const [partnerSettingsData, setPartnerSettingsData] = useState({
+    enabled: true,
+    max_partners_per_student: 1
   });
 
   const semesters = ['fall', 'spring', 'summer', 'winter'];
@@ -203,6 +213,45 @@ const CourseManagement = () => {
         courseName: course.course_name 
       } 
     });
+  };
+
+  const handleOpenPartnerSettings = (course) => {
+    setEditingPartnerSettings(course);
+    setPartnerSettingsData({
+      enabled: course.partner_settings?.enabled !== false,
+      max_partners_per_student: course.partner_settings?.max_partners_per_student || 1
+    });
+    setPartnerSettingsDialogOpen(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const handleClosePartnerSettings = () => {
+    setPartnerSettingsDialogOpen(false);
+    setEditingPartnerSettings(null);
+    setError('');
+  };
+
+  const handlePartnerSettingsChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setPartnerSettingsData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSavePartnerSettings = async () => {
+    try {
+      setError('');
+      
+      await apiService.courses.updatePartnerSettings(editingPartnerSettings._id, partnerSettingsData);
+      setSuccess('Partner settings updated successfully');
+      handleClosePartnerSettings();
+      loadCourses();
+    } catch (error) {
+      console.error('Error updating partner settings:', error);
+      setError(error?.response?.data?.error || 'Failed to update partner settings');
+    }
   };
 
   const getSemesterChipColor = (semester) => {
@@ -361,6 +410,15 @@ const CourseManagement = () => {
                               onClick={() => handleManageAssignments(course)}
                             >
                               <AssignmentIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Partner Settings">
+                            <IconButton 
+                              size="small" 
+                              color={course.partner_settings?.enabled !== false ? "success" : "warning"}
+                              onClick={() => handleOpenPartnerSettings(course)}
+                            >
+                              {course.partner_settings?.enabled !== false ? <ToggleOnIcon /> : <ToggleOffIcon />}
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete Course">
@@ -651,6 +709,90 @@ const CourseManagement = () => {
               variant="contained"
             >
               Edit Course
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Partner Settings Dialog */}
+        <Dialog 
+          open={partnerSettingsDialogOpen} 
+          onClose={handleClosePartnerSettings}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box display="flex" alignItems="center">
+              <SettingsIcon sx={{ mr: 1 }} />
+              Partner Settings - {editingPartnerSettings?.course_name}
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
+            
+            <Box sx={{ mt: 2 }}>
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      Enable Partner Functionality
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Allow students to form study partnerships for this course
+                    </Typography>
+                  </Box>
+                  <Box display="flex" alignItems="center">
+                    <input
+                      type="checkbox"
+                      name="enabled"
+                      checked={partnerSettingsData.enabled}
+                      onChange={handlePartnerSettingsChange}
+                      style={{ transform: 'scale(1.5)' }}
+                    />
+                  </Box>
+                </Box>
+              </FormControl>
+
+              {partnerSettingsData.enabled && (
+                <FormControl fullWidth>
+                  <InputLabel>Maximum Partners per Student</InputLabel>
+                  <Select
+                    name="max_partners_per_student"
+                    value={partnerSettingsData.max_partners_per_student}
+                    onChange={handlePartnerSettingsChange}
+                    label="Maximum Partners per Student"
+                  >
+                    <MenuItem value={1}>1 Partner</MenuItem>
+                    <MenuItem value={2}>2 Partners</MenuItem>
+                    <MenuItem value={3}>3 Partners</MenuItem>
+                    <MenuItem value={4}>4 Partners</MenuItem>
+                    <MenuItem value={5}>5 Partners</MenuItem>
+                  </Select>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Students can have up to this many partners for this course
+                  </Typography>
+                </FormControl>
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePartnerSettings}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSavePartnerSettings}
+              variant="contained"
+              startIcon={<SettingsIcon />}
+            >
+              Save Settings
             </Button>
           </DialogActions>
         </Dialog>

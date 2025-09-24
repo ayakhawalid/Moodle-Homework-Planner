@@ -15,19 +15,23 @@ export const UserSyncProvider = ({ children }) => {
 
   // Set up token provider for API service
   useEffect(() => {
+    console.log('UserSyncContext - Setting up token provider, isAuthenticated:', isAuthenticated);
     setTokenProvider(async () => {
+      console.log('UserSyncContext - Token provider called, isAuthenticated:', isAuthenticated);
       if (isAuthenticated) {
         try {
           const token = await getAccessTokenSilently({
-            audience: 'http://localhost:5000',
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
             scope: 'read:users read:stats'
           });
+          console.log('UserSyncContext - Token retrieved successfully:', !!token);
           return token;
         } catch (error) {
           console.error('Failed to get access token:', error);
           return null;
         }
       }
+      console.log('UserSyncContext - Not authenticated, returning null token');
       return null;
     });
   }, [isAuthenticated, getAccessTokenSilently]);
