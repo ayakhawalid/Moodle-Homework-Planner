@@ -20,19 +20,27 @@ export const setTokenProvider = (provider) => {
 // Request interceptor to add auth token
 api.interceptors.request.use(
   async (config) => {
+    console.log('API Request Interceptor - Token Provider:', !!tokenProvider);
+    
     if (tokenProvider) {
       try {
         const token = await tokenProvider();
+        console.log('API Request Interceptor - Token retrieved:', !!token);
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('API Request Interceptor - Authorization header set');
+        } else {
+          console.warn('API Request Interceptor - No token received from provider');
         }
       } catch (error) {
         console.error('Failed to get access token for request:', error);
         // Optionally, you could cancel the request here
       }
+    } else {
+      console.warn('API Request Interceptor - No token provider set');
     }
 
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    console.log('API Request:', config.method?.toUpperCase(), config.url, 'Headers:', config.headers);
     return config;
   },
   (error) => {
@@ -177,6 +185,7 @@ export const apiService = {
     getByLecturer: (lecturerId) => api.get(`/courses/lecturer/${lecturerId}`),
     getByStudent: (studentId) => api.get(`/courses/student/${studentId}`),
     addStudent: (courseId, studentId) => api.post(`/courses/${courseId}/students`, { student_id: studentId }),
+    updatePartnerSettings: (id, settings) => api.put(`/courses/${id}/partner-settings`, settings),
     removeStudent: (courseId, studentId) => api.delete(`/courses/${courseId}/students/${studentId}`)
   },
 
@@ -236,6 +245,11 @@ export const apiService = {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);
       return api.get(`/student-dashboard/grades?${params.toString()}`);
+    },
+    getPartnerRequests: () => api.get('/student-dashboard/partner-requests'),
+    respondToPartnerRequest: (requestId, action) => {
+      console.log('API Service - respondToPartnerRequest called:', { requestId, action });
+      return api.post(`/student-dashboard/partner-requests/${requestId}/respond`, { action });
     }
   },
 
