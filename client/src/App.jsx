@@ -31,6 +31,7 @@ import ExamsFinals from './pages/student/ExamsFinals';
 import ChoosePartner from './pages/student/ChoosePartner';
 import CourseEnrollment from './pages/student/CourseEnrollment';
 import HomeworkSubmission from './pages/student/HomeworkSubmission';
+import HomeworkManagement from './pages/student/HomeworkManagement';
 
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
@@ -38,6 +39,8 @@ import HomeworkChecker from './pages/lecturer/HomeworkChecker';
 import AddHomework from './pages/lecturer/AddHomework';
 import WorkloadStats from './pages/lecturer/WorkloadStats';
 import CourseManagement from './pages/lecturer/CourseManagement';
+import VerificationDashboard from './pages/lecturer/VerificationDashboard';
+import CourseWorkloadOverview from './pages/lecturer/CourseWorkloadOverview';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -119,6 +122,7 @@ function AppContent() {
           <Route path='/student/exams' element={<ProtectedRoute requiredRole="student"><ExamsFinals /></ProtectedRoute>} />
           <Route path='/student/partner' element={<ProtectedRoute requiredRole="student"><ChoosePartner /></ProtectedRoute>} />
           <Route path='/student/courses' element={<ProtectedRoute requiredRole="student"><CourseEnrollment /></ProtectedRoute>} />
+          <Route path='/student/homework-management' element={<ProtectedRoute requiredRole="student"><HomeworkManagement /></ProtectedRoute>} />
           
 
           {/* Lecturer Pages */}
@@ -127,6 +131,8 @@ function AppContent() {
           <Route path='/lecturer/add-homework' element={<ProtectedRoute requiredRole="lecturer"><AddHomework /></ProtectedRoute>} />
           <Route path='/lecturer/stats' element={<ProtectedRoute requiredRole="lecturer"><WorkloadStats /></ProtectedRoute>} />
           <Route path='/lecturer/courses' element={<ProtectedRoute requiredRole="lecturer"><CourseManagement /></ProtectedRoute>} />
+          <Route path='/lecturer/verifications' element={<ProtectedRoute requiredRole="lecturer"><VerificationDashboard /></ProtectedRoute>} />
+          <Route path='/lecturer/workload-overview' element={<ProtectedRoute requiredRole="lecturer"><CourseWorkloadOverview /></ProtectedRoute>} />
           
 
           {/* Admin Pages */}

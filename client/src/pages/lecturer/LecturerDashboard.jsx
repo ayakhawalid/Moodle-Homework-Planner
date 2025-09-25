@@ -89,10 +89,6 @@ function LecturerDashboard() {
         <h1 className="welcome-title">Welcome Back, {getUserName()}! 👨‍🏫</h1>
         <p className="welcome-subtitle">Ready to inspire and educate your students?</p>
         <div className="quick-actions">
-          <Link to="/lecturer/homework-checker" className="action-btn">
-            <GradingIcon />
-            Grade Assignments
-          </Link>
           <Link to="/lecturer/classroom" className="action-btn">
             <ClassIcon />
             Manage Classes
@@ -106,44 +102,6 @@ function LecturerDashboard() {
 
       {/* Dashboard Grid */}
       <div className="dashboard-grid">
-        {/* Grading Card */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <div className="card-icon primary">
-              <GradingIcon />
-            </div>
-            <div>
-              <h3 className="card-title">Homework Checker</h3>
-              <p className="card-subtitle">Grade student assignments</p>
-            </div>
-          </div>
-          <div className="card-content">
-            <p>Review and grade submitted assignments from your students.</p>
-            <div className="progress-container">
-              <div className="progress-label">
-                <span>Grading Progress</span>
-                <span>{dashboardData?.workload?.grading_progress || 0}%</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{width: `${dashboardData?.workload?.grading_progress || 0}%`}}></div>
-              </div>
-            </div>
-          </div>
-          <div className="card-stats">
-            <div className="stat-item">
-              <span className="stat-value">{dashboardData?.homework?.graded || 0}</span>
-              <span className="stat-label">Graded</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{dashboardData?.homework?.pending || 0}</span>
-              <span className="stat-label">Pending</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{dashboardData?.homework?.total || 0}</span>
-              <span className="stat-label">Total</span>
-            </div>
-          </div>
-        </div>
 
         {/* Classroom Management Card */}
         <div className="dashboard-card">

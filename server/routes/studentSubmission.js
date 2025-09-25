@@ -10,6 +10,7 @@ const File = require('../models/File');
 const Partner = require('../models/Partner');
 const User = require('../models/User');
 const { checkJwt, extractUser, requireStudent } = require('../middleware/auth');
+const gradeExtractionService = require('../services/gradeExtraction');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -926,6 +927,101 @@ router.delete('/homework/:homeworkId/submission', checkJwt, extractUser, require
   } catch (error) {
     console.error('Error deleting submission:', error);
     res.status(500).json({ error: 'Failed to delete submission' });
+  }
+});
+
+// POST /api/student-submission/verify-grade - Extract grade from screenshot
+router.post('/verify-grade', checkJwt, extractUser, requireStudent, upload.single('screenshot'), async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const { homeworkId, claimedGrade } = req.body;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Validate input
+    if (!req.file) {
+      return res.status(400).json({ error: 'Screenshot is required' });
+    }
+    
+    if (!homeworkId || !claimedGrade) {
+      return res.status(400).json({ error: 'Homework ID and claimed grade are required' });
+    }
+    
+    // Check if student is enrolled in the course
+    const homework = await Homework.findById(homeworkId).populate('course_id');
+    if (!homework) {
+      return res.status(404).json({ error: 'Homework not found' });
+    }
+    
+    const course = await Course.findOne({
+      _id: homework.course_id._id,
+      students: studentId,
+      is_active: true
+    });
+    
+    if (!course) {
+      return res.status(403).json({ error: 'You are not enrolled in this course' });
+    }
+    
+    // Extract grade from screenshot
+    const extractionResult = await gradeExtractionService.extractGradeFromImage(req.file.buffer);
+    
+    if (!extractionResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: extractionResult.error,
+        rawText: extractionResult.rawText
+      });
+    }
+    
+    // Validate extracted grade
+    const validation = gradeExtractionService.validateGrade(extractionResult.grade, extractionResult.total);
+    
+    // Check if extracted grade matches claimed grade (with tolerance)
+    const claimedGradeNum = parseInt(claimedGrade);
+    const tolerance = 2; // Allow 2-point difference
+    const isMatch = Math.abs(extractionResult.grade - claimedGradeNum) <= tolerance;
+    
+    // Save verification record
+    const verificationRecord = {
+      studentId,
+      homeworkId,
+      claimedGrade: claimedGradeNum,
+      extractedGrade: extractionResult.grade,
+      extractedTotal: extractionResult.total,
+      extractedPercentage: extractionResult.percentage,
+      confidence: extractionResult.confidence,
+      isMatch,
+      screenshotPath: req.file.path,
+      rawText: extractionResult.rawText,
+      verifiedAt: new Date()
+    };
+    
+    // You can save this to a database if needed
+    console.log('Grade verification record:', verificationRecord);
+    
+    res.json({
+      success: true,
+      claimedGrade: claimedGradeNum,
+      extractedGrade: extractionResult.grade,
+      extractedTotal: extractionResult.total,
+      extractedPercentage: extractionResult.percentage,
+      confidence: extractionResult.confidence,
+      isMatch,
+      validation,
+      rawText: extractionResult.rawText,
+      message: isMatch ? 'Grade verification successful!' : 'Grade mismatch detected'
+    });
+    
+  } catch (error) {
+    console.error('Grade verification error:', error);
+    res.status(500).json({ error: 'Failed to verify grade' });
   }
 });
 

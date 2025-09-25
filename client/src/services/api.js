@@ -56,7 +56,9 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Response Error:', error.response?.status, error.response?.data);
+    const status = error.response?.status || 'No Status';
+    const data = error.response?.data || error.message || 'No Data';
+    console.error('API Response Error:', status, data);
     
     // Handle specific error cases
     if (error.response?.status === 401) {
@@ -286,7 +288,43 @@ export const apiService = {
     deleteSubmission: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/submission`),
     selectPartner: (homeworkId, partnerId, notes) => api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId, notes: notes || '' }),
     removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`),
+    verifyGrade: (homeworkId, claimedGrade, screenshotFile) => {
+      const formData = new FormData();
+      formData.append('homeworkId', homeworkId);
+      formData.append('claimedGrade', claimedGrade);
+      formData.append('screenshot', screenshotFile);
+      return api.post('/student-submission/verify-grade', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    },
     saveStudySession: (data) => api.post('/student-dashboard/study-timer/session', data)
+  },
+
+    // Student Homework endpoints
+    studentHomework: {
+      getHomework: () => api.get('/student-homework'),
+      getLecturerHomework: () => api.get('/student-homework/lecturer/all'),
+      createHomework: (data) => api.post('/student-homework', data),
+      completeHomework: (homeworkId, claimedGrade) => api.put(`/student-homework/${homeworkId}/complete`, { claimed_grade: claimedGrade }),
+      verifyGrade: (homeworkId, screenshotFile) => {
+        const formData = new FormData();
+        formData.append('screenshot', screenshotFile);
+        return api.post(`/student-homework/${homeworkId}/verify-grade`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      },
+      getVerifications: () => api.get('/student-homework/lecturer/verifications'),
+      verifyDeadline: (homeworkId, data) => api.put(`/student-homework/${homeworkId}/verify-deadline`, data)
+    },
+
+  // Test data endpoints
+  testData: {
+    getStatus: () => api.get('/test-data/status'),
+    createSample: () => api.post('/test-data/create-sample')
   },
   
   // Homework endpoints (to be implemented)
