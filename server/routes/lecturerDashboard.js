@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const Homework = require('../models/Homework');
+const StudentHomework = require('../models/StudentHomework');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
 const Class = require('../models/Class');
@@ -28,20 +29,33 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       .populate('classes')
       .populate('exams');
     
-    // Get homework statistics
+    // Get homework statistics from BOTH tables
     const courseIds = courses.map(course => course._id);
-    const homework = await Homework.find({ 
+    
+    // Query traditional homework
+    const traditionalHomework = await Homework.find({ 
       course_id: { $in: courseIds }, 
       is_active: true 
     }).populate('course_id', 'course_name course_code');
     
-    // Get grading statistics
-    const homeworkIds = homework.map(hw => hw._id);
-    const grades = await Grade.find({ homework_id: { $in: homeworkIds } });
+    // Query student homework
+    const studentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds }
+    }).populate('course_id', 'course_name course_code')
+      .populate('uploaded_by', 'name email');
+    
+    // Combine both types
+    const allHomework = [...traditionalHomework, ...studentHomework];
+    
+    console.log(`Dashboard overview - Traditional homework: ${traditionalHomework.length}, Student homework: ${studentHomework.length}, Total: ${allHomework.length}`);
+    
+    // Get grading statistics (only traditional homework has grades in Grade table)
+    const traditionalHomeworkIds = traditionalHomework.map(hw => hw._id);
+    const grades = await Grade.find({ homework_id: { $in: traditionalHomeworkIds } });
     
     // Calculate statistics
     const totalStudents = courses.reduce((sum, course) => sum + course.students.length, 0);
-    const totalHomework = homework.length;
+    const totalHomework = allHomework.length;
     const gradedHomework = grades.length;
     const pendingGrading = totalHomework - gradedHomework;
     
@@ -69,7 +83,7 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
 
     // Get recent homework submissions (last 7 days)
     const recentSubmissions = await Grade.find({ 
-      homework_id: { $in: homeworkIds },
+      homework_id: { $in: traditionalHomeworkIds },
       graded_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
     })
     .populate('homework_id', 'title due_date')
@@ -324,19 +338,45 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
     
     const courseIds = courses.map(course => course._id);
     
-    // Get all homework for these courses
-    const homework = await Homework.find({ 
+    // Get all homework for these courses from BOTH tables
+    const traditionalHomework = await Homework.find({ 
       course_id: { $in: courseIds }, 
       is_active: true 
     }).populate('course_id', 'course_name course_code');
     
-    // Get all grades for these homework
-    const homeworkIds = homework.map(hw => hw._id);
-    const grades = await Grade.find({ homework_id: { $in: homeworkIds } });
+    const studentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds }
+    }).populate('course_id', 'course_name course_code')
+      .populate('uploaded_by', 'name email');
+    
+    // Convert traditional homework to match the format
+    const convertedTraditionalHomework = traditionalHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      course_id: hw.course_id._id,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      due_date: hw.due_date,
+      is_active: hw.is_active,
+      uploader_role: 'lecturer'
+    }));
+    
+    // Combine both types of homework
+    const allHomework = [...convertedTraditionalHomework, ...studentHomework];
+    
+    console.log(`Workload stats - Traditional homework: ${traditionalHomework.length}, Student homework: ${studentHomework.length}, Total: ${allHomework.length}`);
+    
+    // Get all grades for these homework (only traditional homework has grades in Grade table)
+    const traditionalHomeworkIds = traditionalHomework.map(hw => hw._id);
+    const grades = await Grade.find({ homework_id: { $in: traditionalHomeworkIds } });
     
     // Calculate course-specific statistics
     const courseStats = await Promise.all(courses.map(async (course) => {
-      const courseHomework = homework.filter(hw => hw.course_id._id.equals(course._id));
+      const courseHomework = allHomework.filter(hw => hw.course_id._id.equals(course._id));
       const courseGrades = grades.filter(grade => 
         courseHomework.some(hw => hw._id.equals(grade.homework_id))
       );
@@ -363,7 +403,7 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
     
     // Calculate overall statistics
     const totalStudents = courses.reduce((sum, course) => sum + course.students.length, 0);
-    const totalHomework = homework.length;
+    const totalHomework = allHomework.length;
     const totalGrades = grades.length;
     const overallAverage = totalGrades > 0 
       ? grades.reduce((sum, grade) => sum + grade.grade, 0) / totalGrades 
@@ -526,8 +566,8 @@ router.get('/homework-checker', checkJwt, extractUser, requireLecturer, async (r
       filter.course_id = course_id;
     }
     
-    // Get homework with submission status
-    const homework = await Homework.find(filter)
+    // Get homework with submission status from BOTH tables
+    const traditionalHomework = await Homework.find(filter)
       .populate('course_id', 'course_name course_code')
       .populate({
         path: 'grades',
@@ -538,8 +578,37 @@ router.get('/homework-checker', checkJwt, extractUser, requireLecturer, async (r
       })
       .sort({ due_date: 1 });
     
+    const studentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds }
+    })
+      .populate('course_id', 'course_name course_code')
+      .populate('uploaded_by', 'name email')
+      .sort({ claimed_deadline: 1 });
+    
+    // Convert student homework to match traditional format for processing
+    const convertedStudentHomework = studentHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      course_id: hw.course_id._id,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      due_date: hw.claimed_deadline,
+      is_active: true,
+      grades: [], // Student homework doesn't have grades in the traditional sense
+      uploader_role: hw.uploader_role
+    }));
+    
+    // Combine both types
+    const allHomework = [...traditionalHomework, ...convertedStudentHomework];
+    
+    console.log(`Homework checker - Traditional: ${traditionalHomework.length}, Student: ${studentHomework.length}, Total: ${allHomework.length}`);
+    
     // Process homework based on status
-    const processedHomework = homework.map(hw => {
+    const processedHomework = allHomework.map(hw => {
       const submissions = hw.grades || [];
       const totalStudents = courses.find(c => c._id.equals(hw.course_id._id))?.students?.length || 0;
       const submittedCount = submissions.length;
@@ -644,11 +713,36 @@ async function getWeeklyWorkload(courseIds) {
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
   const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
   
-  const homework = await Homework.find({
+  // Query both homework tables
+  const traditionalHomework = await Homework.find({
     course_id: { $in: courseIds },
     due_date: { $gte: weekStart, $lte: weekEnd },
     is_active: true
   }).populate('course_id', 'course_name');
+  
+  const studentHomework = await StudentHomework.find({
+    course_id: { $in: courseIds },
+    claimed_deadline: { $gte: weekStart, $lte: weekEnd }
+  }).populate('course_id', 'course_name');
+  
+  // Convert traditional homework to match format
+  const convertedTraditionalHomework = traditionalHomework.map(hw => ({
+    _id: hw._id,
+    title: hw.title,
+    course: hw.course_id.course_name,
+    due_date: hw.due_date
+  }));
+  
+  // Convert student homework to match format
+  const convertedStudentHomework = studentHomework.map(hw => ({
+    _id: hw._id,
+    title: hw.title,
+    course: hw.course_id.course_name,
+    due_date: hw.claimed_deadline
+  }));
+  
+  // Combine both types
+  const allHomework = [...convertedTraditionalHomework, ...convertedStudentHomework];
   
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const workload = days.map(day => ({
@@ -657,15 +751,10 @@ async function getWeeklyWorkload(courseIds) {
     homework: []
   }));
   
-  homework.forEach(hw => {
+  allHomework.forEach(hw => {
     const dayIndex = new Date(hw.due_date).getDay();
     workload[dayIndex].homework_count++;
-    workload[dayIndex].homework.push({
-      _id: hw._id,
-      title: hw.title,
-      course: hw.course_id.course_name,
-      due_date: hw.due_date
-    });
+    workload[dayIndex].homework.push(hw);
   });
   
   return workload;

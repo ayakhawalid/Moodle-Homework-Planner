@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuth } from '../hooks/useAuth';
@@ -23,7 +23,8 @@ import {
   Settings as SettingsIcon,
   Analytics as AnalyticsIcon,
   AccountCircle as AccountCircleIcon,
-  SwapHoriz as SwapHorizIcon
+  SwapHoriz as SwapHorizIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import '../styles/DashboardSidebar.css';
 
@@ -43,6 +44,14 @@ function DashboardSidebar({ userRole }) {
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
+
+  // Set dashboard context in session storage
+  useEffect(() => {
+    if (userRole) {
+      sessionStorage.setItem('dashboardContext', userRole);
+      console.log('Set dashboard context to:', userRole);
+    }
+  }, [userRole]);
 
   // Get user name with multiple fallbacks, prioritizing full name
   const getUserName = () => {
@@ -72,7 +81,7 @@ function DashboardSidebar({ userRole }) {
     { path: '/student/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/student/courses', label: 'Course Enrollment', icon: <SchoolIcon /> },
     { path: '/student/homework', label: 'Homework Planner', icon: <AssignmentIcon /> },
-    { path: '/student/submit-homework', label: 'Submit Homework', icon: <SendIcon /> },
+    { path: '/student/homework-management', label: 'Homework Management', icon: <AssignmentIcon /> },
     { path: '/student/classes', label: 'Classes Planner', icon: <CalendarTodayIcon /> },
     { path: '/student/exams', label: 'Exams', icon: <QuizIcon /> },
     { path: '/student/timer', label: 'Study Timer', icon: <TimerIcon /> },
@@ -86,7 +95,8 @@ function DashboardSidebar({ userRole }) {
     { path: '/lecturer/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/lecturer/courses', label: 'Course Management', icon: <SchoolIcon /> },
     { path: '/lecturer/add-homework', label: 'Add Homework', icon: <AssignmentIcon /> },
-    { path: '/lecturer/homework-checker', label: 'Homework Checker', icon: <GradingIcon /> },
+    { path: '/lecturer/verifications', label: 'Verifications', icon: <CheckCircleIcon /> },
+    { path: '/lecturer/workload-overview', label: 'Workload Overview', icon: <BarChartIcon /> },
     { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> },
     { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
     { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }

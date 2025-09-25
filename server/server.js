@@ -26,6 +26,8 @@ const lecturerDashboardRoutes = require('./routes/lecturerDashboard');
 const studentDashboardRoutes = require('./routes/studentDashboard');
 const lecturerManagementRoutes = require('./routes/lecturerManagement');
 const studentSubmissionRoutes = require('./routes/studentSubmission');
+const studentHomeworkRoutes = require('./routes/studentHomework');
+const testDataRoutes = require('./routes/testData');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -60,8 +62,20 @@ app.use(cors({
     'http://localhost:5174',
     process.env.CLIENT_URL
   ].filter(Boolean),
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Add CORS preflight handling
+app.options('*', cors());
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -93,6 +107,8 @@ app.use('/api/lecturer-dashboard', lecturerDashboardRoutes);
 app.use('/api/student-dashboard', studentDashboardRoutes);
 app.use('/api/lecturer-management', lecturerManagementRoutes);
 app.use('/api/student-submission', studentSubmissionRoutes);
+app.use('/api/student-homework', studentHomeworkRoutes);
+app.use('/api/test-data', testDataRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

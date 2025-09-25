@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../Components/DashboardLayout';
 import { apiService } from '../services/api';
 import { useUserSyncContext } from '../contexts/UserSyncContext';
@@ -30,12 +31,53 @@ import {
 const RoleRequests = () => {
   const { user, isAdmin, isLecturer, isStudent } = useUserSyncContext();
   const { getAccessTokenSilently } = useAuth0();
+  const location = useLocation();
   const [selectedRole, setSelectedRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [myRequests, setMyRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(true);
+
+  // Determine navbar context based on referrer or current context
+  const getNavbarContext = () => {
+    // Check if we came from a specific dashboard
+    const referrer = document.referrer;
+    console.log('Referrer:', referrer);
+    
+    if (referrer && referrer.includes('/lecturer/')) {
+      console.log('Detected lecturer context from referrer');
+      return 'lecturer';
+    } else if (referrer && referrer.includes('/student/')) {
+      console.log('Detected student context from referrer');
+      return 'student';
+    } else if (referrer && referrer.includes('/admin/')) {
+      console.log('Detected admin context from referrer');
+      return 'admin';
+    }
+    
+    // Check session storage for context
+    const dashboardContext = sessionStorage.getItem('dashboardContext');
+    if (dashboardContext) {
+      console.log('Using context from session storage:', dashboardContext);
+      return dashboardContext;
+    }
+    
+    // Fallback: use user's current role from context
+    console.log('User context:', { isLecturer, isStudent, isAdmin, role: user?.role });
+    
+    // If user has multiple roles, prioritize based on current context
+    if (isLecturer && !isStudent && !isAdmin) return 'lecturer';
+    if (isStudent && !isLecturer && !isAdmin) return 'student';
+    if (isAdmin && !isLecturer && !isStudent) return 'admin';
+    
+    // If user has multiple roles, use the primary role
+    if (isLecturer) return 'lecturer';
+    if (isStudent) return 'student';
+    if (isAdmin) return 'admin';
+    
+    return user?.role || 'student';
+  };
 
   // Load user's existing role requests
   useEffect(() => {
@@ -129,7 +171,7 @@ const RoleRequests = () => {
   };
 
   return (
-    <DashboardLayout userRole={user?.role}>
+    <DashboardLayout userRole={getNavbarContext()}>
       <Box p={3}>
         <Typography variant="h4" gutterBottom>
           Role Requests
