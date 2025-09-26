@@ -190,22 +190,44 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       });
     }
 
-    // Add recent homework assignments (last 7 days)
-    const recentHomework = await Homework.find({
+    // Add recent homework assignments (last 7 days) from BOTH tables
+    const recentTraditionalHomework = await Homework.find({
       course_id: { $in: courseIds },
       assigned_date: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
       is_active: true
     }).populate('course_id', 'course_name course_code').sort({ assigned_date: -1 }).limit(5);
 
-    if (recentHomework.length > 0) {
+    const recentStudentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds },
+      created_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
+      uploader_role: 'lecturer' // Only lecturer-created homework
+    }).populate('course_id', 'course_name course_code').sort({ created_at: -1 }).limit(5);
+
+    // Combine both types
+    const allRecentHomework = [
+      ...recentTraditionalHomework.map(hw => ({
+        title: hw.title,
+        course: hw.course_id.course_name,
+        timestamp: hw.assigned_date,
+        type: 'traditional'
+      })),
+      ...recentStudentHomework.map(hw => ({
+        title: hw.title,
+        course: hw.course_id.course_name,
+        timestamp: hw.created_at,
+        type: 'student_homework'
+      }))
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
+
+    if (allRecentHomework.length > 0) {
       recentActivity.push({
         type: 'assignment',
-        message: `${recentHomework.length} new homework assignments created`,
-        timestamp: recentHomework[0].assigned_date,
-        count: recentHomework.length,
-        homework: recentHomework.map(hw => ({
+        message: `${allRecentHomework.length} new homework assignments created`,
+        timestamp: allRecentHomework[0].timestamp,
+        count: allRecentHomework.length,
+        homework: allRecentHomework.map(hw => ({
           title: hw.title,
-          course: hw.course_id.course_name
+          course: hw.course
         }))
       });
     }

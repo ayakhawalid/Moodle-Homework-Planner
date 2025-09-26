@@ -375,47 +375,12 @@ const CourseWorkloadOverview = () => {
     }
   };
 
-  const getPriorityDistribution = () => {
-    try {
-      const priorityCounts = {
-        urgent: 0,
-        high: 0,
-        medium: 0,
-        low: 0
-      };
-
-      allHomework.forEach(hw => {
-        if (hw && hw.priority) {
-          priorityCounts[hw.priority] = (priorityCounts[hw.priority] || 0) + 1;
-        }
-      });
-
-      return Object.entries(priorityCounts).map(([priority, count]) => ({
-        priority: priority.charAt(0).toUpperCase() + priority.slice(1),
-        count
-      }));
-    } catch (error) {
-      console.error('Error in getPriorityDistribution:', error);
-      return [];
-    }
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed': return 'success';
       case 'in_progress': return 'warning';
       case 'not_started': return 'default';
       case 'graded': return 'info';
-      default: return 'default';
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'urgent': return 'error';
-      case 'high': return 'warning';
-      case 'medium': return 'info';
-      case 'low': return 'success';
       default: return 'default';
     }
   };
@@ -431,7 +396,6 @@ const CourseWorkloadOverview = () => {
   // Safely get data with error handling
   let workloadData = [];
   let timelineData = [];
-  let priorityData = [];
   
   try {
     console.log('=== RENDER DATA PROCESSING ===');
@@ -445,12 +409,10 @@ const CourseWorkloadOverview = () => {
     
     workloadData = getWorkloadData();
     timelineData = getTimelineData();
-    priorityData = getPriorityDistribution();
     
     console.log('Processed data:', {
       workloadData: workloadData.length,
-      timelineData: timelineData.length,
-      priorityData: priorityData.length
+      timelineData: timelineData.length
     });
     console.log('===============================');
   } catch (error) {
@@ -684,26 +646,6 @@ const CourseWorkloadOverview = () => {
           </Card>
         </Grid>
 
-        {/* Priority Distribution */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Priority Distribution
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={priorityData || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="priority" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
         {/* Timeline */}
         <Grid item xs={12}>
           <Card>
@@ -795,24 +737,20 @@ const CourseWorkloadOverview = () => {
                           <ListItemText
                             primary={hw.title}
                             secondary={
-                              <Typography variant="caption" display="block">
-                                Due: {new Date(hw.claimed_deadline).toLocaleDateString()}
-                              </Typography>
+                              <Box>
+                                <Typography variant="caption" display="block">
+                                  Due: {new Date(hw.claimed_deadline).toLocaleDateString()}
+                                </Typography>
+                                <Box display="flex" gap={0.5} mt={0.5}>
+                                  <Chip
+                                    label={hw.completion_status}
+                                    color={getStatusColor(hw.completion_status)}
+                                    size="small"
+                                  />
+                                </Box>
+                              </Box>
                             }
                           />
-                          <Box display="flex" gap={0.5} mt={0.5}>
-                            <Chip
-                              label={hw.completion_status}
-                              color={getStatusColor(hw.completion_status)}
-                              size="small"
-                            />
-                            <Chip
-                              label={hw.priority}
-                              color={getPriorityColor(hw.priority)}
-                              size="small"
-                              variant="outlined"
-                            />
-                          </Box>
                         </ListItem>
                       ))}
                       {allHomework.filter(hw => hw.course && hw.course._id === course._id).length > 5 && (

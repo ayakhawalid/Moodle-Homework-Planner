@@ -54,9 +54,7 @@ const HomeworkManagement = () => {
     description: '',
     course_id: '',
     claimed_deadline: '',
-    priority: 'medium',
     tags: '',
-    moodle_assignment_id: '',
     moodle_url: ''
   });
   
@@ -92,6 +90,16 @@ const HomeworkManagement = () => {
         other_student_homework: otherStudentHomework.length
       });
       
+      // Debug: Check course data for each homework item
+      console.log('Frontend homework course data:', response.data.homework.map(hw => ({
+        id: hw._id,
+        title: hw.title,
+        uploader_role: hw.uploader_role,
+        course: hw.course,
+        course_name: hw.course?.name,
+        course_code: hw.course?.code
+      })));
+      
       setHomework(response.data.homework);
       setCourses(response.data.courses);
     } catch (err) {
@@ -120,9 +128,7 @@ const HomeworkManagement = () => {
         description: '',
         course_id: '',
         claimed_deadline: '',
-        priority: 'medium',
         tags: '',
-        moodle_assignment_id: '',
         moodle_url: ''
       });
       fetchHomework();
@@ -173,16 +179,6 @@ const HomeworkManagement = () => {
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'urgent': return 'error';
-      case 'high': return 'warning';
-      case 'medium': return 'info';
-      case 'low': return 'success';
-      default: return 'default';
-    }
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'verified': return 'success';
@@ -191,6 +187,10 @@ const HomeworkManagement = () => {
       case 'unverified': return 'default';
       default: return 'default';
     }
+  };
+
+  const formatStatus = (status) => {
+    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const getCompletionStatusColor = (status) => {
@@ -248,11 +248,6 @@ const HomeworkManagement = () => {
                   <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
                     {hw.title}
                   </Typography>
-                  <Chip
-                    label={hw.priority}
-                    color={getPriorityColor(hw.priority)}
-                    size="small"
-                  />
                 </Box>
 
                 <Box display="flex" alignItems="center" mb={1}>
@@ -281,11 +276,19 @@ const HomeworkManagement = () => {
                     color={getCompletionStatusColor(hw.completion_status)}
                     size="small"
                   />
-                  <Chip
-                    label={`Deadline: ${hw.deadline_verification_status}`}
-                    color={getStatusColor(hw.deadline_verification_status)}
-                    size="small"
-                  />
+                  {hw.uploader_role === 'lecturer' ? (
+                    <Chip
+                      label="Lecturer Assigned"
+                      color="info"
+                      size="small"
+                    />
+                  ) : (
+                    <Chip
+                      label={`Deadline: ${formatStatus(hw.deadline_verification_status)}`}
+                      color={getStatusColor(hw.deadline_verification_status)}
+                      size="small"
+                    />
+                  )}
                   {hw.claimed_grade && (
                     <Chip
                       label={`Grade: ${hw.claimed_grade}`}
@@ -402,20 +405,6 @@ const HomeworkManagement = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={newHomework.priority}
-                  onChange={(e) => setNewHomework({ ...newHomework, priority: e.target.value })}
-                >
-                  <MenuItem value="low">Low</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="high">High</MenuItem>
-                  <MenuItem value="urgent">Urgent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Tags (comma-separated)"
@@ -427,17 +416,10 @@ const HomeworkManagement = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Moodle Assignment ID"
-                value={newHomework.moodle_assignment_id}
-                onChange={(e) => setNewHomework({ ...newHomework, moodle_assignment_id: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
                 label="Moodle URL"
                 value={newHomework.moodle_url}
                 onChange={(e) => setNewHomework({ ...newHomework, moodle_url: e.target.value })}
+                placeholder="https://moodle.example.com/mod/assign/view.php?id=123"
               />
             </Grid>
           </Grid>
