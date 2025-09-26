@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
 const Homework = require('../models/Homework');
+const StudentHomework = require('../models/StudentHomework');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
 const StudyProgress = require('../models/StudyProgress');
@@ -32,14 +33,73 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     .populate('classes')
     .populate('exams');
     
-    // Get homework for enrolled courses
+    // Get homework from BOTH tables
     const courseIds = courses.map(course => course._id);
-    const homework = await Homework.find({ 
+    console.log('Student enrolled in courses:', courseIds.map(id => id.toString()));
+    
+    const traditionalHomework = await Homework.find({ 
       course_id: { $in: courseIds }, 
       is_active: true 
     })
     .populate('course_id', 'course_name course_code')
     .sort({ due_date: 1 });
+    
+    const studentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds },
+      $or: [
+        // Student's own homework
+        { uploaded_by: studentId },
+        // Lecturer-created homework
+        { uploader_role: 'lecturer' },
+        // Other students' homework that has been verified
+        { 
+          uploader_role: 'student',
+          uploaded_by: { $ne: studentId },
+          deadline_verification_status: { $in: ['verified'] }
+        }
+      ]
+    })
+    .populate('course_id', 'course_name course_code')
+    .populate('uploaded_by', 'name email')
+    .sort({ claimed_deadline: 1 });
+    
+    // Convert student homework to match traditional format
+    const convertedStudentHomework = studentHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      course_id: hw.course_id._id,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      due_date: hw.claimed_deadline,
+      is_active: true,
+      uploader_role: hw.uploader_role,
+      completion_status: hw.completion_status,
+      deadline_verification_status: hw.deadline_verification_status
+    }));
+    
+    // Combine both types
+    const allHomework = [...traditionalHomework, ...convertedStudentHomework];
+    
+    console.log(`Student dashboard overview - Traditional: ${traditionalHomework.length}, Student: ${studentHomework.length}, Total: ${allHomework.length}`);
+    console.log('Traditional homework filter:', { course_id: { $in: courseIds }, is_active: true });
+    console.log('Traditional homework details:', traditionalHomework.map(hw => ({
+      id: hw._id,
+      title: hw.title,
+      course_id: hw.course_id._id,
+      course_name: hw.course_id.course_name,
+      is_active: hw.is_active,
+      due_date: hw.due_date
+    })));
+    console.log('Student homework breakdown:', {
+      own_homework: studentHomework.filter(hw => hw.uploaded_by.equals(studentId)).length,
+      lecturer_homework: studentHomework.filter(hw => hw.uploader_role === 'lecturer').length,
+      other_student_homework: studentHomework.filter(hw => hw.uploader_role === 'student' && !hw.uploaded_by.equals(studentId)).length,
+      verified_other_homework: studentHomework.filter(hw => hw.uploader_role === 'student' && !hw.uploaded_by.equals(studentId) && hw.deadline_verification_status === 'verified').length
+    });
     
     // Get student's grades
     const grades = await Grade.find({ student_id: studentId })
@@ -67,11 +127,50 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     
     // Calculate statistics
     const totalCourses = courses.length;
-    const totalHomework = homework.length;
+    const totalHomework = allHomework.length;
     const totalExams = exams.length;
-    const completedHomework = grades.filter(grade => grade.homework_id).length;
-    const upcomingHomework = homework.filter(hw => new Date(hw.due_date) > new Date()).length;
-    const overdueHomework = homework.filter(hw => new Date(hw.due_date) < new Date() && 
+    // Count completed homework from both sources:
+    // 1. Traditional homework with grades in Grade table
+    const traditionalCompletedHomework = grades.filter(grade => grade.homework_id).length;
+    
+    // 2. StudentHomework with completion_status: 'completed'
+    const studentCompletedHomework = allHomework.filter(hw => hw.completion_status === 'completed').length;
+    
+    const completedHomework = traditionalCompletedHomework + studentCompletedHomework;
+    const upcomingHomework = allHomework.filter(hw => {
+      const dueDate = new Date(hw.due_date);
+      const today = new Date();
+      const isUpcoming = dueDate > today;
+      
+      // Check if homework is completed from both sources:
+      // 1. Traditional homework with grades in Grade table
+      const isTraditionalCompleted = grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id));
+      
+      // 2. StudentHomework with completion_status: 'completed'
+      const isStudentHomeworkCompleted = hw.completion_status === 'completed';
+      
+      return isUpcoming && !isTraditionalCompleted && !isStudentHomeworkCompleted;
+    }).length;
+    
+    // Debug logging for upcoming homework calculation
+    console.log('Upcoming homework calculation:', {
+      total_homework: allHomework.length,
+      upcoming_count: upcomingHomework,
+      traditional_completed: traditionalCompletedHomework,
+      student_completed: studentCompletedHomework,
+      total_completed: completedHomework,
+      homework_breakdown: allHomework.map(hw => ({
+        id: hw._id,
+        title: hw.title,
+        due_date: hw.due_date,
+        is_upcoming: new Date(hw.due_date) > new Date(),
+        has_grade: grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id)),
+        completion_status: hw.completion_status,
+        is_completed: grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id)) || hw.completion_status === 'completed'
+      }))
+    });
+    
+    const overdueHomework = allHomework.filter(hw => new Date(hw.due_date) < new Date() && 
       !grades.some(grade => grade.homework_id && grade.homework_id._id.equals(hw._id))).length;
     
     // Calculate exam statistics
@@ -106,7 +205,27 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
         completed: completedHomework,
         upcoming: upcomingHomework,
         overdue: overdueHomework,
-        average_grade: Math.round(averageGrade * 100) / 100
+        average_grade: Math.round(averageGrade * 100) / 100,
+        upcoming_list: allHomework
+          .filter(hw => {
+            const dueDate = new Date(hw.due_date);
+            const today = new Date();
+            const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            return daysUntilDue >= 0 && 
+                   !grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id));
+          })
+          .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
+          .slice(0, 5)
+          .map(hw => ({
+            _id: hw._id,
+            title: hw.title,
+            due_date: hw.due_date,
+            course: {
+              name: hw.course_id.course_name,
+              code: hw.course_id.course_code
+            },
+            days_until_due: Math.ceil((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+          }))
       },
       exams: {
         total: totalExams,
@@ -190,6 +309,7 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
       is_active: true 
     });
     const courseIds = courses.map(course => course._id);
+    console.log('Student enrolled in courses:', courseIds.map(id => id.toString()));
     
     // Build filter for homework
     let filter = { 
@@ -197,32 +317,119 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
       is_active: true 
     };
     
+    // If specific course is requested, ensure student is enrolled in it
     if (course_id) {
-      filter.course_id = course_id;
+      if (courseIds.some(id => id.equals(course_id))) {
+        filter.course_id = course_id;
+      } else {
+        // Student not enrolled in requested course, return empty result
+        return res.json({ homework: [] });
+      }
     }
     
-    // Get homework with submission status
-    const homework = await Homework.find(filter)
+    // Get homework from BOTH tables
+    const traditionalHomework = await Homework.find(filter)
       .populate('course_id', 'course_name course_code')
       .sort({ due_date: 1 });
     
-    // Get student's grades for these homework
-    const homeworkIds = homework.map(hw => hw._id);
+    const studentHomeworkFilter = {
+      course_id: { $in: courseIds },
+      $or: [
+        // Student's own homework
+        { uploaded_by: studentId },
+        // Lecturer-created homework
+        { uploader_role: 'lecturer' },
+        // Other students' homework that has been verified
+        { 
+          uploader_role: 'student',
+          uploaded_by: { $ne: studentId },
+          deadline_verification_status: { $in: ['verified'] }
+        }
+      ]
+    };
+    
+    // If specific course is requested, filter to that course
+    if (course_id && courseIds.some(id => id.equals(course_id))) {
+      studentHomeworkFilter.course_id = course_id;
+    }
+    
+    const studentHomework = await StudentHomework.find(studentHomeworkFilter)
+      .populate('course_id', 'course_name course_code')
+      .populate('uploaded_by', 'name email')
+      .sort({ claimed_deadline: 1 });
+    
+    // Convert student homework to match traditional format for processing
+    const convertedStudentHomework = studentHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      course_id: hw.course_id._id,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      due_date: hw.claimed_deadline,
+      is_active: true,
+      uploader_role: hw.uploader_role,
+      completion_status: hw.completion_status,
+      deadline_verification_status: hw.deadline_verification_status
+    }));
+    
+    // Combine both types
+    const allHomework = [...traditionalHomework, ...convertedStudentHomework];
+    
+    console.log(`Student homework planner - Traditional: ${traditionalHomework.length}, Student: ${studentHomework.length}, Total: ${allHomework.length}`);
+    console.log('Filter used for traditional homework:', filter);
+    console.log('StudentHomework filter used:', studentHomeworkFilter);
+    console.log('Traditional homework details:', traditionalHomework.map(hw => ({
+      id: hw._id,
+      title: hw.title,
+      course_id: hw.course_id._id,
+      course_name: hw.course_id.course_name,
+      is_active: hw.is_active,
+      due_date: hw.due_date
+    })));
+    console.log('Student homework breakdown:', {
+      own_homework: studentHomework.filter(hw => hw.uploaded_by.equals(studentId)).length,
+      lecturer_homework: studentHomework.filter(hw => hw.uploader_role === 'lecturer').length,
+      other_student_homework: studentHomework.filter(hw => hw.uploader_role === 'student' && !hw.uploaded_by.equals(studentId)).length,
+      verified_other_homework: studentHomework.filter(hw => hw.uploader_role === 'student' && !hw.uploaded_by.equals(studentId) && hw.deadline_verification_status === 'verified').length
+    });
+    console.log('Lecturer homework details:', studentHomework.filter(hw => hw.uploader_role === 'lecturer').map(hw => ({
+      id: hw._id,
+      title: hw.title,
+      course_id: hw.course_id._id,
+      uploaded_by: hw.uploaded_by._id,
+      deadline_status: hw.deadline_verification_status
+    })));
+    
+    // Get student's grades for traditional homework only
+    const traditionalHomeworkIds = traditionalHomework.map(hw => hw._id);
     const grades = await Grade.find({ 
       student_id: studentId,
-      homework_id: { $in: homeworkIds }
+      homework_id: { $in: traditionalHomeworkIds }
     });
     
     // Process homework with submission status
-    const processedHomework = homework.map(hw => {
+    const processedHomework = allHomework.map(hw => {
       const grade = grades.find(g => g.homework_id && g.homework_id.equals(hw._id));
       const isSubmitted = !!grade;
       const isGraded = isSubmitted && grade.grade !== null;
-      const isOverdue = new Date() > hw.due_date && !isSubmitted;
+      
+      // Check completion status from both sources:
+      // 1. Traditional homework with grades
+      const isTraditionalCompleted = isGraded;
+      
+      // 2. StudentHomework with completion_status: 'completed'
+      const isStudentHomeworkCompleted = hw.completion_status === 'completed';
+      
+      const isCompleted = isTraditionalCompleted || isStudentHomeworkCompleted;
+      const isOverdue = new Date() > hw.due_date && !isCompleted;
       
       let status = 'pending';
-      if (isGraded) {
-        status = 'graded';
+      if (isCompleted) {
+        status = 'graded'; // Use 'graded' for consistency with existing logic
       } else if (isSubmitted) {
         status = 'submitted';
       } else if (isOverdue) {

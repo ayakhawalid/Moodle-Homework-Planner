@@ -97,12 +97,7 @@ const studentHomeworkSchema = new mongoose.Schema({
     type: Date
   },
   
-  // Priority and tags
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium'
-  },
+  // Tags
   tags: [{
     type: String,
     trim: true

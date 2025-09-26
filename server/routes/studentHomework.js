@@ -53,11 +53,9 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
 
     console.log(`Student ${studentId} enrolled in courses:`, courseIds);
 
-    // Get homework for student's courses with proper visibility rules:
-    // 1. Student's own homework (regardless of verification status)
-    // 2. Lecturer-created homework (regardless of verification status)
-    // 3. Other students' homework ONLY if verified by lecturer
-    const homework = await StudentHomework.find({
+    // Get homework from BOTH tables for student's courses
+    // 1. StudentHomework table
+    const studentHomework = await StudentHomework.find({
       course_id: { $in: courseIds },
       $or: [
         // Student's own homework
@@ -78,8 +76,70 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
     .populate('grade_verified_by', 'name email')
     .sort({ claimed_deadline: 1 });
 
+    // 2. Traditional Homework table (lecturer-created homework)
+    const traditionalHomework = await Homework.find({
+      course_id: { $in: courseIds },
+      is_active: true
+    })
+    .populate('course_id', 'course_name course_code')
+    .sort({ due_date: 1 });
+
+    // Debug: Log traditional homework data
+    console.log('Traditional homework raw data:', traditionalHomework.map(hw => ({
+      id: hw._id,
+      title: hw.title,
+      course_id: hw.course_id,
+      course_name: hw.course_id?.course_name,
+      course_code: hw.course_id?.course_code
+    })));
+    
+    // Convert traditional homework to match StudentHomework format
+    const convertedTraditionalHomework = traditionalHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      course_id: hw.course_id._id,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id?.course_name || 'Unknown Course',
+        code: hw.course_id?.course_code || 'UNKNOWN'
+      },
+      claimed_deadline: hw.due_date,
+      assigned_date: hw.assigned_date,
+      points_possible: hw.points_possible,
+      uploader_role: 'lecturer',
+      uploaded_by: {
+        _id: 'lecturer',
+        name: 'Lecturer',
+        email: 'lecturer@university.edu'
+      },
+      completion_status: 'not_started', // Default status for traditional homework
+      deadline_verification_status: 'verified', // Traditional homework is considered verified
+      grade_verification_status: 'unverified',
+      claimed_grade: null,
+      tags: [],
+      moodle_url: '',
+      created_at: hw.assigned_date,
+      updated_at: hw.assigned_date
+    }));
+    
+    // Debug: Log converted traditional homework data
+    console.log('Converted traditional homework data:', convertedTraditionalHomework.map(hw => ({
+      id: hw._id,
+      title: hw.title,
+      course: hw.course,
+      course_name: hw.course?.name,
+      course_code: hw.course?.code
+    })));
+
+    // Combine both types
+    const homework = [...studentHomework, ...convertedTraditionalHomework];
+
     console.log(`Found ${homework.length} homework items for student ${studentId}`);
     console.log('Homework breakdown:', {
+      student_homework_count: studentHomework.length,
+      traditional_homework_count: traditionalHomework.length,
+      total_homework_count: homework.length,
       own_homework: homework.filter(hw => hw.uploaded_by._id.toString() === studentId.toString()).length,
       lecturer_homework: homework.filter(hw => hw.uploader_role === 'lecturer').length,
       verified_student_homework: homework.filter(hw => hw.uploader_role === 'student' && hw.uploaded_by._id.toString() !== studentId.toString() && hw.deadline_verification_status === 'verified').length
@@ -92,8 +152,8 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
         description: hw.description,
         course: {
           _id: hw.course_id._id,
-          name: hw.course_id.course_name,
-          code: hw.course_id.course_code
+          name: hw.course_id.course_name || hw.course?.name || 'Unknown Course',
+          code: hw.course_id.course_code || hw.course?.code || 'UNKNOWN'
         },
         uploaded_by: {
           _id: hw.uploaded_by._id,
@@ -225,11 +285,61 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
     const homeworkId = req.params.id;
     const { claimed_grade } = req.body;
 
-    const homework = await StudentHomework.findById(homeworkId);
+    // First try to find in StudentHomework table
+    let homework = await StudentHomework.findById(homeworkId);
+    
     if (!homework) {
-      return res.status(404).json({ error: 'Homework not found' });
+      // If not found in StudentHomework, check if it's traditional homework
+      const traditionalHomework = await Homework.findById(homeworkId);
+      if (!traditionalHomework) {
+        return res.status(404).json({ error: 'Homework not found' });
+      }
+
+      // Check if student is enrolled in the course
+      const course = await Course.findById(traditionalHomework.course_id);
+      if (!course.students.includes(user._id)) {
+        return res.status(403).json({ error: 'You are not enrolled in this course' });
+      }
+
+      // Create a StudentHomework entry for traditional homework completion
+      homework = new StudentHomework({
+        title: traditionalHomework.title,
+        description: traditionalHomework.description,
+        course_id: traditionalHomework.course_id,
+        claimed_deadline: traditionalHomework.due_date,
+        assigned_date: traditionalHomework.assigned_date,
+        points_possible: traditionalHomework.points_possible,
+        uploader_role: 'lecturer',
+        uploaded_by: user._id, // Student completing the homework
+        completion_status: 'completed',
+        completed_at: new Date(),
+        claimed_grade: claimed_grade,
+        deadline_verification_status: 'verified', // Traditional homework is considered verified
+        grade_verification_status: 'unverified',
+        tags: [],
+        moodle_url: '',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      await homework.save();
+      await homework.populate('course_id', 'course_name course_code');
+      await homework.populate('uploaded_by', 'name email');
+
+      return res.json({
+        message: 'Traditional homework marked as completed',
+        homework: {
+          _id: homework._id,
+          title: homework.title,
+          completion_status: homework.completion_status,
+          completed_at: homework.completed_at,
+          claimed_grade: homework.claimed_grade,
+          grade_verification_status: homework.grade_verification_status
+        }
+      });
     }
 
+    // Handle StudentHomework completion
     // Check if student is enrolled in the course
     const course = await Course.findById(homework.course_id);
     if (!course.students.includes(user._id)) {

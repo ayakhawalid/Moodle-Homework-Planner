@@ -70,7 +70,7 @@ function HomeworkPlanner() {
             <h4>Key Features:</h4>
             <ul style={{paddingLeft: '20px', lineHeight: '1.8'}}>
               <li>Add new assignments with detailed descriptions</li>
-              <li>Set due dates and priority levels</li>
+              <li>Set due dates and track deadlines</li>
               <li>Track completion status and progress</li>
               <li>View upcoming deadlines and overdue items</li>
               <li>Organize by subject or course</li>
@@ -91,20 +91,56 @@ function HomeworkPlanner() {
                       <div className="card-content">
               <p>View your upcoming assignment deadlines to prioritize your work effectively.</p>
               <div style={{marginTop: '15px'}}>
-                {homeworkData.homework?.length > 0 ? (
-                  homeworkData.homework.slice(0, 3).map((hw, index) => (
-                    <div key={hw._id} style={{marginBottom: '10px', padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
-                      <strong>{hw.title}</strong><br />
-                      <small style={{color: '#856404'}}>
-                        Due: {new Date(hw.due_date).toLocaleDateString()} - {hw.course.name}
-                      </small>
+                {(() => {
+                  // Filter for upcoming homework (not overdue, not completed)
+                  const upcomingHomework = homeworkData.homework?.filter(hw => {
+                    const dueDate = new Date(hw.due_date);
+                    const today = new Date();
+                    const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                    
+                    // Show all upcoming homework (not overdue, not completed)
+                    return daysUntilDue >= 0 && hw.status !== 'graded';
+                  }).sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) || [];
+                  
+                  return upcomingHomework.length > 0 ? (
+                    upcomingHomework.slice(0, 3).map((hw, index) => {
+                      const dueDate = new Date(hw.due_date);
+                      const today = new Date();
+                      const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                      
+                      // Determine background color based on urgency
+                      let bgColor = '#d1ecf1'; // Default blue
+                      let textColor = '#0c5460';
+                      
+                      if (daysUntilDue <= 1) {
+                        bgColor = '#f8d7da'; // Red for urgent
+                        textColor = '#721c24';
+                      } else if (daysUntilDue <= 3) {
+                        bgColor = '#fff3cd'; // Yellow for warning
+                        textColor = '#856404';
+                      }
+                      
+                      return (
+                        <div key={hw._id} style={{marginBottom: '10px', padding: '10px', background: bgColor, borderRadius: '8px'}}>
+                          <strong>{hw.title}</strong><br />
+                          <small style={{color: textColor}}>
+                            Due: {dueDate.toLocaleDateString()} - {hw.course.name}
+                          </small>
+                          <br />
+                          <small style={{color: textColor}}>
+                            {daysUntilDue === 0 ? 'Due today!' : 
+                             daysUntilDue === 1 ? 'Due tomorrow!' : 
+                             `${daysUntilDue} days left`}
+                          </small>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                      No upcoming homework
                     </div>
-                  ))
-                ) : (
-                  <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
-                    No upcoming homework
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
         </div>
@@ -120,10 +156,10 @@ function HomeworkPlanner() {
             </div>
           </div>
           <div className="card-content">
-            <p>Track your homework completion rate and academic progress.</p>
+            <p>Track your overall homework completion rate and academic progress across all assignments.</p>
             <div className="progress-container">
               <div className="progress-label">
-                <span>This Week's Completion</span>
+                <span>Overall Completion Rate</span>
                 <span>{homeworkData.summary?.completion_rate || 0}%</span>
               </div>
               <div className="progress-bar">

@@ -139,7 +139,7 @@ function StudentDashboard() {
                 value={dashboardData.homework?.upcoming || 0}
                 icon={<AssignmentIcon sx={{ fontSize: 40 }} />}
                 color="#f57c00"
-                subtitle="Due this week"
+                subtitle="Upcoming"
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
@@ -225,18 +225,38 @@ function StudentDashboard() {
             </div>
             <div className="card-content">
               <div style={{marginTop: '15px'}}>
-                {dashboardData.recent_activity?.recent_grades?.length > 0 ? (
-                  dashboardData.recent_activity.recent_grades.slice(0, 3).map((homework, index) => (
-                    <div key={index} style={{marginBottom: '10px', padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
-                      <strong>{homework.title}</strong><br />
-                      <small style={{color: '#856404'}}>
-                        {homework.grade ? `Grade: ${homework.grade}%` : 'Not graded yet'}
-                      </small>
-                    </div>
-                  ))
+                {dashboardData.homework?.upcoming_list?.length > 0 ? (
+                  dashboardData.homework.upcoming_list.map((homework, index) => {
+                    // Determine background color based on urgency
+                    let bgColor = '#d1ecf1'; // Default blue
+                    let textColor = '#0c5460';
+                    
+                    if (homework.days_until_due <= 1) {
+                      bgColor = '#f8d7da'; // Red for urgent
+                      textColor = '#721c24';
+                    } else if (homework.days_until_due <= 3) {
+                      bgColor = '#fff3cd'; // Yellow for warning
+                      textColor = '#856404';
+                    }
+                    
+                    return (
+                      <div key={homework._id} style={{marginBottom: '10px', padding: '10px', background: bgColor, borderRadius: '8px'}}>
+                        <strong>{homework.title}</strong><br />
+                        <small style={{color: textColor}}>
+                          Due: {new Date(homework.due_date).toLocaleDateString()} - {homework.course.name}
+                        </small>
+                        <br />
+                        <small style={{color: textColor}}>
+                          {homework.days_until_due === 0 ? 'Due today!' : 
+                           homework.days_until_due === 1 ? 'Due tomorrow!' : 
+                           `${homework.days_until_due} days left`}
+                        </small>
+                      </div>
+                    );
+                  })
                 ) : (
                   <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
-                    No recent homework activity
+                    No upcoming homework
                   </div>
                 )}
               </div>
