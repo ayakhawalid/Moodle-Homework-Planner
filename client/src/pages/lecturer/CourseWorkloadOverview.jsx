@@ -56,6 +56,22 @@ const CourseWorkloadOverview = () => {
   const [error, setError] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('30'); // days
 
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'in_progress':
+        return 'warning';
+      case 'not_started':
+        return 'default';
+      case 'overdue':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       // Add a small delay to ensure user sync is complete
@@ -186,6 +202,14 @@ const CourseWorkloadOverview = () => {
         console.log('Lecturer-created homework:', lecturerCreatedHomework.map(hw => ({ id: hw._id, title: hw.title })));
         console.log('Student-created homework:', studentCreatedHomework.map(hw => ({ id: hw._id, title: hw.title, deadline_status: hw.deadline_verification_status })));
         
+        // Debug: Check courses data structure
+        console.log('Courses data:', courses.map(c => ({
+          id: c._id,
+          name: c.course_name,
+          id_type: typeof c._id,
+          id_string: c._id ? c._id.toString() : 'null'
+        })));
+        
         // Debug: Check if homework is being filtered out somewhere
         console.log('=== DETAILED HOMEWORK ANALYSIS ===');
         lecturerHomework.forEach((hw, index) => {
@@ -274,15 +298,20 @@ const CourseWorkloadOverview = () => {
           title: hw.title,
           course_id: hw.course_id,
           course: hw.course,
-          course_match: hw.course && hw.course._id === course._id
+          course_match: (hw.course_id || (hw.course && hw.course._id)) === course._id
         })));
         
         const courseHomework = allHomework.filter(hw => {
-          const matches = hw && hw.course && hw.course._id === course._id;
+          // Use the same string conversion logic as in the accordion
+          const hwCourseId = hw.course_id || (hw.course && hw.course._id);
+          const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
+          const courseIdStr = course._id ? course._id.toString() : null;
+          const matches = hwCourseIdStr === courseIdStr;
           console.log(`Homework "${hw?.title}" matches course "${course.course_name}": ${matches}`);
           console.log(`  - Homework course_id: ${hw?.course_id}, course._id: ${hw?.course?._id}`);
           console.log(`  - Target course._id: ${course._id}`);
-          console.log(`  - Match result: ${hw?.course?._id === course._id}`);
+          console.log(`  - hwCourseIdStr: ${hwCourseIdStr}, courseIdStr: ${courseIdStr}`);
+          console.log(`  - Match result: ${matches}`);
           return matches;
         });
         
@@ -310,15 +339,19 @@ const CourseWorkloadOverview = () => {
 
         // Count upcoming deadlines
         const upcomingDeadlines = courseHomework.filter(hw => {
-          if (!hw || !hw.claimed_deadline) return false;
-          const deadline = new Date(hw.claimed_deadline);
+          if (!hw) return false;
+          const deadlineDate = hw.claimed_deadline || hw.due_date;
+          if (!deadlineDate) return false;
+          const deadline = new Date(deadlineDate);
           return deadline >= now && deadline <= endDate;
         }).length;
 
         // Count overdue assignments
         const overdue = courseHomework.filter(hw => {
-          if (!hw || !hw.claimed_deadline) return false;
-          const deadline = new Date(hw.claimed_deadline);
+          if (!hw) return false;
+          const deadlineDate = hw.claimed_deadline || hw.due_date;
+          if (!deadlineDate) return false;
+          const deadline = new Date(deadlineDate);
           return deadline < now && hw.completion_status !== 'completed';
         }).length;
 
@@ -354,8 +387,10 @@ const CourseWorkloadOverview = () => {
         const dateStr = date.toISOString().split('T')[0];
         
         const dayHomework = allHomework.filter(hw => {
-          if (!hw || !hw.claimed_deadline) return false;
-          const deadline = new Date(hw.claimed_deadline);
+          if (!hw) return false;
+          const deadlineDate = hw.claimed_deadline || hw.due_date;
+          if (!deadlineDate) return false;
+          const deadline = new Date(deadlineDate);
           return deadline.toISOString().split('T')[0] === dateStr;
         });
 
@@ -372,16 +407,6 @@ const CourseWorkloadOverview = () => {
     } catch (error) {
       console.error('Error in getTimelineData:', error);
       return [];
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'in_progress': return 'warning';
-      case 'not_started': return 'default';
-      case 'graded': return 'info';
-      default: return 'default';
     }
   };
 
@@ -440,6 +465,18 @@ const CourseWorkloadOverview = () => {
       {/* Debug Section */}
       <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
         <Typography variant="h6" gutterBottom>Debug Tools</Typography>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          Total homework loaded: <strong>{allHomework.length}</strong> items
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          Courses loaded: <strong>{courses.length}</strong> courses
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          First course ID: <strong>{courses[0]?._id}</strong> (type: {typeof courses[0]?._id})
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          First homework course ID: <strong>{allHomework[0]?.course_id}</strong> (type: {typeof allHomework[0]?.course_id})
+        </Typography>
         <Box display="flex" gap={2}>
           <Button 
             variant="outlined" 
@@ -533,6 +570,63 @@ const CourseWorkloadOverview = () => {
             }}
           >
             Create Sample Data
+          </Button>
+          <Button 
+            variant="outlined" 
+            onClick={() => {
+              console.log('=== MANUAL FILTERING TEST ===');
+              if (courses.length > 0 && allHomework.length > 0) {
+                const testCourse = courses[0];
+                const testCourseIdStr = testCourse._id.toString();
+                console.log('Test course:', testCourse.course_name, 'ID:', testCourseIdStr);
+                
+                const matchingHomework = allHomework.filter(hw => {
+                  const hwCourseId = hw.course_id || (hw.course && hw.course._id);
+                  const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
+                  const match = hwCourseIdStr === testCourseIdStr;
+                  console.log(`Homework "${hw.title}": course_id=${hwCourseIdStr}, match=${match}`);
+                  return match;
+                });
+                
+                console.log(`Found ${matchingHomework.length} matching homework for ${testCourse.course_name}`);
+                console.log('Matching homework:', matchingHomework.map(hw => hw.title));
+                alert(`Found ${matchingHomework.length} matching homework for ${testCourse.course_name}. Check console for details.`);
+              } else {
+                console.log('No courses or homework available for testing');
+                alert('No courses or homework available for testing');
+              }
+            }}
+          >
+            Test Filtering
+          </Button>
+          <Button 
+            variant="outlined" 
+            onClick={() => {
+              console.log('=== TEST FILTERING FOR COMPUTER GRAPHICS ===');
+              // Find Computer Graphics course (which has homework)
+              const computerGraphicsCourse = courses.find(c => c.course_name === 'Computer Graphics');
+              if (computerGraphicsCourse && allHomework.length > 0) {
+                const courseIdStr = computerGraphicsCourse._id.toString();
+                console.log('Computer Graphics course ID:', courseIdStr);
+                
+                const matchingHomework = allHomework.filter(hw => {
+                  const hwCourseId = hw.course_id || (hw.course && hw.course._id);
+                  const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
+                  const match = hwCourseIdStr === courseIdStr;
+                  console.log(`Homework "${hw.title}": course_id=${hwCourseIdStr}, match=${match}`);
+                  return match;
+                });
+                
+                console.log(`Found ${matchingHomework.length} matching homework for Computer Graphics`);
+                console.log('Matching homework:', matchingHomework.map(hw => hw.title));
+                alert(`Found ${matchingHomework.length} matching homework for Computer Graphics. Check console for details.`);
+              } else {
+                console.log('Computer Graphics course not found or no homework available');
+                alert('Computer Graphics course not found or no homework available');
+              }
+            }}
+          >
+            Test Computer Graphics
           </Button>
         </Box>
       </Box>
@@ -631,7 +725,7 @@ const CourseWorkloadOverview = () => {
                 Assignment Distribution by Course
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={workloadData || []}>
+                <BarChart data={workloadData && workloadData.length > 0 ? workloadData : []}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="courseCode" />
                   <YAxis />
@@ -654,7 +748,7 @@ const CourseWorkloadOverview = () => {
                 Assignment Timeline (Next {selectedTimeframe} Days)
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={timelineData || []}>
+                <LineChart data={timelineData && timelineData.length > 0 ? timelineData : []}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="day" />
                   <YAxis />
@@ -729,34 +823,99 @@ const CourseWorkloadOverview = () => {
                   </AccordionSummary>
                   <AccordionDetails>
                     <List dense>
-                      {allHomework.filter(hw => hw.course && hw.course._id === course._id).slice(0, 5).map((hw) => (
-                        <ListItem key={hw._id} sx={{ px: 0 }}>
-                          <ListItemIcon>
-                            <ScheduleIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={hw.title}
-                            secondary={
-                              <Box>
-                                <Typography variant="caption" display="block">
-                                  Due: {new Date(hw.claimed_deadline).toLocaleDateString()}
-                                </Typography>
-                                <Box display="flex" gap={0.5} mt={0.5}>
-                                  <Chip
-                                    label={hw.completion_status}
-                                    color={getStatusColor(hw.completion_status)}
-                                    size="small"
-                                  />
+                      {(() => {
+                        const courseHomework = allHomework.filter(hw => {
+                          // Check both course_id and course._id for compatibility
+                          const hwCourseId = hw.course_id || (hw.course && hw.course._id);
+                          // Convert both to strings for comparison to handle ObjectId vs string issues
+                          const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
+                          const courseIdStr = course.courseId ? course.courseId.toString() : null;
+                          return hwCourseIdStr === courseIdStr;
+                        });
+                        console.log(`Course ${course.courseName} (${course.courseId}) homework:`, courseHomework.length, 'items');
+                        console.log('Course homework details:', courseHomework.map(hw => ({
+                          id: hw._id,
+                          title: hw.title,
+                          course_id: hw.course_id,
+                          course: hw.course,
+                          claimed_deadline: hw.claimed_deadline,
+                          due_date: hw.due_date,
+                          completion_status: hw.completion_status,
+                          status: hw.status
+                        })));
+                        console.log('All homework for comparison:', allHomework.map(hw => {
+                          const hwCourseId = hw.course_id || (hw.course && hw.course._id);
+                          const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
+                          const courseIdStr = course.courseId ? course.courseId.toString() : null;
+                          return {
+                            id: hw._id,
+                            title: hw.title,
+                            course_id: hw.course_id,
+                            course: hw.course,
+                            hwCourseIdStr: hwCourseIdStr,
+                            courseIdStr: courseIdStr,
+                            course_match: hwCourseIdStr === courseIdStr
+                          };
+                        }));
+                        if (courseHomework.length === 0) {
+                          return (
+                            <ListItem sx={{ px: 0 }}>
+                              <ListItemText
+                                primary="No homework assignments found"
+                                primaryTypographyProps={{ variant: 'caption', color: 'text.secondary', fontStyle: 'italic' }}
+                              />
+                            </ListItem>
+                          );
+                        }
+                        
+                        return courseHomework.slice(0, 5).map((hw) => (
+                          <ListItem key={hw._id} sx={{ px: 0 }}>
+                            <ListItemIcon>
+                              <ScheduleIcon fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={hw.title}
+                              secondary={
+                                <Box>
+                                  <Typography variant="caption" display="block">
+                                    Due: {new Date(hw.claimed_deadline || hw.due_date).toLocaleDateString()}
+                                  </Typography>
+                                  <Box display="flex" gap={0.5} mt={0.5}>
+                                    <Chip
+                                      label={hw.completion_status || hw.status || 'Unknown'}
+                                      color={getStatusColor(hw.completion_status || hw.status)}
+                                      size="small"
+                                    />
+                                  </Box>
                                 </Box>
-                              </Box>
-                            }
-                          />
-                        </ListItem>
-                      ))}
-                      {allHomework.filter(hw => hw.course && hw.course._id === course._id).length > 5 && (
+                              }
+                            />
+                          </ListItem>
+                        ));
+                      })()}
+                      {(() => {
+                        const courseHomework = allHomework.filter(hw => {
+                          // Check both course_id and course._id for compatibility
+                          const hwCourseId = hw.course_id || (hw.course && hw.course._id);
+                          // Convert both to strings for comparison to handle ObjectId vs string issues
+                          const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
+                          const courseIdStr = course.courseId ? course.courseId.toString() : null;
+                          return hwCourseIdStr === courseIdStr;
+                        });
+                        return courseHomework.length > 5;
+                      })() && (
                         <ListItem sx={{ px: 0 }}>
                           <ListItemText
-                            primary={`... and ${allHomework.filter(hw => hw.course && hw.course._id === course._id).length - 5} more assignments`}
+                            primary={`... and ${(() => {
+                              const courseHomework = allHomework.filter(hw => {
+                                const hwCourseId = hw.course_id || (hw.course && hw.course._id);
+                                // Convert both to strings for comparison to handle ObjectId vs string issues
+                          const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
+                          const courseIdStr = course.courseId ? course.courseId.toString() : null;
+                          return hwCourseIdStr === courseIdStr;
+                              });
+                              return courseHomework.length - 5;
+                            })()} more assignments`}
                             primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
                           />
                         </ListItem>

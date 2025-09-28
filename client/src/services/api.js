@@ -308,9 +308,12 @@ export const apiService = {
       getLecturerHomework: () => api.get('/student-homework/lecturer/all'),
       createHomework: (data) => api.post('/student-homework', data),
       completeHomework: (homeworkId, claimedGrade) => api.put(`/student-homework/${homeworkId}/complete`, { claimed_grade: claimedGrade }),
-      verifyGrade: (homeworkId, screenshotFile) => {
+      verifyGrade: (homeworkId, screenshotFile, manualGrade) => {
         const formData = new FormData();
         formData.append('screenshot', screenshotFile);
+        if (manualGrade) {
+          formData.append('manualGrade', manualGrade);
+        }
         return api.post(`/student-homework/${homeworkId}/verify-grade`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'

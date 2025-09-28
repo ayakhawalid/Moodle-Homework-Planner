@@ -59,6 +59,7 @@ const HomeworkManagement = () => {
   });
   
   const [claimedGrade, setClaimedGrade] = useState('');
+  const [manualGrade, setManualGrade] = useState('');
   const [screenshot, setScreenshot] = useState(null);
   const [verificationResult, setVerificationResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -164,11 +165,15 @@ const HomeworkManagement = () => {
       setSubmitting(true);
       setError(null);
       
-      const response = await apiService.studentHomework.verifyGrade(selectedHomework._id, screenshot);
+      const response = await apiService.studentHomework.verifyGrade(selectedHomework._id, screenshot, manualGrade);
       setVerificationResult(response.data);
       
       if (response.data.success) {
         setSuccess('Grade verification completed!');
+        setVerifyDialogOpen(false);
+        setManualGrade('');
+        setScreenshot(null);
+        setSelectedHomework(null);
         fetchHomework();
       }
     } catch (err) {
@@ -470,9 +475,24 @@ const HomeworkManagement = () => {
         <DialogTitle>Verify Grade with Screenshot</DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Upload a screenshot of your grade from Moodle for "{selectedHomework?.title}"
+            First enter your grade, then upload a screenshot as proof for "{selectedHomework?.title}"
           </Typography>
           
+          {/* Manual Grade Input */}
+          <TextField
+            label="Your Grade"
+            placeholder="e.g., 85 or 85/100"
+            value={manualGrade}
+            onChange={(e) => setManualGrade(e.target.value)}
+            fullWidth
+            sx={{ mb: 2 }}
+            helperText="Enter your grade as shown in Moodle (e.g., 85 or 85/100)"
+          />
+          
+          {/* Screenshot Upload */}
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>
+            Upload Screenshot (Proof)
+          </Typography>
           <input
             accept="image/*"
             style={{ display: 'none' }}
@@ -525,7 +545,7 @@ const HomeworkManagement = () => {
           <Button
             onClick={handleVerifyGrade}
             variant="contained"
-            disabled={submitting || !screenshot}
+            disabled={submitting || !manualGrade || !screenshot}
           >
             {submitting ? <CircularProgress size={24} /> : 'Verify Grade'}
           </Button>

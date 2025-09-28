@@ -172,8 +172,12 @@ const VerificationDashboard = () => {
     }
   };
 
-  const deadlineVerifications = verifications.filter(v => v.deadline_verification_status === 'pending_review');
-  const gradeVerifications = verifications.filter(v => v.grade_verification_status === 'pending_review');
+  const deadlineVerifications = verifications.filter(v => 
+    v.deadline_verification_status === 'pending_review' || v.deadline_verification_status === 'unverified'
+  );
+  const gradeVerifications = verifications.filter(v => 
+    v.grade_verification_status === 'pending_review' || v.grade_verification_status === 'unverified'
+  );
 
   if (loading) {
     return (

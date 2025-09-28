@@ -1,5 +1,14 @@
 const Tesseract = require('tesseract.js');
 
+// Configure Tesseract to avoid worker issues
+const tesseractConfig = {
+  logger: m => {
+    if (m.status === 'recognizing text') {
+      console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+    }
+  }
+};
+
 class GradeExtractionService {
   constructor() {
     this.gradePatterns = [
@@ -16,15 +25,68 @@ class GradeExtractionService {
     ];
   }
 
-  async extractGradeFromImage(imageBuffer) {
+  async extractGradeFromImage(imageBuffer, manualGrade = null) {
     try {
-      console.log('Starting OCR processing...');
+      console.log('Processing grade verification...');
       
-      // Process image with Tesseract
-      const { data: { text } } = await Tesseract.recognize(imageBuffer, 'eng', {
-        logger: m => console.log(m) // Optional: for debugging
-      });
+      // If manual grade is provided, use it instead of OCR
+      if (manualGrade !== null) {
+        console.log('Using manual grade entry:', manualGrade);
+        
+        // Parse the manual grade (could be "85/100" or just "85")
+        const gradeMatch = manualGrade.toString().match(/(\d+)(?:\/(\d+))?/);
+        if (gradeMatch) {
+          const grade = parseInt(gradeMatch[1]);
+          const total = parseInt(gradeMatch[2]) || 100;
+          const percentage = Math.round((grade / total) * 100);
+          
+          return {
+            success: true,
+            grade: grade,
+            total: total,
+            percentage: percentage,
+            confidence: 1.0, // Manual entry has 100% confidence
+            rawText: `Manual entry: ${grade}/${total}`,
+            source: 'manual'
+          };
+        } else {
+          return {
+            success: false,
+            error: 'Invalid grade format. Please enter as "85" or "85/100"',
+            rawText: 'Invalid manual grade format'
+          };
+        }
+      }
+      
+      // OCR is disabled - return manual entry required
+      console.log('OCR disabled - manual entry required');
+      
+      return {
+        success: false,
+        error: 'Please enter your grade manually.',
+        rawText: 'Manual grade entry required',
+        manualEntryRequired: true
+      };
+      
+      /* ORIGINAL OCR CODE - COMMENTED OUT DUE TO WORKER ISSUES
+      // Process image with Tesseract using safer configuration
+      let result;
+      try {
+        // First try with our configured logger
+        result = await Tesseract.recognize(imageBuffer, 'eng', tesseractConfig);
+      } catch (workerError) {
+        console.error('Tesseract worker error with logger:', workerError);
+        try {
+          // Try without logger
+          result = await Tesseract.recognize(imageBuffer, 'eng');
+        } catch (simpleError) {
+          console.error('Tesseract simple error:', simpleError);
+          // Last resort - try with minimal config
+          result = await Tesseract.recognize(imageBuffer);
+        }
+      }
 
+      const text = result.data.text;
       console.log('Extracted text:', text);
 
       // Extract grade using multiple patterns
@@ -48,11 +110,13 @@ class GradeExtractionService {
           rawText: text
         };
       }
+      */
     } catch (error) {
       console.error('Grade extraction error:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message || 'OCR processing failed',
+        manualEntryRequired: true
       };
     }
   }

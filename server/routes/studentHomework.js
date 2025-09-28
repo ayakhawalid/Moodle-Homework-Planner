@@ -397,10 +397,24 @@ router.post('/:id/verify-grade', checkJwt, extractUser, requireStudent, upload.s
       return res.status(400).json({ error: 'Screenshot is required' });
     }
 
-    // Extract grade from screenshot
-    const extractionResult = await gradeExtractionService.extractGradeFromImage(req.file.buffer);
+    // Get manual grade from request body (if provided)
+    const manualGrade = req.body.manualGrade;
+
+    // Extract grade from screenshot or manual entry
+    const extractionResult = await gradeExtractionService.extractGradeFromImage(req.file.buffer, manualGrade);
 
     if (!extractionResult.success) {
+      // If OCR is disabled, allow manual verification
+      if (extractionResult.manualEntryRequired) {
+        return res.status(400).json({
+          success: false,
+          error: extractionResult.error,
+          rawText: extractionResult.rawText,
+          manualEntryRequired: true,
+          message: 'OCR service is temporarily unavailable. Please verify your grade manually.'
+        });
+      }
+      
       return res.status(400).json({
         success: false,
         error: extractionResult.error,
@@ -610,6 +624,28 @@ router.get('/lecturer/verifications', checkJwt, extractUser, requireLecturer, as
 
     const courseIds = courses.map(course => course._id);
 
+    // Debug: Get all homework for this lecturer first
+    const allHomework = await StudentHomework.find({
+      course_id: { $in: courseIds }
+    })
+    .populate('course_id', 'course_name course_code')
+    .populate('uploaded_by', 'name email')
+    .sort({ createdAt: -1 });
+
+    console.log('=== VERIFICATION DEBUG ===');
+    console.log('Lecturer courses:', courseIds);
+    console.log('Total homework found:', allHomework.length);
+    console.log('All homework statuses:', allHomework.map(hw => ({
+      id: hw._id,
+      title: hw.title,
+      course: hw.course_id?.course_name,
+      deadline_status: hw.deadline_verification_status,
+      grade_status: hw.grade_verification_status,
+      completion_status: hw.completion_status,
+      uploader_role: hw.uploader_role
+    })));
+    console.log('========================');
+
     // Get pending verifications
     const pendingVerifications = await StudentHomework.find({
       course_id: { $in: courseIds },
@@ -621,6 +657,8 @@ router.get('/lecturer/verifications', checkJwt, extractUser, requireLecturer, as
     .populate('course_id', 'course_name course_code')
     .populate('uploaded_by', 'name email')
     .sort({ createdAt: -1 });
+
+    console.log('Pending verifications found:', pendingVerifications.length);
 
     res.json({
       verifications: pendingVerifications.map(verification => ({
