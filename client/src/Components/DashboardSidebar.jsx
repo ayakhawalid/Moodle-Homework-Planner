@@ -82,6 +82,7 @@ function DashboardSidebar({ userRole }) {
     { path: '/student/courses', label: 'Course Enrollment', icon: <SchoolIcon /> },
     { path: '/student/homework', label: 'Homework Planner', icon: <AssignmentIcon /> },
     { path: '/student/homework-management', label: 'Homework Management', icon: <AssignmentIcon /> },
+    { path: '/student/calendar', label: 'Calendar', icon: <CalendarTodayIcon /> },
     { path: '/student/classes', label: 'Classes Planner', icon: <CalendarTodayIcon /> },
     { path: '/student/exams', label: 'Exams', icon: <QuizIcon /> },
     { path: '/student/timer', label: 'Study Timer', icon: <TimerIcon /> },
@@ -98,6 +99,7 @@ function DashboardSidebar({ userRole }) {
     { path: '/lecturer/verifications', label: 'Verifications', icon: <CheckCircleIcon /> },
     { path: '/lecturer/workload-overview', label: 'Workload Overview', icon: <BarChartIcon /> },
     { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> },
+    { path: '/lecturer/calendar', label: 'Calendar', icon: <CalendarTodayIcon /> },
     { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
     { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }
   ];
@@ -107,8 +109,7 @@ function DashboardSidebar({ userRole }) {
     { path: '/admin/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/admin/users', label: 'User Management', icon: <UsersIcon /> },
     { path: '/admin/analytics', label: 'System Analytics', icon: <AnalyticsIcon /> },
-    { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
-    { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }
+    { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> }
   ];
 
   const navItems = userRole === 'student' ? studentNavItems :

@@ -34,7 +34,6 @@ const AdminDashboard = () => {
   });
   const [testResult, setTestResult] = useState(null);
   const [isRealAdmin, setIsRealAdmin] = useState(false);
-  const [roleRequests, setRoleRequests] = useState([]);
 
   // Check if user has admin access (either real admin or debug mode)
   const hasAdminAccess = isAdmin || debugMode;
@@ -318,6 +317,65 @@ const AdminDashboard = () => {
             </Card>
           </Grid>
 
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Pending Role Requests
+                  </Typography>
+                  <Button size="small" onClick={loadRoleRequests}>Refresh</Button>
+                </Box>
+
+                {roleRequests && roleRequests.length > 0 ? (
+                  roleRequests.map((rr) => (
+                    <Box key={rr._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #eee' }}>
+                      <Box>
+                        <Typography variant="body1">{rr.user?.name || rr.user?.email}</Typography>
+                        <Typography variant="caption" color="textSecondary">Requested: {rr.desired_role}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button 
+                          size="small" 
+                          variant="contained" 
+                          onClick={async () => {
+                            try {
+                              await apiService.roleRequests.approve(rr._id);
+                              loadRoleRequests();
+                              fetchStats();
+                            } catch (error) {
+                              console.error('Failed to approve role request:', error);
+                              alert('Failed to approve role request. Please try again.');
+                            }
+                          }}
+                        >
+                          Approve
+                        </Button>
+                        <Button 
+                          size="small" 
+                          variant="outlined" 
+                          color="error" 
+                          onClick={async () => {
+                            try {
+                              await apiService.roleRequests.reject(rr._id);
+                              loadRoleRequests();
+                            } catch (error) {
+                              console.error('Failed to reject role request:', error);
+                              alert('Failed to reject role request. Please try again.');
+                            }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="textSecondary">No pending requests.</Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
           <Grid item xs={12} md={6}>
             <Card>
               <CardContent>
