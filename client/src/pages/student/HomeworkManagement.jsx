@@ -26,7 +26,6 @@ import DashboardLayout from '../../Components/DashboardLayout';
 import {
   Add as AddIcon,
   CheckCircle as CheckCircleIcon,
-  PhotoCamera as PhotoCameraIcon,
   Edit as EditIcon,
   Schedule as ScheduleIcon,
   School as SchoolIcon
@@ -41,11 +40,11 @@ const HomeworkManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
-  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [selectedHomework, setSelectedHomework] = useState(null);
   
   // Form states
@@ -59,10 +58,6 @@ const HomeworkManagement = () => {
   });
   
   const [claimedGrade, setClaimedGrade] = useState('');
-  const [manualGrade, setManualGrade] = useState('');
-  const [screenshot, setScreenshot] = useState(null);
-  const [verificationResult, setVerificationResult] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -155,30 +150,6 @@ const HomeworkManagement = () => {
     } catch (err) {
       console.error('Error completing homework:', err);
       setError(err.response?.data?.error || 'Failed to complete homework');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVerifyGrade = async () => {
-    try {
-      setSubmitting(true);
-      setError(null);
-      
-      const response = await apiService.studentHomework.verifyGrade(selectedHomework._id, screenshot, manualGrade);
-      setVerificationResult(response.data);
-      
-      if (response.data.success) {
-        setSuccess('Grade verification completed!');
-        setVerifyDialogOpen(false);
-        setManualGrade('');
-        setScreenshot(null);
-        setSelectedHomework(null);
-        fetchHomework();
-      }
-    } catch (err) {
-      console.error('Error verifying grade:', err);
-      setError(err.response?.data?.error || 'Failed to verify grade');
     } finally {
       setSubmitting(false);
     }
@@ -328,19 +299,6 @@ const HomeworkManagement = () => {
                     </Button>
                   )}
                   
-                  {hw.completion_status === 'completed' && hw.claimed_grade && hw.grade_verification_status === 'unverified' && (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<PhotoCameraIcon />}
-                      onClick={() => {
-                        setSelectedHomework(hw);
-                        setVerifyDialogOpen(true);
-                      }}
-                    >
-                      Verify Grade
-                    </Button>
-                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -466,88 +424,6 @@ const HomeworkManagement = () => {
             disabled={submitting || !claimedGrade}
           >
             {submitting ? <CircularProgress size={24} /> : 'Mark Complete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Verify Grade Dialog */}
-      <Dialog open={verifyDialogOpen} onClose={() => setVerifyDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Verify Grade with Screenshot</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            First enter your grade, then upload a screenshot as proof for "{selectedHomework?.title}"
-          </Typography>
-          
-          {/* Manual Grade Input */}
-          <TextField
-            label="Your Grade"
-            placeholder="e.g., 85 or 85/100"
-            value={manualGrade}
-            onChange={(e) => setManualGrade(e.target.value)}
-            fullWidth
-            sx={{ mb: 2 }}
-            helperText="Enter your grade as shown in Moodle (e.g., 85 or 85/100)"
-          />
-          
-          {/* Screenshot Upload */}
-          <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>
-            Upload Screenshot (Proof)
-          </Typography>
-          <input
-            accept="image/*"
-            style={{ display: 'none' }}
-            id="screenshot-upload"
-            type="file"
-            onChange={(e) => setScreenshot(e.target.files[0])}
-          />
-          <label htmlFor="screenshot-upload">
-            <Button
-              variant="outlined"
-              component="span"
-              startIcon={<PhotoCameraIcon />}
-              fullWidth
-              sx={{ mb: 2 }}
-            >
-              {screenshot ? `Uploaded: ${screenshot.name}` : 'Upload Screenshot'}
-            </Button>
-          </label>
-
-          {verificationResult && (
-            <Paper elevation={1} sx={{ p: 2, bgcolor: 'grey.50', mt: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Verification Result
-              </Typography>
-              <Box display="flex" gap={2} mb={2} flexWrap="wrap">
-                <Chip
-                  label={`Claimed: ${verificationResult.claimedGrade}`}
-                  color="primary"
-                  variant="outlined"
-                />
-                <Chip
-                  label={`Extracted: ${verificationResult.extractedGrade}`}
-                  color="secondary"
-                  variant="outlined"
-                />
-                <Chip
-                  label={`Confidence: ${Math.round(verificationResult.confidence * 100)}%`}
-                  color="info"
-                  variant="outlined"
-                />
-              </Box>
-              <Alert severity={verificationResult.isMatch ? 'success' : 'warning'}>
-                {verificationResult.message}
-              </Alert>
-            </Paper>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setVerifyDialogOpen(false)}>Close</Button>
-          <Button
-            onClick={handleVerifyGrade}
-            variant="contained"
-            disabled={submitting || !manualGrade || !screenshot}
-          >
-            {submitting ? <CircularProgress size={24} /> : 'Verify Grade'}
           </Button>
         </DialogActions>
       </Dialog>

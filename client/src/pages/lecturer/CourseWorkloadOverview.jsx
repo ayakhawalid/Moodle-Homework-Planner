@@ -355,10 +355,16 @@ const CourseWorkloadOverview = () => {
           return deadline < now && hw.completion_status !== 'completed';
         }).length;
 
+        // Create abbreviated course code for better chart readability
+        const abbreviatedCode = course.course_code.length > 8 
+          ? course.course_code.substring(0, 8) + '...' 
+          : course.course_code;
+
         return {
           courseId: course._id,
           courseName: course.course_name,
-          courseCode: course.course_code,
+          courseCode: abbreviatedCode,
+          fullCourseCode: course.course_code, // Keep full code for tooltip
           totalHomework: courseHomework.length,
           upcomingDeadlines,
           overdue,
@@ -723,19 +729,48 @@ const CourseWorkloadOverview = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Assignment Distribution by Course
+                {workloadData.length > 8 && (
+                  <Typography variant="caption" display="block" color="text.secondary">
+                    Scroll horizontally to see all courses
+                  </Typography>
+                )}
               </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={workloadData && workloadData.length > 0 ? workloadData : []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="courseCode" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="totalHomework" fill="#8884d8" name="Total Assignments" />
-                  <Bar dataKey="upcomingDeadlines" fill="#82ca9d" name="Upcoming Deadlines" />
-                  <Bar dataKey="overdue" fill="#ff7300" name="Overdue" />
-                </BarChart>
-              </ResponsiveContainer>
+              <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
+                <ResponsiveContainer 
+                  width={workloadData.length > 8 ? workloadData.length * 80 : '100%'} 
+                  height={Math.max(400, workloadData.length * 25 + 150)}
+                >
+                  <BarChart 
+                    data={workloadData && workloadData.length > 0 ? workloadData : []}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="courseCode" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval={0}
+                      fontSize={12}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => [value, name]}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload.length > 0) {
+                          const data = payload[0].payload;
+                          return `${data.fullCourseCode || data.courseCode} - ${data.courseName}`;
+                        }
+                        return `Course: ${label}`;
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="totalHomework" fill="#8884d8" name="Total Assignments" />
+                    <Bar dataKey="upcomingDeadlines" fill="#82ca9d" name="Upcoming Deadlines" />
+                    <Bar dataKey="overdue" fill="#ff7300" name="Overdue" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -747,17 +782,35 @@ const CourseWorkloadOverview = () => {
               <Typography variant="h6" gutterBottom>
                 Assignment Timeline (Next {selectedTimeframe} Days)
               </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={timelineData && timelineData.length > 0 ? timelineData : []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="assignments" stroke="#8884d8" name="Assignments Due" />
-                  <Line type="monotone" dataKey="courses" stroke="#82ca9d" name="Courses Affected" />
-                </LineChart>
-              </ResponsiveContainer>
+              <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
+                <ResponsiveContainer 
+                  width={timelineData.length > 14 ? timelineData.length * 60 : '100%'} 
+                  height={400}
+                >
+                  <LineChart 
+                    data={timelineData && timelineData.length > 0 ? timelineData : []}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="day" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval={0}
+                      fontSize={12}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => [value, name]}
+                      labelFormatter={(label) => `Date: ${label}`}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="assignments" stroke="#8884d8" name="Assignments Due" strokeWidth={3} />
+                    <Line type="monotone" dataKey="courses" stroke="#82ca9d" name="Courses Affected" strokeWidth={3} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

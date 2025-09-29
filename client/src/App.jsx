@@ -32,6 +32,7 @@ import ChoosePartner from './pages/student/ChoosePartner';
 import CourseEnrollment from './pages/student/CourseEnrollment';
 import HomeworkSubmission from './pages/student/HomeworkSubmission';
 import HomeworkManagement from './pages/student/HomeworkManagement';
+import StudentCalendar from './pages/student/StudentCalendar';
 
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
@@ -41,6 +42,7 @@ import WorkloadStats from './pages/lecturer/WorkloadStats';
 import CourseManagement from './pages/lecturer/CourseManagement';
 import VerificationDashboard from './pages/lecturer/VerificationDashboard';
 import CourseWorkloadOverview from './pages/lecturer/CourseWorkloadOverview';
+import LecturerCalendar from './pages/lecturer/LecturerCalendar';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -123,6 +125,7 @@ function AppContent() {
           <Route path='/student/partner' element={<ProtectedRoute requiredRole="student"><ChoosePartner /></ProtectedRoute>} />
           <Route path='/student/courses' element={<ProtectedRoute requiredRole="student"><CourseEnrollment /></ProtectedRoute>} />
           <Route path='/student/homework-management' element={<ProtectedRoute requiredRole="student"><HomeworkManagement /></ProtectedRoute>} />
+          <Route path='/student/calendar' element={<ProtectedRoute requiredRole="student"><StudentCalendar /></ProtectedRoute>} />
           
 
           {/* Lecturer Pages */}
@@ -133,6 +136,7 @@ function AppContent() {
           <Route path='/lecturer/courses' element={<ProtectedRoute requiredRole="lecturer"><CourseManagement /></ProtectedRoute>} />
           <Route path='/lecturer/verifications' element={<ProtectedRoute requiredRole="lecturer"><VerificationDashboard /></ProtectedRoute>} />
           <Route path='/lecturer/workload-overview' element={<ProtectedRoute requiredRole="lecturer"><CourseWorkloadOverview /></ProtectedRoute>} />
+          <Route path='/lecturer/calendar' element={<ProtectedRoute requiredRole="lecturer"><LecturerCalendar /></ProtectedRoute>} />
           
 
           {/* Admin Pages */}
