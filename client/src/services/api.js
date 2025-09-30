@@ -243,6 +243,7 @@ export const apiService = {
       if (days) params.append('days', days);
       return api.get(`/student-dashboard/study-progress?${params.toString()}`);
     },
+    updateWeeklyGoal: (goal) => api.put('/student-dashboard/weekly-goal', { weekly_goal: goal }),
     getGrades: (courseId = null) => {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);

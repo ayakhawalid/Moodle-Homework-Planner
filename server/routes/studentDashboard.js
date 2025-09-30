@@ -125,6 +125,13 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     })
     .sort({ date: 1 }); // Sort by date ascending for weekly chart
     
+    console.log('=== DASHBOARD OVERVIEW STUDY PROGRESS DEBUG ===');
+    console.log('Student ID:', studentId);
+    console.log('Date range:', startDate, 'to', endDate);
+    console.log('Found study progress records:', studyProgress.length);
+    console.log('Study progress data:', studyProgress);
+    console.log('=== END DASHBOARD OVERVIEW STUDY PROGRESS DEBUG ===');
+    
     // Calculate statistics
     const totalCourses = courses.length;
     const totalHomework = allHomework.length;
@@ -320,7 +327,7 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
     // If specific course is requested, ensure student is enrolled in it
     if (course_id) {
       if (courseIds.some(id => id.equals(course_id))) {
-        filter.course_id = course_id;
+      filter.course_id = course_id;
       } else {
         // Student not enrolled in requested course, return empty result
         return res.json({ homework: [] });
@@ -622,6 +629,13 @@ router.get('/study-progress', checkJwt, extractUser, requireStudent, async (req,
       date: { $gte: startDate, $lte: endDate }
     }).sort({ date: 1 });
     
+    console.log('=== STUDY PROGRESS FETCH DEBUG ===');
+    console.log('Student ID:', studentId);
+    console.log('Date range:', startDate, 'to', endDate);
+    console.log('Found study progress records:', studyProgress.length);
+    console.log('Study progress data:', studyProgress);
+    console.log('=== END STUDY PROGRESS FETCH DEBUG ===');
+    
     // Calculate statistics
     const totalHours = studyProgress.reduce((sum, progress) => sum + progress.hours_studied, 0);
     const averageHoursPerDay = studyProgress.length > 0 ? totalHours / studyProgress.length : 0;
@@ -674,7 +688,8 @@ router.get('/study-progress', checkJwt, extractUser, requireStudent, async (req,
         average_hours_per_day: Math.round(averageHoursPerDay * 10) / 10,
         goal_achieved_days: goalAchievedDays,
         total_study_days: totalStudyDays,
-        study_consistency: totalStudyDays > 0 ? Math.round((totalStudyDays / parseInt(days)) * 100) : 0
+        study_consistency: totalStudyDays > 0 ? Math.round((totalStudyDays / parseInt(days)) * 100) : 0,
+        weekly_goal: user.weekly_study_goal || 20 // Default 20 hours
       },
       weekly_breakdown: weeklyData,
       subject_breakdown: Object.entries(subjectStats).map(([subject, stats]) => ({
@@ -1150,11 +1165,34 @@ router.post('/study-timer/session', checkJwt, extractUser, requireStudent, async
     
     const studentId = user._id;
     
+    console.log('=== STUDY SESSION SAVE DEBUG ===');
+    console.log('Auth0 ID:', auth0Id);
+    console.log('Student ID:', studentId);
+    console.log('Date:', date);
+    console.log('Hours studied:', hours_studied);
+    console.log('Tasks completed:', tasks_completed);
+    
+    // Validate required fields
+    if (!date || !hours_studied || !tasks_completed) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['date', 'hours_studied', 'tasks_completed'],
+        received: { date, hours_studied, tasks_completed }
+      });
+    }
+    
     // Check if study progress already exists for this date
-    const existingProgress = await StudyProgress.findOne({
-      student_id: studentId,
-      date: new Date(date)
-    });
+    let existingProgress;
+    try {
+      existingProgress = await StudyProgress.findOne({
+        student_id: studentId,
+        date: new Date(date)
+      });
+      console.log('Existing progress found:', !!existingProgress);
+    } catch (findError) {
+      console.error('Error finding existing progress:', findError);
+      throw findError;
+    }
     
     let studyProgress;
     if (existingProgress) {
@@ -1173,19 +1211,35 @@ router.post('/study-timer/session', checkJwt, extractUser, requireStudent, async
       );
     } else {
       // Create new study progress
-      studyProgress = new StudyProgress({
-        student_id: studentId,
-        date: new Date(date),
-        hours_studied: hours_studied,
-        tasks_completed: tasks_completed,
-        goal_achieved: goal_achieved,
-        focus_rating: focus_rating,
-        difficulty_rating: difficulty_rating,
-        subjects_studied: subjects_studied
-      });
-      
-      await studyProgress.save();
+      try {
+        studyProgress = new StudyProgress({
+          student_id: studentId,
+          date: new Date(date),
+          hours_studied: hours_studied,
+          tasks_completed: tasks_completed,
+          goal_achieved: goal_achieved,
+          focus_rating: focus_rating,
+          difficulty_rating: difficulty_rating,
+          subjects_studied: subjects_studied
+        });
+        
+        console.log('StudyProgress object created:', studyProgress);
+        await studyProgress.save();
+        console.log('New study progress created:', studyProgress._id);
+      } catch (saveError) {
+        console.error('Error saving new study progress:', saveError);
+        console.error('Save error details:', {
+          message: saveError.message,
+          name: saveError.name,
+          code: saveError.code,
+          errors: saveError.errors
+        });
+        throw saveError;
+      }
     }
+    
+    console.log('Final study progress:', studyProgress);
+    console.log('=== END STUDY SESSION SAVE DEBUG ===');
     
     res.status(201).json({
       message: 'Study session saved successfully',
@@ -1193,7 +1247,17 @@ router.post('/study-timer/session', checkJwt, extractUser, requireStudent, async
     });
   } catch (error) {
     console.error('Error saving study session:', error);
-    res.status(500).json({ error: 'Failed to save study session' });
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code
+    });
+    res.status(500).json({ 
+      error: 'Failed to save study session',
+      details: error.message,
+      stack: error.stack
+    });
   }
 });
 
@@ -1771,5 +1835,65 @@ function getLetterGrade(numericGrade) {
   if (numericGrade >= 60) return 'D-';
   return 'F';
 }
+
+// PUT /api/student-dashboard/weekly-goal - Update weekly study goal
+router.put('/weekly-goal', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const { weekly_goal } = req.body;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Update or create user's weekly goal
+    await User.findByIdAndUpdate(studentId, { weekly_study_goal: weekly_goal });
+    
+    res.json({
+      message: 'Weekly goal updated successfully',
+      weekly_goal: weekly_goal
+    });
+  } catch (error) {
+    console.error('Error updating weekly goal:', error);
+    res.status(500).json({ error: 'Failed to update weekly goal' });
+  }
+});
+
+// GET /api/student-dashboard/debug-study-sessions - Debug endpoint to check study sessions
+router.get('/debug-study-sessions', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Get all study progress records for this student
+    const allStudyProgress = await StudyProgress.find({ student_id: studentId }).sort({ date: -1 });
+    
+    console.log('=== DEBUG STUDY SESSIONS ===');
+    console.log('Student ID:', studentId);
+    console.log('Total study progress records:', allStudyProgress.length);
+    console.log('All records:', allStudyProgress);
+    console.log('=== END DEBUG STUDY SESSIONS ===');
+    
+    res.json({
+      student_id: studentId,
+      total_records: allStudyProgress.length,
+      records: allStudyProgress
+    });
+  } catch (error) {
+    console.error('Error in debug endpoint:', error);
+    res.status(500).json({ error: 'Failed to fetch debug data' });
+  }
+});
 
 module.exports = router;

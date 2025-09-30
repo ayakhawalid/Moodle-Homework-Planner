@@ -1,22 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
-import { Timer as TimerIcon, PlayArrow as PlayArrowIcon, Pause as PauseIcon, Stop as StopIcon, History as HistoryIcon } from '@mui/icons-material';
+import { Timer as TimerIcon, PlayArrow as PlayArrowIcon, Pause as PauseIcon, Stop as StopIcon, History as HistoryIcon, VolumeOff as VolumeOffIcon, VolumeUp as VolumeUpIcon } from '@mui/icons-material';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { apiService } from '../../services/api';
 import '../../styles/DashboardLayout.css';
 
 function StudyTimer() {
   const { syncStatus } = useUserSyncContext();
-  const [isRunning, setIsRunning] = useState(false);
-  const [isBreak, setIsBreak] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
-  const [sessionTime, setSessionTime] = useState(25);
-  const [breakTime, setBreakTime] = useState(5);
+  const [isRunning, setIsRunning] = useState(() => {
+    const saved = localStorage.getItem('studyTimer_isRunning');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [isBreak, setIsBreak] = useState(() => {
+    const saved = localStorage.getItem('studyTimer_isBreak');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const saved = localStorage.getItem('studyTimer_timeLeft');
+    return saved ? parseInt(saved) : 25 * 60; // 25 minutes in seconds
+  });
+  const [sessionTime, setSessionTime] = useState(() => {
+    const saved = localStorage.getItem('studyTimer_sessionTime');
+    return saved ? parseInt(saved) : 25;
+  });
+  const [breakTime, setBreakTime] = useState(() => {
+    const saved = localStorage.getItem('studyTimer_breakTime');
+    return saved ? parseInt(saved) : 5;
+  });
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [todayStudyTime, setTodayStudyTime] = useState(0);
   const [sessionHistory, setSessionHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+
+  // Save timer state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('studyTimer_isRunning', JSON.stringify(isRunning));
+  }, [isRunning]);
+
+  useEffect(() => {
+    localStorage.setItem('studyTimer_isBreak', JSON.stringify(isBreak));
+  }, [isBreak]);
+
+  useEffect(() => {
+    localStorage.setItem('studyTimer_timeLeft', timeLeft.toString());
+  }, [timeLeft]);
+
+  useEffect(() => {
+    localStorage.setItem('studyTimer_sessionTime', sessionTime.toString());
+  }, [sessionTime]);
+
+  useEffect(() => {
+    localStorage.setItem('studyTimer_breakTime', breakTime.toString());
+  }, [breakTime]);
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    if (!audioEnabled) return;
+    
+    try {
+      // Create a simple beep sound using Web Audio API
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // 800Hz tone
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+      
+      console.log('Notification sound played');
+    } catch (error) {
+      console.error('Error playing notification sound:', error);
+    }
+  };
 
   // Fetch study timer data
   useEffect(() => {
@@ -53,6 +118,10 @@ function StudyTimer() {
     } else if (timeLeft === 0) {
       // Session completed
       setIsRunning(false);
+      
+      // Play notification sound
+      playNotificationSound();
+      
       if (!isBreak) {
         // Study session completed, start break
         setSessionsCompleted(prev => prev + 1);
@@ -76,17 +145,41 @@ function StudyTimer() {
       const today = new Date();
       const sessionHours = sessionTime / 60; // Convert minutes to hours
       
-      await apiService.studentSubmission.saveStudySession({
+      console.log('Attempting to save study session:', {
+        date: today.toISOString(),
+        hours_studied: sessionHours,
+        sessionTime: sessionTime
+      });
+      
+      const response = await apiService.studentDashboard.saveStudySession({
         date: today.toISOString(),
         hours_studied: sessionHours,
         tasks_completed: `Completed ${sessionTime}-minute Pomodoro session`,
         goal_achieved: true,
         focus_rating: 4, // Default good focus rating
         difficulty_rating: 3, // Default medium difficulty
-        subjects_studied: ['General Study']
+        subjects_studied: [{ subject: 'General Study', hours: sessionHours }]
       });
+      
+      console.log('Study session save response:', response.data);
+      
+      // Clear localStorage after successful save
+      localStorage.removeItem('studyTimer_isRunning');
+      localStorage.removeItem('studyTimer_isBreak');
+      localStorage.removeItem('studyTimer_timeLeft');
+      
+      // Refresh the timer data to show updated stats
+      const timerDataResponse = await apiService.studentDashboard.getStudyTimer();
+      const timerData = timerDataResponse.data;
+      setTodayStudyTime(timerData.today_hours || 0);
+      setSessionHistory(timerData.recent_sessions || []);
+      setSessionsCompleted(timerData.sessions_today || 0);
+      
+      console.log('Study session saved successfully and data refreshed');
     } catch (err) {
       console.error('Error saving session:', err);
+      console.error('Error details:', err.response?.data);
+      setError(`Failed to save session: ${err.response?.data?.error || err.message}`);
     }
   };
 
@@ -115,6 +208,11 @@ function StudyTimer() {
     setIsRunning(false);
     setIsBreak(false);
     setTimeLeft(sessionTime * 60);
+    
+    // Clear localStorage when resetting
+    localStorage.removeItem('studyTimer_isRunning');
+    localStorage.removeItem('studyTimer_isBreak');
+    localStorage.removeItem('studyTimer_timeLeft');
   };
 
   // Custom session controls
@@ -228,6 +326,26 @@ function StudyTimer() {
                   }}
                 >
                   Reset
+                </button>
+              </div>
+              <div style={{marginTop: '15px', display: 'flex', justifyContent: 'center'}}>
+                <button 
+                  onClick={() => setAudioEnabled(!audioEnabled)}
+                  style={{
+                    background: audioEnabled ? '#4CAF50' : '#f44336',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '14px'
+                  }}
+                >
+                  {audioEnabled ? <VolumeUpIcon /> : <VolumeOffIcon />}
+                  {audioEnabled ? 'Sound On' : 'Sound Off'}
                 </button>
               </div>
             </div>
