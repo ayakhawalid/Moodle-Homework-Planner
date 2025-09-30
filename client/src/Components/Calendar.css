@@ -1,0 +1,209 @@
+/* Custom styles for react-big-calendar to fix button interactions */
+
+/* Ensure calendar toolbar buttons are clickable */
+.rbc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+
+.rbc-toolbar button {
+  background: #1976d2;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  margin: 0 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  min-height: 36px;
+  min-width: 36px;
+}
+
+.rbc-toolbar button:hover {
+  background: #1565c0;
+}
+
+.rbc-toolbar button:active {
+  background: #0d47a1;
+}
+
+.rbc-toolbar button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Toolbar label styling */
+.rbc-toolbar-label {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  flex-grow: 1;
+  text-align: center;
+}
+
+/* View buttons styling */
+.rbc-btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+.rbc-btn-group button {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.rbc-btn-group button:hover {
+  background: #e0e0e0;
+}
+
+.rbc-btn-group button.rbc-active {
+  background: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
+
+/* Navigation buttons */
+.rbc-toolbar button[title="Previous"] {
+  background: #1976d2;
+  color: white;
+}
+
+.rbc-toolbar button[title="Next"] {
+  background: #1976d2;
+  color: white;
+}
+
+.rbc-toolbar button[title="Today"] {
+  background: #4caf50;
+  color: white;
+}
+
+/* Ensure calendar container has proper height */
+.rbc-calendar {
+  height: 100% !important;
+  min-height: 500px;
+}
+
+/* Month view styling */
+.rbc-month-view {
+  height: 100%;
+}
+
+.rbc-month-row {
+  min-height: 100px;
+}
+
+.rbc-date-cell {
+  padding: 8px;
+  text-align: right;
+}
+
+.rbc-date-cell > a {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.rbc-date-cell > a:hover {
+  color: #1976d2;
+}
+
+/* Event styling */
+.rbc-event {
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none !important;
+}
+
+.rbc-event:hover {
+  opacity: 0.8;
+}
+
+/* Today's date highlighting */
+.rbc-today {
+  background-color: #e3f2fd !important;
+}
+
+/* Week and day view styling */
+.rbc-time-view {
+  height: 100%;
+}
+
+.rbc-time-header {
+  border-bottom: 1px solid #ddd;
+}
+
+.rbc-time-content {
+  height: calc(100% - 40px);
+}
+
+.rbc-time-slot {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Agenda view styling */
+.rbc-agenda-view {
+  height: 100%;
+}
+
+.rbc-agenda-view table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rbc-agenda-view th,
+.rbc-agenda-view td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.rbc-agenda-view th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .rbc-toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .rbc-toolbar-label {
+    order: -1;
+    margin-bottom: 8px;
+  }
+  
+  .rbc-btn-group {
+    order: 1;
+  }
+  
+  .rbc-toolbar button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Fix any Material-UI conflicts */
+.rbc-toolbar button,
+.rbc-toolbar button:focus,
+.rbc-toolbar button:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure proper z-index for dropdowns */
+.rbc-toolbar .rbc-btn-group {
+  position: relative;
+  z-index: 1;
+}

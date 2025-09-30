@@ -22,12 +22,15 @@ import {
   Schedule as ScheduleIcon
 } from '@mui/icons-material';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import './Calendar.css';
 
 const localizer = momentLocalizer(moment);
 
 const CalendarComponent = ({ events = [], userRole = 'student' }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentView, setCurrentView] = useState('month');
 
   // Convert homework data to calendar events
   const calendarEvents = events.map((homework, index) => ({
@@ -49,6 +52,21 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
   const handleCloseDialog = () => {
     setEventDialogOpen(false);
     setSelectedEvent(null);
+  };
+
+  const handleNavigate = (date) => {
+    console.log('Calendar navigation:', date);
+    setCurrentDate(date);
+  };
+
+  const handleViewChange = (view) => {
+    console.log('Calendar view change:', view);
+    setCurrentView(view);
+  };
+
+  const handleSelectSlot = (slotInfo) => {
+    // Optional: Handle slot selection for adding new events
+    console.log('Selected slot:', slotInfo);
   };
 
   const getEventStyle = (event) => {
@@ -117,6 +135,19 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
           View all your homework deadlines and assignments in calendar format
         </Typography>
         
+        {/* Debug Info */}
+        <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+          <Typography variant="caption" display="block">
+            Current Date: {currentDate.toLocaleDateString()}
+          </Typography>
+          <Typography variant="caption" display="block">
+            Current View: {currentView}
+          </Typography>
+          <Typography variant="caption" display="block">
+            Events Count: {calendarEvents.length}
+          </Typography>
+        </Box>
+        
         {/* Legend */}
         <Grid container spacing={1} sx={{ mb: 2 }}>
           <Grid item>
@@ -162,14 +193,19 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
           endAccessor="end"
           style={{ height: '100%', padding: '16px' }}
           onSelectEvent={handleSelectEvent}
+          onNavigate={handleNavigate}
+          onView={handleViewChange}
+          onSelectSlot={handleSelectSlot}
           eventPropGetter={getEventStyle}
           components={{
             event: EventComponent
           }}
           views={['month', 'week', 'day', 'agenda']}
-          defaultView="month"
+          view={currentView}
+          date={currentDate}
           popup
           showMultiDayTimes
+          selectable
         />
       </Paper>
 

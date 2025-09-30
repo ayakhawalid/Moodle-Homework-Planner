@@ -33,6 +33,7 @@ import CourseEnrollment from './pages/student/CourseEnrollment';
 import HomeworkSubmission from './pages/student/HomeworkSubmission';
 import HomeworkManagement from './pages/student/HomeworkManagement';
 import StudentCalendar from './pages/student/StudentCalendar';
+import StudyProgress from './pages/student/StudyProgress';
 
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
@@ -126,6 +127,7 @@ function AppContent() {
           <Route path='/student/courses' element={<ProtectedRoute requiredRole="student"><CourseEnrollment /></ProtectedRoute>} />
           <Route path='/student/homework-management' element={<ProtectedRoute requiredRole="student"><HomeworkManagement /></ProtectedRoute>} />
           <Route path='/student/calendar' element={<ProtectedRoute requiredRole="student"><StudentCalendar /></ProtectedRoute>} />
+          <Route path='/student/study-progress' element={<ProtectedRoute requiredRole="student"><StudyProgress /></ProtectedRoute>} />
           
 
           {/* Lecturer Pages */}

@@ -83,6 +83,7 @@ function DashboardSidebar({ userRole }) {
     { path: '/student/homework', label: 'Homework Planner', icon: <AssignmentIcon /> },
     { path: '/student/homework-management', label: 'Homework Management', icon: <AssignmentIcon /> },
     { path: '/student/calendar', label: 'Calendar', icon: <CalendarTodayIcon /> },
+    { path: '/student/study-progress', label: 'Study Progress', icon: <BarChartIcon /> },
     { path: '/student/classes', label: 'Classes Planner', icon: <CalendarTodayIcon /> },
     { path: '/student/exams', label: 'Exams', icon: <QuizIcon /> },
     { path: '/student/timer', label: 'Study Timer', icon: <TimerIcon /> },
