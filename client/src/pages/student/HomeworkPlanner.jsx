@@ -36,7 +36,7 @@ function HomeworkPlanner() {
   return (
     <DashboardLayout userRole="student">
       <div className="welcome-section">
-        <h1 className="welcome-title">Homework Planner 📚</h1>
+        <h1 className="welcome-title">Homework Planner</h1>
         <p className="welcome-subtitle">Organize and track your homework assignments efficiently</p>
       </div>
 

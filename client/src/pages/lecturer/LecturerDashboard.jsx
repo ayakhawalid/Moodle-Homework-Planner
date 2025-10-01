@@ -84,22 +84,6 @@ function LecturerDashboard() {
 
   return (
     <DashboardLayout userRole="lecturer">
-      {/* Welcome Section */}
-      <div className="welcome-section">
-        <h1 className="welcome-title">Welcome Back, {getUserName()}! 👨‍🏫</h1>
-        <p className="welcome-subtitle">Ready to inspire and educate your students?</p>
-        <div className="quick-actions">
-          <Link to="/lecturer/classroom" className="action-btn">
-            <ClassIcon />
-            Manage Classes
-          </Link>
-          <Link to="/lecturer/stats" className="action-btn">
-            <BarChartIcon />
-            View Statistics
-          </Link>
-        </div>
-      </div>
-
       {/* Dashboard Grid */}
       <div className="dashboard-grid">
 

@@ -43,8 +43,15 @@ const LecturerCalendar = () => {
         apiService.studentHomework.getLecturerHomework()
       ]);
 
+      console.log('Traditional response:', traditionalResponse);
+      console.log('Student response:', studentResponse);
+
+      // Ensure we have arrays to work with
+      const traditionalData = Array.isArray(traditionalResponse.data) ? traditionalResponse.data : [];
+      const studentData = Array.isArray(studentResponse.data) ? studentResponse.data : [];
+
       // Combine both types of homework
-      const traditionalHomework = traditionalResponse.data.map(hw => ({
+      const traditionalHomework = traditionalData.map(hw => ({
         _id: hw._id,
         title: hw.title,
         description: hw.description,
@@ -60,7 +67,7 @@ const LecturerCalendar = () => {
         uploader_role: 'lecturer'
       }));
 
-      const studentHomework = studentResponse.data.map(hw => ({
+      const studentHomework = studentData.map(hw => ({
         _id: hw._id,
         title: hw.title,
         description: hw.description,

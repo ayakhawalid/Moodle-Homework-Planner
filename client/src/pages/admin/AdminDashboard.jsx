@@ -238,14 +238,6 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout userRole="admin">
       <Box p={3}>
-        <Typography variant="h4" gutterBottom>
-          Admin Dashboard
-        </Typography>
-        
-        <Typography variant="body1" color="textSecondary" gutterBottom>
-          Welcome back, {user?.name || 'Admin'}!
-        </Typography>
-
         <Grid container spacing={3} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard

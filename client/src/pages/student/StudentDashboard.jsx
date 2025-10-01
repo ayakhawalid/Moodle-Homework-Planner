@@ -62,6 +62,16 @@ function StudentDashboard() {
     yAxisTitle: 'Hours'
   };
 
+  // Format study time - show minutes if less than 1 hour, otherwise show hours
+  const formatStudyTime = (hours) => {
+    if (!hours || hours === 0) return '0 min';
+    if (hours < 1) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes} min`;
+    }
+    return `${hours.toFixed(1)}h`;
+  };
+
   // Get user name with multiple fallbacks, prioritizing full name
   const getUserName = () => {
     // Try from our processed user object first (full_name, then name)
@@ -87,24 +97,9 @@ function StudentDashboard() {
 
   return (
     <DashboardLayout userRole="student">
-      <Box p={3}>
+      <Box p={0}>
         {/* User Sync Status */}
         <UserSyncStatus showDetails={false} />
-
-        {/* Welcome Section */}
-        <Box mb={4}>
-          <Typography variant="h4" gutterBottom sx={{ fontWeight: 'bold', color: '#333' }}>
-            Welcome back, {getUserName()}!
-          </Typography>
-          <Typography variant="subtitle1" color="textSecondary">
-            Track your academic progress and manage your tasks
-            {syncStatus === 'synced' && (
-              <span style={{ marginLeft: '10px', color: '#4caf50' }}>
-                • Database Connected ✓
-              </span>
-            )}
-          </Typography>
-        </Box>
 
         {/* Loading State */}
         {loading && (
@@ -126,7 +121,7 @@ function StudentDashboard() {
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
                 title="Study Hours"
-                value={`${dashboardData.study_progress?.weekly_hours || 0}h`}
+                value={formatStudyTime(dashboardData.study_progress?.weekly_hours || 0)}
                 icon={<TimerIcon sx={{ fontSize: 40 }} />}
                 color="#1976d2"
                 trend={dashboardData.study_progress?.daily_average || 0}
@@ -164,157 +159,161 @@ function StudentDashboard() {
           </Grid>
         )}
 
-        {/* Charts Section */}
-        <Grid container spacing={3} mb={4}>
-          <Grid item xs={12} md={8}>
-            <ProgressChart
-              title="Weekly Study Progress"
-              data={studyProgressData}
-              type="area"
-              height={300}
-              color="#1976d2"
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <div className="dashboard-card" style={{ height: '280px', display: 'flex', flexDirection: 'column' }}>
-              <div className="card-header" style={{ paddingBottom: '10px' }}>
-                <div className="card-icon primary">
-                  <SchoolIcon />
-                </div>
-                <div>
-                  <h3 className="card-title">Courses Info</h3>
-                  <p className="card-subtitle">Your enrolled courses</p>
-                </div>
-              </div>
-              <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
-                <div style={{marginTop: '10px', height: '100%', overflowY: 'auto'}}>
-                  {dashboardData?.courses?.list?.length > 0 ? (
-                    dashboardData.courses.list.slice(0, 3).map((course, index) => (
-                      <div key={course._id} style={{marginBottom: '8px', padding: '8px', background: '#f8f9fa', borderRadius: '6px', fontSize: '0.9em'}}>
-                        <strong style={{fontSize: '0.95em'}}>{course.course_name}</strong><br />
-                        <small style={{color: '#666', fontSize: '0.8em'}}>
-                          {course.lecturer?.name || 'TBA'} - {course.course_code}
-                        </small>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '6px', textAlign: 'center', color: '#666', fontSize: '0.9em'}}>
-                      No courses enrolled yet
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Grid>
-        </Grid>
-
-        {/* Dashboard Grid */}
+        {/* All Dashboard Cards - 4 Cards Per Row */}
         {!loading && !error && dashboardData && (
-          <div className="dashboard-grid">
-
-          {/* Homework Deadlines Card */}
-          <div className="dashboard-card">
-            <div className="card-header">
-              <div className="card-icon secondary">
-                <AssignmentIcon />
+          <Grid container spacing={0} mb={4}>
+            {/* Chart Card */}
+            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
+              <div className="dashboard-card" style={{ height: '400px' }}>
+                <ProgressChart
+                  title="Weekly Study Progress"
+                  data={studyProgressData}
+                  type="area"
+                  height={300}
+                  color="#1976d2"
+                />
               </div>
-              <div>
-                <h3 className="card-title">Homework Deadlines</h3>
-                <p className="card-subtitle">Upcoming assignments</p>
-              </div>
-            </div>
-            <div className="card-content">
-              <div style={{marginTop: '15px'}}>
-                {dashboardData.homework?.upcoming_list?.length > 0 ? (
-                  dashboardData.homework.upcoming_list.map((homework, index) => {
-                    // Determine background color based on urgency
-                    let bgColor = '#d1ecf1'; // Default blue
-                    let textColor = '#0c5460';
-                    
-                    if (homework.days_until_due <= 1) {
-                      bgColor = '#f8d7da'; // Red for urgent
-                      textColor = '#721c24';
-                    } else if (homework.days_until_due <= 3) {
-                      bgColor = '#fff3cd'; // Yellow for warning
-                      textColor = '#856404';
-                    }
-                    
-                    return (
-                      <div key={homework._id} style={{marginBottom: '10px', padding: '10px', background: bgColor, borderRadius: '8px'}}>
-                        <strong>{homework.title}</strong><br />
-                        <small style={{color: textColor}}>
-                          Due: {new Date(homework.due_date).toLocaleDateString()} - {homework.course.name}
-                        </small>
-                        <br />
-                        <small style={{color: textColor}}>
-                          {homework.days_until_due === 0 ? 'Due today!' : 
-                           homework.days_until_due === 1 ? 'Due tomorrow!' : 
-                           `${homework.days_until_due} days left`}
-                        </small>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
-                    No upcoming homework
+            </Grid>
+            
+            {/* Courses Info Card */}
+            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
+              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card-header">
+                  <div className="card-icon primary">
+                    <SchoolIcon />
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-        {/* Exam Deadlines Card */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <div className="card-icon accent">
-              <QuizIcon />
-            </div>
-            <div>
-              <h3 className="card-title">Exam Deadlines</h3>
-              <p className="card-subtitle">Upcoming exams</p>
-            </div>
-          </div>
-          <div className="card-content">
-            <div style={{marginTop: '15px'}}>
-              {dashboardData.exams?.upcoming_list?.length > 0 ? (
-                dashboardData.exams.upcoming_list.map((exam, index) => {
-                  // Determine background color based on urgency
-                  let bgColor = '#d1ecf1'; // Default blue
-                  let textColor = '#0c5460';
-                  
-                  if (exam.days_until_due <= 3) {
-                    bgColor = '#f8d7da'; // Red for urgent
-                    textColor = '#721c24';
-                  } else if (exam.days_until_due <= 7) {
-                    bgColor = '#fff3cd'; // Yellow for warning
-                    textColor = '#856404';
-                  }
-                  
-                  return (
-                    <div key={exam._id} style={{marginBottom: '10px', padding: '10px', background: bgColor, borderRadius: '8px'}}>
-                      <strong>{exam.exam_title}</strong><br />
-                      <small style={{color: textColor}}>
-                        {new Date(exam.due_date).toLocaleDateString()} - {exam.course.name}
-                      </small>
-                      <br />
-                      <small style={{color: textColor}}>
-                        {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 
-                         exam.days_until_due === 0 ? 'Today' : 
-                         `${Math.abs(exam.days_until_due)} days overdue`}
-                      </small>
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
-                  No upcoming exams
+                  <div>
+                    <h3 className="card-title">Courses Info</h3>
+                    <p className="card-subtitle">Your enrolled courses</p>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+                <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{marginTop: '15px', height: '100%', overflowY: 'auto', paddingRight: '8px'}}>
+                    {dashboardData?.courses?.list?.length > 0 ? (
+                      dashboardData.courses.list.map((course, index) => (
+                        <div key={course._id} style={{marginBottom: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
+                          <strong style={{fontSize: '1.1em'}}>{course.course_name}</strong><br />
+                          <small style={{color: '#666', fontSize: '0.95em'}}>
+                            {course.lecturer?.name || 'TBA'} - {course.course_code}
+                          </small>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666', fontSize: '1.1em'}}>
+                        No courses enrolled yet
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Grid>
 
-        </div>
+            {/* Homework Deadlines Card */}
+            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
+              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card-header">
+                  <div className="card-icon secondary">
+                    <AssignmentIcon />
+                  </div>
+                  <div>
+                    <h3 className="card-title">Homework Deadlines</h3>
+                    <p className="card-subtitle">Upcoming assignments</p>
+                  </div>
+                </div>
+                <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{marginTop: '15px', height: '100%', overflowY: 'auto', paddingRight: '8px'}}>
+                    {dashboardData.homework?.upcoming_list?.length > 0 ? (
+                      dashboardData.homework.upcoming_list.map((homework, index) => {
+                        // Determine background color based on urgency
+                        let bgColor = '#d1ecf1'; // Default blue
+                        let textColor = '#0c5460';
+                        
+                        if (homework.days_until_due <= 1) {
+                          bgColor = '#f8d7da'; // Red for urgent
+                          textColor = '#721c24';
+                        } else if (homework.days_until_due <= 3) {
+                          bgColor = '#fff3cd'; // Yellow for warning
+                          textColor = '#856404';
+                        }
+                        
+                        return (
+                          <div key={homework._id} style={{marginBottom: '15px', padding: '15px', background: bgColor, borderRadius: '8px'}}>
+                            <strong style={{fontSize: '1.1em'}}>{homework.title}</strong><br />
+                            <small style={{color: textColor, fontSize: '0.95em'}}>
+                              Due: {new Date(homework.due_date).toLocaleDateString()} - {homework.course.name}
+                            </small>
+                            <br />
+                            <small style={{color: textColor, fontSize: '0.9em'}}>
+                              {homework.days_until_due === 0 ? 'Due today!' : 
+                               homework.days_until_due === 1 ? 'Due tomorrow!' : 
+                               `${homework.days_until_due} days left`}
+                            </small>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666', fontSize: '1.1em'}}>
+                        No upcoming homework
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Grid>
+
+            {/* Exam Deadlines Card */}
+            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
+              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card-header">
+                  <div className="card-icon accent">
+                    <QuizIcon />
+                  </div>
+                  <div>
+                    <h3 className="card-title">Exam Deadlines</h3>
+                    <p className="card-subtitle">Upcoming exams</p>
+                  </div>
+                </div>
+                <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{marginTop: '15px', height: '100%', overflowY: 'auto', paddingRight: '8px'}}>
+                    {dashboardData.exams?.upcoming_list?.length > 0 ? (
+                      dashboardData.exams.upcoming_list.map((exam, index) => {
+                        // Determine background color based on urgency
+                        let bgColor = '#d1ecf1'; // Default blue
+                        let textColor = '#0c5460';
+                        
+                        if (exam.days_until_due <= 3) {
+                          bgColor = '#f8d7da'; // Red for urgent
+                          textColor = '#721c24';
+                        } else if (exam.days_until_due <= 7) {
+                          bgColor = '#fff3cd'; // Yellow for warning
+                          textColor = '#856404';
+                        }
+                        
+                        return (
+                          <div key={exam._id} style={{marginBottom: '15px', padding: '15px', background: bgColor, borderRadius: '8px'}}>
+                            <strong style={{fontSize: '1.1em'}}>{exam.exam_title}</strong><br />
+                            <small style={{color: textColor, fontSize: '0.95em'}}>
+                              {new Date(exam.due_date).toLocaleDateString()} - {exam.course.name}
+                            </small>
+                            <br />
+                            <small style={{color: textColor, fontSize: '0.9em'}}>
+                              {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 
+                               exam.days_until_due === 0 ? 'Today' : 
+                               `${Math.abs(exam.days_until_due)} days overdue`}
+                            </small>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666', fontSize: '1.1em'}}>
+                        No upcoming exams
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Grid>
+          </Grid>
         )}
 
       </Box>
