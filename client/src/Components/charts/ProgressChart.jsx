@@ -1,8 +1,18 @@
 import React from 'react';
 import Chart from 'react-apexcharts';
-import { Card, CardContent, Typography, Box } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 
 const ProgressChart = ({ title, data, type = 'line', height = 300, color = '#1976d2' }) => {
+  // Format study time - show minutes if less than 1 hour, otherwise show hours
+  const formatStudyTime = (hours) => {
+    if (!hours || hours === 0) return '0 min';
+    if (hours < 1) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes} min`;
+    }
+    return `${hours.toFixed(1)}h`;
+  };
+
   const chartOptions = {
     chart: {
       type: type,
@@ -36,6 +46,11 @@ const ProgressChart = ({ title, data, type = 'line', height = 300, color = '#197
     yaxis: {
       title: {
         text: data.yAxisTitle || ''
+      },
+      labels: {
+        formatter: function(value) {
+          return formatStudyTime(value);
+        }
       }
     },
     grid: {
@@ -43,7 +58,12 @@ const ProgressChart = ({ title, data, type = 'line', height = 300, color = '#197
       strokeDashArray: 4
     },
     tooltip: {
-      theme: 'light'
+      theme: 'light',
+      y: {
+        formatter: function(value) {
+          return formatStudyTime(value);
+        }
+      }
     }
   };
 
@@ -53,21 +73,19 @@ const ProgressChart = ({ title, data, type = 'line', height = 300, color = '#197
   }];
 
   return (
-    <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 3 }}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#333' }}>
-          {title}
-        </Typography>
-        <Box sx={{ mt: 2 }}>
-          <Chart
-            options={chartOptions}
-            series={series}
-            type={type}
-            height={height}
-          />
-        </Box>
-      </CardContent>
-    </Card>
+    <div>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#333', marginBottom: '15px' }}>
+        {title}
+      </Typography>
+      <Box>
+        <Chart
+          options={chartOptions}
+          series={series}
+          type={type}
+          height={height}
+        />
+      </Box>
+    </div>
   );
 };
 

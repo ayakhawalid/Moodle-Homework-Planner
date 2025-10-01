@@ -57,7 +57,7 @@ function WorkloadStats() {
   return (
     <DashboardLayout userRole="lecturer">
       <div className="welcome-section">
-        <h1 className="welcome-title">Workload Statistics 📊</h1>
+        <h1 className="welcome-title">Workload Statistics</h1>
         <p className="welcome-subtitle">Analyze your teaching workload and student performance</p>
       </div>
 

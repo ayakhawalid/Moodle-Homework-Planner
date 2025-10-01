@@ -235,7 +235,7 @@ function StudyTimer() {
   return (
     <DashboardLayout userRole="student">
       <div className="welcome-section">
-        <h1 className="welcome-title">Study Timer ⏰</h1>
+        <h1 className="welcome-title">Study Timer</h1>
         <p className="welcome-subtitle">Use the Pomodoro technique and other timing methods to enhance your study sessions</p>
       </div>
 

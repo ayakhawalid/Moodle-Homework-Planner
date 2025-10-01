@@ -80,6 +80,16 @@ const StudyProgress = () => {
     return 'error';
   };
 
+  // Format study time - show minutes if less than 1 hour, otherwise show hours
+  const formatStudyTime = (hours) => {
+    if (!hours || hours === 0) return '0 min';
+    if (hours < 1) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes} min`;
+    }
+    return `${hours.toFixed(1)}h`;
+  };
+
   if (loading) {
     return (
       <DashboardLayout userRole="student">
@@ -102,7 +112,7 @@ const StudyProgress = () => {
     <DashboardLayout userRole="student">
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Study Progress 📊
+          Study Progress
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Track your study habits and set goals to improve your academic performance
@@ -165,7 +175,7 @@ const StudyProgress = () => {
                 <Box sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2" color="text.secondary">
-                      This Week: {studyData?.overview?.total_hours || 0} hours
+                      This Week: {formatStudyTime(studyData?.overview?.total_hours || 0)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {getProgressPercentage().toFixed(1)}%
@@ -187,7 +197,7 @@ const StudyProgress = () => {
                     size="small"
                   />
                   <Chip
-                    label={`${studyData?.overview?.average_hours_per_day?.toFixed(1) || 0}h daily avg`}
+                    label={`${formatStudyTime(studyData?.overview?.average_hours_per_day || 0)} daily avg`}
                     color="secondary"
                     variant="outlined"
                     size="small"
@@ -209,8 +219,8 @@ const StudyProgress = () => {
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
                     <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 2, color: 'white' }}>
-                      <Typography variant="h4">{studyData?.overview?.total_hours || 0}</Typography>
-                      <Typography variant="body2">Total Hours</Typography>
+                      <Typography variant="h4">{formatStudyTime(studyData?.overview?.total_hours || 0)}</Typography>
+                      <Typography variant="body2">Total Study Time</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6}>
@@ -271,7 +281,7 @@ const StudyProgress = () => {
                             />
                           </Box>
                           <Typography variant="body2" fontWeight="bold">
-                            {hours.toFixed(1)}h
+                            {formatStudyTime(hours)}
                           </Typography>
                         </Box>
                       </Grid>
@@ -300,7 +310,7 @@ const StudyProgress = () => {
                             <CheckCircleIcon color="success" />
                           </ListItemIcon>
                           <ListItemText
-                            primary={`${(session.hours_studied * 60).toFixed(0)} minute session`}
+                            primary={`${formatStudyTime(session.hours_studied)} study session`}
                             secondary={`Completed on ${new Date(session.date).toLocaleDateString()} - ${session.tasks_completed}`}
                           />
                         </ListItem>

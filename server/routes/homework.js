@@ -22,13 +22,25 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
     
     // Role-based filtering
     if (userRole === 'student') {
+      // First find the student's MongoDB ObjectId
+      const student = await User.findOne({ auth0_id: userId });
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+      
       // Get courses the student is enrolled in
-      const studentCourses = await Course.find({ students: userId, is_active: true }).select('_id');
+      const studentCourses = await Course.find({ students: student._id, is_active: true }).select('_id');
       const courseIds = studentCourses.map(course => course._id);
       filter.course_id = { $in: courseIds };
     } else if (userRole === 'lecturer') {
+      // First find the lecturer's MongoDB ObjectId
+      const lecturer = await User.findOne({ auth0_id: userId });
+      if (!lecturer) {
+        return res.status(404).json({ error: 'Lecturer not found' });
+      }
+      
       // Get courses the lecturer teaches
-      const lecturerCourses = await Course.find({ lecturer_id: userId, is_active: true }).select('_id');
+      const lecturerCourses = await Course.find({ lecturer_id: lecturer._id, is_active: true }).select('_id');
       const courseIds = lecturerCourses.map(course => course._id);
       filter.course_id = { $in: courseIds };
     }
@@ -97,15 +109,27 @@ router.get('/:id', checkJwt, extractUser, async (req, res) => {
     
     // Check access permissions
     const userRole = req.userInfo.roles[0];
-    const userId = req.userInfo.auth0_id;
+    const auth0UserId = req.userInfo.auth0_id;
     
     if (userRole === 'student') {
-      const isEnrolled = homework.course_id.students.some(student => student.equals(userId));
+      // Find the student's MongoDB ObjectId
+      const student = await User.findOne({ auth0_id: auth0UserId });
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+      
+      const isEnrolled = homework.course_id.students.some(studentId => studentId.equals(student._id));
       if (!isEnrolled) {
         return res.status(403).json({ error: 'Access denied' });
       }
     } else if (userRole === 'lecturer') {
-      if (!homework.course_id.lecturer_id.equals(userId)) {
+      // Find the lecturer's MongoDB ObjectId
+      const lecturer = await User.findOne({ auth0_id: auth0UserId });
+      if (!lecturer) {
+        return res.status(404).json({ error: 'Lecturer not found' });
+      }
+      
+      if (!homework.course_id.lecturer_id.equals(lecturer._id)) {
         return res.status(403).json({ error: 'Access denied' });
       }
     }

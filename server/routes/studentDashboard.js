@@ -255,17 +255,29 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
         daily_average: studyProgress.length > 0 ? Math.round((weeklyStudyHours / studyProgress.length) * 10) / 10 : 0,
         goal_achieved_days: studyProgress.filter(progress => progress.goal_achieved).length,
         weekly_breakdown: (() => {
-          // Create array for last 7 days with study hours
-          const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          // Create array for the current week (Monday to Sunday) with study hours
           const weeklyData = [];
+          const today = new Date();
           
+          // Get the current day of week (0 = Sunday, 1 = Monday, etc.)
+          const currentDay = today.getDay();
+          
+          // Calculate days since Monday (Monday = 0, Sunday = 6)
+          // If today is Sunday (0), it's 6 days since Monday
+          // If today is Monday (1), it's 0 days since Monday
+          const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
+          
+          // Start from Monday of current week
           for (let i = 0; i < 7; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - (6 - i)); // Start from 7 days ago
+            const date = new Date(today);
+            date.setDate(today.getDate() - daysSinceMonday + i);
+            date.setHours(0, 0, 0, 0); // Normalize to start of day
             
-            const dayProgress = studyProgress.find(progress => 
-              new Date(progress.date).toDateString() === date.toDateString()
-            );
+            const dayProgress = studyProgress.find(progress => {
+              const progressDate = new Date(progress.date);
+              progressDate.setHours(0, 0, 0, 0);
+              return progressDate.getTime() === date.getTime();
+            });
             
             weeklyData.push(dayProgress ? dayProgress.hours_studied : 0);
           }

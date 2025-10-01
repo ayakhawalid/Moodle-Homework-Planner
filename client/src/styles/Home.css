@@ -1,3 +1,50 @@
+/* Colored Circles Above Header */
+.colored-circles {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  z-index: 10;
+}
+
+.circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  animation: float 3s ease-in-out infinite;
+}
+
+.circle-1 {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299);
+  animation-delay: 0s;
+}
+
+.circle-2 {
+  background: linear-gradient(135deg, #95E1D3, #7DD3C0);
+  animation-delay: 0.5s;
+}
+
+.circle-3 {
+  background: linear-gradient(135deg, #FCE38A, #F9D56E);
+  animation-delay: 1s;
+}
+
+.circle-4 {
+  background: linear-gradient(135deg, #F38181, #E85A6B);
+  animation-delay: 1.5s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 /* Home Page Styles */
 .home-container {
   min-height: 100vh;
@@ -173,6 +220,16 @@
 
 /* Responsive Design */
 @media (max-width: 1024px) {
+  .colored-circles {
+    top: 15px;
+    gap: 12px;
+  }
+  
+  .circle {
+    width: 18px;
+    height: 18px;
+  }
+  
   .content-overlay {
     padding: 1.5rem;
   }
@@ -193,6 +250,16 @@
 }
 
 @media (max-width: 768px) {
+  .colored-circles {
+    top: 10px;
+    gap: 10px;
+  }
+  
+  .circle {
+    width: 16px;
+    height: 16px;
+  }
+  
   .content-overlay {
     padding: 1rem;
   }
@@ -226,6 +293,16 @@
 }
 
 @media (max-width: 480px) {
+  .colored-circles {
+    top: 8px;
+    gap: 8px;
+  }
+  
+  .circle {
+    width: 14px;
+    height: 14px;
+  }
+  
   .main-title {
     font-size: 1.75rem;
   }

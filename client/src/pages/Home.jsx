@@ -30,6 +30,14 @@ function Home() {
   // Show home page for non-authenticated users
   return (
     <div className="home-container">
+      {/* Colored Circles Above Header */}
+      <div className="colored-circles">
+        <div className="circle circle-1"></div>
+        <div className="circle circle-2"></div>
+        <div className="circle circle-3"></div>
+        <div className="circle circle-4"></div>
+      </div>
+
       {/* Full Background Image */}
       <div className="home-background">
         <div 

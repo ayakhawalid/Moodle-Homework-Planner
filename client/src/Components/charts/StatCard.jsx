@@ -9,7 +9,7 @@ const StatCard = ({
   color = '#1976d2', 
   trend = null, 
   subtitle = null,
-  backgroundColor = 'rgba(255, 255, 255, 0.9)'
+  backgroundColor = 'rgba(255, 255, 255, 0.6)'
 }) => {
   const getTrendIcon = () => {
     if (trend === null) return null;
@@ -27,13 +27,15 @@ const StatCard = ({
     <Card 
       sx={{ 
         height: '100%', 
-        borderRadius: 2, 
-        boxShadow: 3,
+        borderRadius: '16px', 
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
         background: backgroundColor,
-        transition: 'all 0.3s ease',
+        backdropFilter: 'blur(10px)',
+        border: 'none',
+        transition: 'all 0.2s ease',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6
+          transform: 'translateY(-2px)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)'
         }
       }}
     >
