@@ -109,15 +109,15 @@ function HomeworkPlanner() {
                       const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
                       
                       // Determine background color based on urgency
-                      let bgColor = '#d1ecf1'; // Default blue
-                      let textColor = '#0c5460';
+                      let bgColor = 'rgba(149, 225, 211, 0.3)'; // Default teal
+                      let textColor = '#333';
                       
                       if (daysUntilDue <= 1) {
-                        bgColor = '#f8d7da'; // Red for urgent
-                        textColor = '#721c24';
+                        bgColor = 'rgba(243, 129, 129, 0.3)'; // Red for urgent
+                        textColor = '#333';
                       } else if (daysUntilDue <= 3) {
-                        bgColor = '#fff3cd'; // Yellow for warning
-                        textColor = '#856404';
+                        bgColor = 'rgba(252, 227, 138, 0.3)'; // Yellow for warning
+                        textColor = '#333';
                       }
                       
                       return (
@@ -136,7 +136,7 @@ function HomeworkPlanner() {
                       );
                     })
                   ) : (
-                    <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                    <div style={{padding: '10px', background: 'rgba(214, 247, 173, 0.3)', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
                       No upcoming homework
                     </div>
                   );

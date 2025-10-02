@@ -317,7 +317,7 @@ function StudyTimer() {
                 <button 
                   onClick={resetTimer}
                   style={{
-                    background: '#666',
+                    background: '#95E1D3',
                     border: 'none',
                     padding: '10px 20px',
                     borderRadius: '25px',
@@ -332,11 +332,11 @@ function StudyTimer() {
                 <button 
                   onClick={() => setAudioEnabled(!audioEnabled)}
                   style={{
-                    background: audioEnabled ? '#4CAF50' : '#f44336',
+                    background: audioEnabled ? '#D6F7AD' : '#FCE38A',
                     border: 'none',
                     padding: '8px 16px',
                     borderRadius: '20px',
-                    color: 'white',
+                    color: '#333',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',

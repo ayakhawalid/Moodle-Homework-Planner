@@ -126,12 +126,12 @@ const CourseEnrollment = () => {
 
   const getSemesterChipColor = (semester) => {
     const colors = {
-      fall: 'warning',
-      spring: 'success',
-      summer: 'info',
-      winter: 'primary'
+      fall: { backgroundColor: 'rgba(252, 227, 138, 0.3)', color: '#333', border: '1px solid #FCE38A' },
+      spring: { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' },
+      summer: { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' },
+      winter: { backgroundColor: 'rgba(243, 129, 129, 0.3)', color: '#333', border: '1px solid #F38181' }
     };
-    return colors[semester] || 'default';
+    return colors[semester] || { backgroundColor: 'rgba(149, 225, 211, 0.2)', color: '#333', border: '1px solid #95E1D3' };
   };
 
   const openCourseDetails = (course) => {
@@ -180,10 +180,10 @@ const CourseEnrollment = () => {
         <Grid container spacing={3}>
           {/* Enrolled Courses */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Typography variant="h6" gutterBottom display="flex" alignItems="center">
-                  <CheckCircleIcon sx={{ mr: 1, color: 'success.main' }} />
+                  <CheckCircleIcon sx={{ mr: 1, color: '#95E1D3' }} />
                   My Enrolled Courses ({enrolledCourses.length})
                 </Typography>
                 
@@ -205,7 +205,16 @@ const CourseEnrollment = () => {
                                 {course.course_name}
                               </Typography>
                               {course.course_code && (
-                                <Chip label={course.course_code} size="small" variant="outlined" />
+                                <Chip 
+                                  label={course.course_code} 
+                                  size="small" 
+                                  variant="outlined"
+                                  sx={{
+                                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                    color: '#333',
+                                    border: '1px solid #95E1D3'
+                                  }}
+                                />
                               )}
                             </Box>
                           }
@@ -218,7 +227,7 @@ const CourseEnrollment = () => {
                                 {course.semester && (
                                   <Chip 
                                     label={course.semester.charAt(0).toUpperCase() + course.semester.slice(1)} 
-                                    color={getSemesterChipColor(course.semester)}
+                                    sx={getSemesterChipColor(course.semester)}
                                     size="small"
                                   />
                                 )}
@@ -235,15 +244,21 @@ const CourseEnrollment = () => {
                         <ListItemSecondaryAction>
                           <IconButton
                             edge="end"
-                            color="info"
+                            sx={{ 
+                              mr: 1,
+                              color: '#95E1D3',
+                              '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                            }}
                             onClick={() => openCourseDetails(course)}
-                            sx={{ mr: 1 }}
                           >
                             <InfoIcon />
                           </IconButton>
                           <IconButton
                             edge="end"
-                            color="error"
+                            sx={{ 
+                              color: '#F38181',
+                              '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                            }}
                             onClick={() => handleUnenroll(course._id)}
                           >
                             <RemoveIcon />
@@ -253,16 +268,16 @@ const CourseEnrollment = () => {
                     ))}
                   </List>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           {/* Available Courses */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Typography variant="h6" gutterBottom display="flex" alignItems="center">
-                  <AddIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <AddIcon sx={{ mr: 1, color: '#D6F7AD' }} />
                   Available Courses ({filteredAvailableCourses.length})
                 </Typography>
 
@@ -335,7 +350,16 @@ const CourseEnrollment = () => {
                                 {course.course_name}
                               </Typography>
                               {course.course_code && (
-                                <Chip label={course.course_code} size="small" variant="outlined" />
+                                <Chip 
+                                  label={course.course_code} 
+                                  size="small" 
+                                  variant="outlined"
+                                  sx={{
+                                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                    color: '#333',
+                                    border: '1px solid #95E1D3'
+                                  }}
+                                />
                               )}
                             </Box>
                           }
@@ -348,7 +372,7 @@ const CourseEnrollment = () => {
                                 {course.semester && (
                                   <Chip 
                                     label={course.semester.charAt(0).toUpperCase() + course.semester.slice(1)} 
-                                    color={getSemesterChipColor(course.semester)}
+                                    sx={getSemesterChipColor(course.semester)}
                                     size="small"
                                   />
                                 )}
@@ -368,15 +392,21 @@ const CourseEnrollment = () => {
                         <ListItemSecondaryAction>
                           <IconButton
                             edge="end"
-                            color="info"
+                            sx={{ 
+                              mr: 1,
+                              color: '#95E1D3',
+                              '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                            }}
                             onClick={() => openCourseDetails(course)}
-                            sx={{ mr: 1 }}
                           >
                             <InfoIcon />
                           </IconButton>
                           <IconButton
                             edge="end"
-                            color="primary"
+                            sx={{ 
+                              color: '#D6F7AD',
+                              '&:hover': { backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                            }}
                             onClick={() => handleEnroll(course._id)}
                           >
                             <AddIcon />
@@ -386,8 +416,8 @@ const CourseEnrollment = () => {
                     ))}
                   </List>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
         </Grid>
 

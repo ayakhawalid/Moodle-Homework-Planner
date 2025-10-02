@@ -198,6 +198,11 @@ const HomeworkManagement = () => {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setCreateDialogOpen(true)}
+          sx={{
+            backgroundColor: '#D6F7AD',
+            color: '#333',
+            '&:hover': { backgroundColor: '#c8f299' }
+          }}
         >
           Add Homework
         </Button>
@@ -215,11 +220,11 @@ const HomeworkManagement = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={4}>
         {homework.map((hw) => (
-          <Grid item xs={12} md={6} lg={4} key={hw._id}>
-            <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flexGrow: 1 }}>
+          <Grid item xs={12} md={6} lg={4} key={hw._id} sx={{ mb: 3 }}>
+            <div className="dashboard-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '20px', marginBottom: '16px' }}>
+              <div className="card-content" style={{ flexGrow: 1 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                   <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
                     {hw.title}
@@ -227,14 +232,14 @@ const HomeworkManagement = () => {
                 </Box>
 
                 <Box display="flex" alignItems="center" mb={1}>
-                  <SchoolIcon sx={{ mr: 1, fontSize: 16 }} />
+                  <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
                   <Typography variant="body2" color="text.secondary">
                     {hw.course.name} ({hw.course.code})
                   </Typography>
                 </Box>
 
                 <Box display="flex" alignItems="center" mb={2}>
-                  <ScheduleIcon sx={{ mr: 1, fontSize: 16 }} />
+                  <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
                   <Typography variant="body2" color="text.secondary">
                     Due: {new Date(hw.claimed_deadline).toLocaleDateString()}
                   </Typography>
@@ -249,26 +254,48 @@ const HomeworkManagement = () => {
                 <Box display="flex" gap={1} mb={2} flexWrap="wrap">
                   <Chip
                     label={hw.completion_status.replace('_', ' ')}
-                    color={getCompletionStatusColor(hw.completion_status)}
+                    sx={{
+                      backgroundColor: hw.completion_status === 'completed' ? 'rgba(149, 225, 211, 0.3)' : 
+                                      hw.completion_status === 'in_progress' ? 'rgba(252, 227, 138, 0.3)' : 
+                                      'rgba(243, 129, 129, 0.3)',
+                      color: '#333',
+                      border: hw.completion_status === 'completed' ? '1px solid #95E1D3' : 
+                              hw.completion_status === 'in_progress' ? '1px solid #FCE38A' : 
+                              '1px solid #F38181'
+                    }}
                     size="small"
                   />
                   {hw.uploader_role === 'lecturer' ? (
                     <Chip
                       label="Lecturer Assigned"
-                      color="info"
+                      sx={{
+                        backgroundColor: 'rgba(149, 225, 211, 0.3)',
+                        color: '#333',
+                        border: '1px solid #95E1D3'
+                      }}
                       size="small"
                     />
                   ) : (
                     <Chip
                       label={`Deadline: ${formatStatus(hw.deadline_verification_status)}`}
-                      color={getStatusColor(hw.deadline_verification_status)}
+                      sx={{
+                        backgroundColor: hw.deadline_verification_status === 'verified' ? 'rgba(149, 225, 211, 0.3)' : 
+                                        'rgba(252, 227, 138, 0.3)',
+                        color: '#333',
+                        border: hw.deadline_verification_status === 'verified' ? '1px solid #95E1D3' : 
+                                '1px solid #FCE38A'
+                      }}
                       size="small"
                     />
                   )}
                   {hw.claimed_grade && (
                     <Chip
                       label={`Grade: ${hw.claimed_grade}`}
-                      color={getStatusColor(hw.grade_verification_status)}
+                      sx={{
+                        backgroundColor: 'rgba(214, 247, 173, 0.3)',
+                        color: '#333',
+                        border: '1px solid #D6F7AD'
+                      }}
                       size="small"
                     />
                   )}
@@ -277,7 +304,17 @@ const HomeworkManagement = () => {
                 {hw.tags && hw.tags.length > 0 && (
                   <Box display="flex" gap={0.5} mb={2} flexWrap="wrap">
                     {hw.tags.map((tag, index) => (
-                      <Chip key={index} label={tag} size="small" variant="outlined" />
+                      <Chip 
+                        key={index} 
+                        label={tag} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{
+                          backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                          color: '#333',
+                          border: '1px solid #95E1D3'
+                        }}
+                      />
                     ))}
                   </Box>
                 )}
@@ -294,14 +331,19 @@ const HomeworkManagement = () => {
                         setSelectedHomework(hw);
                         setCompleteDialogOpen(true);
                       }}
+                      sx={{
+                        borderColor: '#95E1D3',
+                        color: '#333',
+                        '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                      }}
                     >
                       Mark Complete
                     </Button>
                   )}
                   
                 </Box>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
         ))}
       </Grid>

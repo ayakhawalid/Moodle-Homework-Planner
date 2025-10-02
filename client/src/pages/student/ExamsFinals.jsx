@@ -4,9 +4,6 @@ import {
   Grid, 
   Box, 
   Typography, 
-  Card, 
-  CardContent, 
-  CardActions, 
   Button, 
   FormControl, 
   InputLabel, 
@@ -15,7 +12,6 @@ import {
   Chip, 
   Alert, 
   CircularProgress,
-  Paper,
   List,
   ListItem,
   ListItemText,
@@ -104,13 +100,13 @@ function ExamsFinals() {
 
   // Get exam type color
   const getExamTypeColor = (type) => {
-    switch (type) {
-      case 'midterm': return 'primary';
-      case 'final': return 'error';
-      case 'quiz': return 'secondary';
-      case 'assignment': return 'success';
-      default: return 'default';
-    }
+    const colors = {
+      midterm: { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' },
+      final: { backgroundColor: 'rgba(243, 129, 129, 0.3)', color: '#333', border: '1px solid #F38181' },
+      quiz: { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' },
+      assignment: { backgroundColor: 'rgba(252, 227, 138, 0.3)', color: '#333', border: '1px solid #FCE38A' }
+    };
+    return colors[type] || { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' };
   };
 
   if (loading) {
@@ -135,68 +131,70 @@ function ExamsFinals() {
 
   return (
     <DashboardLayout userRole="student">
-      <div className="exams-finals">
-        <Typography variant="h4" className="exams-title" gutterBottom>
-          <QuizIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Exams & Finals
-        </Typography>
+      <Typography variant="h4" className="exams-title" gutterBottom>
+        <QuizIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+        Exams & Finals
+      </Typography>
 
-        <div className="exams-content">
-          <Typography variant="body1" color="text.secondary" paragraph>
-            Prepare for your exams and final assessments with organized study plans and schedules.
-          </Typography>
+      <Typography variant="body1" color="text.secondary" paragraph>
+        Prepare for your exams and final assessments with organized study plans and schedules.
+      </Typography>
 
           {/* Filters */}
-          <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Filter Exams
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    label="Status"
-                  >
-                    <MenuItem value="all">All Exams</MenuItem>
-                    <MenuItem value="upcoming">Upcoming</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="overdue">Overdue</MenuItem>
-                  </Select>
-                </FormControl>
+          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+            <div className="card-content">
+              <Typography variant="h6" gutterBottom>
+                <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
+                Filter Exams
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      label="Status"
+                    >
+                      <MenuItem value="all">All Exams</MenuItem>
+                      <MenuItem value="upcoming">Upcoming</MenuItem>
+                      <MenuItem value="completed">Completed</MenuItem>
+                      <MenuItem value="overdue">Overdue</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Course</InputLabel>
+                    <Select
+                      value={selectedCourse}
+                      onChange={(e) => setSelectedCourse(e.target.value)}
+                      label="Course"
+                    >
+                      <MenuItem value="">All Courses</MenuItem>
+                      {examsData?.courses?.map((course) => (
+                        <MenuItem key={course._id} value={course._id}>
+                          {course.course_code} - {course.course_name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
               </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Course</InputLabel>
-                  <Select
-                    value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
-                    label="Course"
-                  >
-                    <MenuItem value="">All Courses</MenuItem>
-                    {examsData?.courses?.map((course) => (
-                      <MenuItem key={course._id} value={course._id}>
-                        {course.course_code} - {course.course_name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Paper>
+            </div>
+          </div>
 
           {/* Exam Statistics */}
-          <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Exam Overview
-            </Typography>
+          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+            <div className="card-content">
+              <Typography variant="h6" gutterBottom>
+                <TrendingUpIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
+                Exam Overview
+              </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h4" color="warning.main">
+                  <Typography variant="h4" sx={{ color: '#FCE38A' }}>
                     {examsData?.summary?.upcoming || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -206,7 +204,7 @@ function ExamsFinals() {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h4" color="success.main">
+                  <Typography variant="h4" sx={{ color: '#95E1D3' }}>
                     {examsData?.summary?.completed || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -216,7 +214,7 @@ function ExamsFinals() {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h4" color="error.main">
+                  <Typography variant="h4" sx={{ color: '#F38181' }}>
                     {examsData?.summary?.overdue || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -226,7 +224,7 @@ function ExamsFinals() {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h4" color="primary.main">
+                  <Typography variant="h4" sx={{ color: '#D6F7AD' }}>
                     {examsData?.summary?.total || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -235,20 +233,22 @@ function ExamsFinals() {
                 </Box>
               </Grid>
             </Grid>
-          </Paper>
+            </div>
+          </div>
 
           {/* Upcoming Exams */}
           {examsData?.upcoming_exams?.length > 0 && (
-            <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Upcoming Exams
-              </Typography>
+            <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+              <div className="card-content">
+                <Typography variant="h6" gutterBottom>
+                  <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#FCE38A' }} />
+                  Upcoming Exams
+                </Typography>
               <Grid container spacing={2}>
                 {examsData.upcoming_exams.map((exam) => (
                   <Grid item xs={12} md={6} key={exam._id}>
-                    <Card className="exam-card" elevation={2}>
-                      <CardContent>
+                    <div className="dashboard-card" style={{ height: '100%' }}>
+                      <div className="card-content">
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                           <Box>
                             <Typography variant="h6" gutterBottom>
@@ -261,20 +261,20 @@ function ExamsFinals() {
                           <Chip 
                             icon={getExamStatusIcon(exam.status)}
                             label={exam.exam_type}
-                            color={getExamTypeColor(exam.exam_type)}
+                            sx={getExamTypeColor(exam.exam_type)}
                             size="small"
                           />
                         </Box>
                         
                         <Box display="flex" alignItems="center" mb={1}>
-                          <CalendarTodayIcon sx={{ mr: 1, fontSize: 16 }} />
+                          <CalendarTodayIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
                           <Typography variant="body2">
                             {new Date(exam.due_date).toLocaleDateString()}
                           </Typography>
                         </Box>
                         
                         <Box display="flex" alignItems="center" mb={2}>
-                          <AccessTimeIcon sx={{ mr: 1, fontSize: 16 }} />
+                          <AccessTimeIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
                           <Typography variant="body2">
                             {new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </Typography>
@@ -288,7 +288,15 @@ function ExamsFinals() {
                             <LinearProgress 
                               variant="determinate" 
                               value={Math.max(0, 100 - (exam.days_until_due * 10))} 
-                              color={exam.days_until_due <= 3 ? 'error' : exam.days_until_due <= 7 ? 'warning' : 'primary'}
+                              sx={{ 
+                                height: 6, 
+                                borderRadius: 3,
+                                backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                '& .MuiLinearProgress-bar': {
+                                  backgroundColor: exam.days_until_due <= 3 ? '#F38181' : 
+                                                 exam.days_until_due <= 7 ? '#FCE38A' : '#95E1D3'
+                                }
+                              }}
                             />
                           </Box>
                         )}
@@ -298,28 +306,22 @@ function ExamsFinals() {
                             {exam.description}
                           </Typography>
                         )}
-                      </CardContent>
-                      <CardActions>
-                        <Button size="small" startIcon={<BookmarkIcon />}>
-                          Study Plan
-                        </Button>
-                        <Button size="small" startIcon={<AssignmentIcon />}>
-                          Resources
-                        </Button>
-                      </CardActions>
-                    </Card>
+                      </div>
+                    </div>
                   </Grid>
                 ))}
               </Grid>
-            </Paper>
+              </div>
+            </div>
           )}
 
           {/* All Exams List */}
-          <Paper elevation={1} sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              <QuizIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              All Exams
-            </Typography>
+          <div className="dashboard-card">
+            <div className="card-content">
+              <Typography variant="h6" gutterBottom>
+                <QuizIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#F38181' }} />
+                All Exams
+              </Typography>
             
             {examsData?.exams?.length === 0 ? (
               <Alert severity="info">
@@ -395,9 +397,8 @@ function ExamsFinals() {
                 ))}
               </List>
             )}
-          </Paper>
-        </div>
-      </div>
+            </div>
+          </div>
     </DashboardLayout>
   );
 }

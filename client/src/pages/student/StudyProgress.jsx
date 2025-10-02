@@ -121,18 +121,28 @@ const StudyProgress = () => {
         <Grid container spacing={3}>
           {/* Weekly Goal Card */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon primary">
+                  <TargetIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">Weekly Goal</h3>
+                  <p className="card-subtitle">Set your study target</p>
+                </div>
+              </div>
+              <div className="card-content">
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <TargetIcon color="primary" sx={{ mr: 1 }} />
-                    <Typography variant="h6">Weekly Goal</Typography>
-                  </Box>
                   <Button
                     size="small"
                     startIcon={<EditIcon />}
                     onClick={() => setEditingGoal(true)}
                     disabled={editingGoal}
+                    sx={{ 
+                      backgroundColor: '#95E1D3', 
+                      color: 'white',
+                      '&:hover': { backgroundColor: '#7dd3c0' }
+                    }}
                   >
                     Edit Goal
                   </Button>
@@ -154,6 +164,11 @@ const StudyProgress = () => {
                         onClick={handleUpdateWeeklyGoal}
                         disabled={submitting}
                         startIcon={submitting ? <CircularProgress size={16} /> : <CheckCircleIcon />}
+                        sx={{ 
+                          backgroundColor: '#D6F7AD', 
+                          color: '#333',
+                          '&:hover': { backgroundColor: '#c8f299' }
+                        }}
                       >
                         {submitting ? 'Saving...' : 'Save Goal'}
                       </Button>
@@ -161,13 +176,18 @@ const StudyProgress = () => {
                         variant="outlined"
                         onClick={() => setEditingGoal(false)}
                         disabled={submitting}
+                        sx={{ 
+                          borderColor: '#F38181', 
+                          color: '#F38181',
+                          '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                        }}
                       >
                         Cancel
                       </Button>
                     </Box>
                   </Box>
                 ) : (
-                  <Typography variant="h4" color="primary" sx={{ mb: 2 }}>
+                  <Typography variant="h4" sx={{ color: '#F38181', fontWeight: 'bold', mb: 2 }}>
                     {weeklyGoal} hours/week
                   </Typography>
                 )}
@@ -192,69 +212,85 @@ const StudyProgress = () => {
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Chip
                     label={`${studyData?.overview?.total_study_days || 0} sessions today`}
-                    color="primary"
+                    sx={{ 
+                      backgroundColor: 'rgba(149, 225, 211, 0.3)', 
+                      color: '#333',
+                      border: '1px solid #95E1D3'
+                    }}
                     variant="outlined"
                     size="small"
                   />
                   <Chip
                     label={`${formatStudyTime(studyData?.overview?.average_hours_per_day || 0)} daily avg`}
-                    color="secondary"
+                    sx={{ 
+                      backgroundColor: 'rgba(214, 247, 173, 0.3)', 
+                      color: '#333',
+                      border: '1px solid #D6F7AD'
+                    }}
                     variant="outlined"
                     size="small"
                   />
                 </Box>
-              </CardContent>
-            </Card>
+              </div>
+            </div> 
           </Grid>
 
           {/* Study Statistics */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Study Statistics</Typography>
-                </Box>
-
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon secondary">
+                  <TrendingUpIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">Study Statistics</h3>
+                  <p className="card-subtitle">Your study overview</p>
+                </div>
+              </div>
+              <div className="card-content">
                 <Grid container spacing={2}>
                   <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', borderRadius: 2, color: 'white' }}>
+                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 2, color: '#333' }}>
                       <Typography variant="h4">{formatStudyTime(studyData?.overview?.total_hours || 0)}</Typography>
                       <Typography variant="body2">Total Study Time</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'secondary.light', borderRadius: 2, color: 'white' }}>
+                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 2, color: '#333' }}>
                       <Typography variant="h4">{studyData?.overview?.total_study_days || 0}</Typography>
                       <Typography variant="body2">Study Days</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', borderRadius: 2, color: 'white' }}>
+                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 2, color: '#333' }}>
                       <Typography variant="h4">{studyData?.overview?.study_consistency || 0}</Typography>
                       <Typography variant="body2">Consistency %</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={6}>
-                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', borderRadius: 2, color: 'white' }}>
+                    <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 2, color: '#333' }}>
                       <Typography variant="h4">{studyData?.overview?.goal_achieved_days || 0}</Typography>
                       <Typography variant="body2">Goal Days</Typography>
                     </Box>
                   </Grid>
                 </Grid>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           {/* Weekly Breakdown */}
           <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <HistoryIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Weekly Breakdown</Typography>
-                </Box>
-
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon accent">
+                  <HistoryIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">Weekly Breakdown</h3>
+                  <p className="card-subtitle">Daily study progress</p>
+                </div>
+              </div>
+              <div className="card-content">
                 <Grid container spacing={1}>
                   {studyData?.weekly_breakdown?.map((week, index) => {
                     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -272,9 +308,9 @@ const StudyProgress = () => {
                               sx={{
                                 width: '100%',
                                 height: `${Math.max(percentage, 5)}%`,
-                                bgcolor: percentage >= 100 ? 'success.main' : 
-                                        percentage >= 75 ? 'primary.main' : 
-                                        percentage >= 50 ? 'warning.main' : 'error.main',
+                                backgroundColor: percentage >= 100 ? '#95E1D3' : 
+                                        percentage >= 75 ? '#D6F7AD' : 
+                                        percentage >= 50 ? '#FCE38A' : '#F38181',
                                 borderRadius: 1,
                                 minHeight: 4
                               }}
@@ -288,26 +324,30 @@ const StudyProgress = () => {
                     );
                   })}
                 </Grid>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           {/* Recent Sessions */}
           <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <HistoryIcon color="primary" sx={{ mr: 1 }} />
-                  <Typography variant="h6">Recent Study Sessions</Typography>
-                </Box>
-
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon primary">
+                  <HistoryIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">Recent Study Sessions</h3>
+                  <p className="card-subtitle">Your latest study activity</p>
+                </div>
+              </div>
+              <div className="card-content">
                 {studyData?.recent_sessions?.length > 0 ? (
                   <List>
                     {studyData.recent_sessions.map((session, index) => (
                       <React.Fragment key={index}>
-                        <ListItem>
+                        <ListItem sx={{ backgroundColor: 'rgba(149, 225, 211, 0.1)', borderRadius: 1, mb: 1 }}>
                           <ListItemIcon>
-                            <CheckCircleIcon color="success" />
+                            <CheckCircleIcon sx={{ color: '#95E1D3' }} />
                           </ListItemIcon>
                           <ListItemText
                             primary={`${formatStudyTime(session.hours_studied)} study session`}
@@ -323,8 +363,8 @@ const StudyProgress = () => {
                     No study sessions recorded yet. Start a timer to begin tracking!
                   </Typography>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
         </Grid>
       </Box>
