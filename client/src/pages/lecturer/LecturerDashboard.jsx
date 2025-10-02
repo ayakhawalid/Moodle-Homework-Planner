@@ -175,15 +175,15 @@ function LecturerDashboard() {
           <div className="card-content">
             <p>Monitor individual student performance and identify those who need help.</p>
             <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+              <div style={{marginBottom: '10px', padding: '10px', background: 'rgba(149, 225, 211, 0.3)', borderRadius: '8px'}}>
                 <strong>Top Performers</strong><br />
-                <small style={{color: '#666'}}>
+                <small style={{color: '#333'}}>
                   {dashboardData?.student_performance?.total_a_grades || 0} students with A grades
                 </small>
               </div>
-              <div style={{padding: '10px', background: '#fff3cd', borderRadius: '8px'}}>
+              <div style={{padding: '10px', background: 'rgba(252, 227, 138, 0.3)', borderRadius: '8px'}}>
                 <strong>Need Attention</strong><br />
-                <small style={{color: '#856404'}}>
+                <small style={{color: '#333'}}>
                   {dashboardData?.student_performance?.total_below_c || 0} students below C grade
                 </small>
               </div>
@@ -207,12 +207,12 @@ function LecturerDashboard() {
             <div style={{marginTop: '15px'}}>
               {dashboardData?.recent_activity?.length > 0 ? (
                 dashboardData.recent_activity.map((activity, index) => (
-                  <div key={index} style={{marginBottom: '8px', fontSize: '14px', color: '#666'}}>
+                  <div key={index} style={{marginBottom: '8px', fontSize: '14px', color: '#333', padding: '8px', background: 'rgba(214, 247, 173, 0.2)', borderRadius: '6px'}}>
                     • {activity.message}
                   </div>
                 ))
               ) : (
-                <div style={{fontSize: '14px', color: '#666'}}>
+                <div style={{fontSize: '14px', color: '#666', padding: '8px', background: 'rgba(214, 247, 173, 0.2)', borderRadius: '6px'}}>
                   No recent activity
                 </div>
               )}
@@ -236,20 +236,20 @@ function LecturerDashboard() {
             <div style={{marginTop: '15px'}}>
               {dashboardData?.todays_schedule?.length > 0 ? (
                 dashboardData.todays_schedule.map((cls, index) => (
-                  <div key={cls._id} style={{marginBottom: '10px', padding: '10px', background: '#f8f9fa', borderRadius: '8px'}}>
+                  <div key={cls._id} style={{marginBottom: '10px', padding: '10px', background: 'rgba(149, 225, 211, 0.3)', borderRadius: '8px'}}>
                     <strong>{cls.course_name}</strong><br />
-                    <small style={{color: '#666'}}>
+                    <small style={{color: '#333'}}>
                       {new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
                       {new Date(cls.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
                       {cls.location}
                     </small>
                     {cls.class_title && (
-                      <><br /><small style={{color: '#888', fontStyle: 'italic'}}>{cls.class_title}</small></>
+                      <><br /><small style={{color: '#666', fontStyle: 'italic'}}>{cls.class_title}</small></>
                     )}
                   </div>
                 ))
               ) : (
-                <div style={{padding: '10px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
+                <div style={{padding: '10px', background: 'rgba(214, 247, 173, 0.3)', borderRadius: '8px', textAlign: 'center', color: '#666'}}>
                   No classes scheduled for today
                 </div>
               )}

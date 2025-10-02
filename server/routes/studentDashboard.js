@@ -1197,9 +1197,9 @@ router.post('/study-timer/session', checkJwt, extractUser, requireStudent, async
     let existingProgress;
     try {
       existingProgress = await StudyProgress.findOne({
-        student_id: studentId,
-        date: new Date(date)
-      });
+      student_id: studentId,
+      date: new Date(date)
+    });
       console.log('Existing progress found:', !!existingProgress);
     } catch (findError) {
       console.error('Error finding existing progress:', findError);
@@ -1224,19 +1224,19 @@ router.post('/study-timer/session', checkJwt, extractUser, requireStudent, async
     } else {
       // Create new study progress
       try {
-        studyProgress = new StudyProgress({
-          student_id: studentId,
-          date: new Date(date),
-          hours_studied: hours_studied,
-          tasks_completed: tasks_completed,
-          goal_achieved: goal_achieved,
-          focus_rating: focus_rating,
-          difficulty_rating: difficulty_rating,
-          subjects_studied: subjects_studied
-        });
-        
+      studyProgress = new StudyProgress({
+        student_id: studentId,
+        date: new Date(date),
+        hours_studied: hours_studied,
+        tasks_completed: tasks_completed,
+        goal_achieved: goal_achieved,
+        focus_rating: focus_rating,
+        difficulty_rating: difficulty_rating,
+        subjects_studied: subjects_studied
+      });
+      
         console.log('StudyProgress object created:', studyProgress);
-        await studyProgress.save();
+      await studyProgress.save();
         console.log('New study progress created:', studyProgress._id);
       } catch (saveError) {
         console.error('Error saving new study progress:', saveError);

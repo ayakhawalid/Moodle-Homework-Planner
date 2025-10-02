@@ -124,75 +124,59 @@ const StudentCalendar = () => {
         {/* Statistics Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="center">
-                  <AssignmentIcon color="primary" sx={{ mr: 2 }} />
-                  <Box>
-                    <Typography variant="h4">
-                      {totalHomework}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Assignments
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon primary">
+                  <AssignmentIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">{totalHomework}</h3>
+                  <p className="card-subtitle">Total Assignments</p>
+                </div>
+              </div>
+            </div>
           </Grid>
           
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="center">
-                  <CheckCircleIcon color="success" sx={{ mr: 2 }} />
-                  <Box>
-                    <Typography variant="h4">
-                      {completedHomework}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Completed
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon secondary">
+                  <CheckCircleIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">{completedHomework}</h3>
+                  <p className="card-subtitle">Completed</p>
+                </div>
+              </div>
+            </div>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="center">
-                  <ScheduleIcon color="warning" sx={{ mr: 2 }} />
-                  <Box>
-                    <Typography variant="h4">
-                      {upcomingHomework}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Due This Week
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon accent">
+                  <ScheduleIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">{upcomingHomework}</h3>
+                  <p className="card-subtitle">Due This Week</p>
+                </div>
+              </div>
+            </div>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box display="flex" alignItems="center">
-                  <AssignmentIcon color="error" sx={{ mr: 2 }} />
-                  <Box>
-                    <Typography variant="h4">
-                      {overdueHomework}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Overdue
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon study-activity">
+                  <AssignmentIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">{overdueHomework}</h3>
+                  <p className="card-subtitle">Overdue</p>
+                </div>
+              </div>
+            </div>
           </Grid>
         </Grid>
 

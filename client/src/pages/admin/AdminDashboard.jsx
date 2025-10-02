@@ -141,11 +141,17 @@ const AdminDashboard = () => {
           />
 
           {/* Debug Section */}
-          <Card sx={{ mt: 3, bgcolor: '#fff3cd', border: '1px solid #ffeaa7' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom color="warning.dark">
-                🐛 Debug Information
-              </Typography>
+          <div className="dashboard-card" style={{ marginTop: '24px', backgroundColor: 'rgba(252, 227, 138, 0.3)' }}>
+            <div className="card-header">
+              <div className="card-icon accent">
+                <AdminIcon />
+              </div>
+              <div>
+                <h3 className="card-title">🐛 Debug Information</h3>
+                <p className="card-subtitle">System diagnostics</p>
+              </div>
+            </div>
+            <div className="card-content">
               <Typography variant="body2" paragraph>
                 Current user role: <strong>{user?.role || 'null'}</strong>
               </Typography>
@@ -161,22 +167,35 @@ const AdminDashboard = () => {
                   onClick={refreshUser}
                   variant="outlined"
                   size="small"
+                  sx={{ 
+                    borderColor: '#95E1D3', 
+                    color: '#95E1D3',
+                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                  }}
                 >
                   🔄 Refresh User Data
                 </Button>
                 <Button
                   onClick={testDirectAPI}
                   variant="outlined"
-                  color="primary"
                   size="small"
+                  sx={{ 
+                    borderColor: '#D6F7AD', 
+                    color: '#333',
+                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                  }}
                 >
                   🧪 Test Direct API
                 </Button>
                 <Button
                   onClick={forceAdminAccess}
                   variant="contained"
-                  color="warning"
                   size="small"
+                  sx={{ 
+                    backgroundColor: '#F38181', 
+                    color: 'white',
+                    '&:hover': { backgroundColor: '#e85a6b' }
+                  }}
                 >
                   🚨 Force Admin Access (Debug)
                 </Button>
@@ -199,8 +218,8 @@ const AdminDashboard = () => {
                 If you're supposed to be an admin, try refreshing user data first.
                 The "Force Admin Access" button is for debugging only.
               </Typography>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Box>
       </DashboardLayout>
     );
@@ -244,7 +263,7 @@ const AdminDashboard = () => {
               title="Total Users"
               value={stats?.total_users || 0}
               icon={<PeopleIcon />}
-              color="#1976d2"
+              color="#95E1D3"
             />
           </Grid>
           
@@ -253,7 +272,7 @@ const AdminDashboard = () => {
               title="Verified Users"
               value={stats?.verified_users || 0}
               icon={<CheckCircleIcon />}
-              color="#388e3c"
+              color="#D6F7AD"
             />
           </Grid>
           
@@ -262,7 +281,7 @@ const AdminDashboard = () => {
               title="Students"
               value={stats?.roles?.students || 0}
               icon={<SchoolIcon />}
-              color="#f57c00"
+              color="#FCE38A"
             />
           </Grid>
           
@@ -271,23 +290,34 @@ const AdminDashboard = () => {
               title="Lecturers"
               value={stats?.roles?.lecturers || 0}
               icon={<AdminIcon />}
-              color="#7b1fa2"
+              color="#F38181"
             />
           </Grid>
         </Grid>
 
         <Grid container spacing={3} sx={{ mt: 2 }}>
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Quick Actions
-                </Typography>
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon primary">
+                  <PeopleIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">Quick Actions</h3>
+                  <p className="card-subtitle">Manage your system</p>
+                </div>
+              </div>
+              <div className="card-content">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Button 
                     variant="outlined" 
                     href="/admin/users"
                     fullWidth
+                    sx={{ 
+                      borderColor: '#95E1D3', 
+                      color: '#95E1D3',
+                      '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                    }}
                   >
                     Manage Users
                   </Button>
@@ -295,6 +325,11 @@ const AdminDashboard = () => {
                     variant="outlined" 
                     href="/admin/analytics"
                     fullWidth
+                    sx={{ 
+                      borderColor: '#D6F7AD', 
+                      color: '#333',
+                      '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                    }}
                   >
                     View Analytics
                   </Button>
@@ -302,27 +337,48 @@ const AdminDashboard = () => {
                     variant="outlined" 
                     href="/admin/settings"
                     fullWidth
+                    sx={{ 
+                      borderColor: '#FCE38A', 
+                      color: '#333',
+                      '&:hover': { borderColor: '#fbd65e', backgroundColor: 'rgba(252, 227, 138, 0.1)' }
+                    }}
                   >
                     System Settings
                   </Button>
                 </Box>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="h6" gutterBottom>
-                    Pending Role Requests
-                  </Typography>
-                  <Button size="small" onClick={loadRoleRequests}>Refresh</Button>
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div className="card-icon accent">
+                  <CheckCircleIcon />
+                </div>
+                <div>
+                  <h3 className="card-title">Pending Role Requests</h3>
+                  <p className="card-subtitle">Manage user permissions</p>
+                </div>
+              </div>
+              <div className="card-content">
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Button 
+                    size="small" 
+                    onClick={loadRoleRequests}
+                    sx={{ 
+                      backgroundColor: '#F38181', 
+                      color: 'white',
+                      '&:hover': { backgroundColor: '#e85a6b' }
+                    }}
+                  >
+                    Refresh
+                  </Button>
                 </Box>
 
                 {roleRequests && roleRequests.length > 0 ? (
                   roleRequests.map((rr) => (
-                    <Box key={rr._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #eee' }}>
+                    <Box key={rr._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #eee', mb: 1 }}>
                       <Box>
                         <Typography variant="body1">{rr.user?.name || rr.user?.email}</Typography>
                         <Typography variant="caption" color="textSecondary">Requested: {rr.desired_role}</Typography>
@@ -341,13 +397,17 @@ const AdminDashboard = () => {
                               alert('Failed to approve role request. Please try again.');
                             }
                           }}
+                          sx={{ 
+                            backgroundColor: '#95E1D3', 
+                            color: 'white',
+                            '&:hover': { backgroundColor: '#7dd3c0' }
+                          }}
                         >
                           Approve
                         </Button>
                         <Button 
                           size="small" 
                           variant="outlined" 
-                          color="error" 
                           onClick={async () => {
                             try {
                               await apiService.roleRequests.reject(rr._id);
@@ -356,6 +416,11 @@ const AdminDashboard = () => {
                               console.error('Failed to reject role request:', error);
                               alert('Failed to reject role request. Please try again.');
                             }
+                          }}
+                          sx={{ 
+                            borderColor: '#F38181', 
+                            color: '#F38181',
+                            '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
                           }}
                         >
                           Reject
@@ -366,8 +431,8 @@ const AdminDashboard = () => {
                 ) : (
                   <Typography variant="body2" color="textSecondary">No pending requests.</Typography>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
         </Grid>
       </Box>

@@ -73,28 +73,30 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     const homework = event.resource?.homework;
     if (!homework) return {};
 
-    // Determine color based on status and urgency
+    // Determine color based on status and urgency using 4-color theme
     const dueDate = new Date(event.start);
     const today = new Date();
     const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
 
-    let backgroundColor = '#3174ad'; // Default blue
+    let backgroundColor = '#95E1D3'; // Default light teal
 
     if (homework.completion_status === 'completed' || homework.status === 'graded') {
-      backgroundColor = '#28a745'; // Green for completed
+      backgroundColor = '#95E1D3'; // Light teal for completed
     } else if (daysUntilDue < 0) {
-      backgroundColor = '#dc3545'; // Red for overdue
+      backgroundColor = '#F38181'; // Light coral for overdue
     } else if (daysUntilDue <= 1) {
-      backgroundColor = '#fd7e14'; // Orange for urgent
+      backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
     } else if (daysUntilDue <= 3) {
-      backgroundColor = '#ffc107'; // Yellow for warning
+      backgroundColor = '#FCE38A'; // Light yellow for warning
+    } else {
+      backgroundColor = '#D6F7AD'; // Light green for normal
     }
 
     return {
       backgroundColor,
       borderRadius: '4px',
-      opacity: 0.8,
-      color: 'white',
+      opacity: 0.9,
+      color: '#333',
       border: '0px',
       display: 'block'
     };
@@ -127,65 +129,83 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
 
   return (
     <Box>
-      <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Homework Calendar
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          View all your homework deadlines and assignments in calendar format
-        </Typography>
-        
-        {/* Debug Info */}
-        <Box sx={{ mb: 2, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
-          <Typography variant="caption" display="block">
-            Current Date: {currentDate.toLocaleDateString()}
+      <div className="dashboard-card" style={{ marginBottom: '16px' }}>
+        <div className="card-content">
+          <Typography variant="h6" gutterBottom>
+            Homework Calendar
           </Typography>
-          <Typography variant="caption" display="block">
-            Current View: {currentView}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            View all your homework deadlines and assignments in calendar format
           </Typography>
-          <Typography variant="caption" display="block">
-            Events Count: {calendarEvents.length}
-          </Typography>
-        </Box>
-        
-        {/* Legend */}
-        <Grid container spacing={1} sx={{ mb: 2 }}>
-          <Grid item>
-            <Chip
-              icon={<AssignmentIcon />}
-              label="Completed"
-              size="small"
-              sx={{ backgroundColor: '#28a745', color: 'white' }}
-            />
+          
+          {/* Debug Info */}
+          <Box sx={{ mb: 2, p: 1, backgroundColor: 'rgba(149, 225, 211, 0.2)', borderRadius: 1 }}>
+            <Typography variant="caption" display="block">
+              Current Date: {currentDate.toLocaleDateString()}
+            </Typography>
+            <Typography variant="caption" display="block">
+              Current View: {currentView}
+            </Typography>
+            <Typography variant="caption" display="block">
+              Events Count: {calendarEvents.length}
+            </Typography>
+          </Box>
+          
+          {/* Legend */}
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            <Grid item>
+              <Chip
+                icon={<AssignmentIcon />}
+                label="Completed"
+                size="small"
+                sx={{ 
+                  backgroundColor: '#95E1D3', 
+                  color: '#333',
+                  border: '1px solid #95E1D3'
+                }}
+              />
+            </Grid>
+            <Grid item>
+              <Chip
+                icon={<ScheduleIcon />}
+                label="Due Today/Tomorrow"
+                size="small"
+                sx={{ 
+                  backgroundColor: '#FCE38A', 
+                  color: '#333',
+                  border: '1px solid #FCE38A'
+                }}
+              />
+            </Grid>
+            <Grid item>
+              <Chip
+                icon={<ScheduleIcon />}
+                label="Overdue"
+                size="small"
+                sx={{ 
+                  backgroundColor: '#F38181', 
+                  color: '#333',
+                  border: '1px solid #F38181'
+                }}
+              />
+            </Grid>
+            <Grid item>
+              <Chip
+                icon={<AssignmentIcon />}
+                label="Upcoming"
+                size="small"
+                sx={{ 
+                  backgroundColor: '#D6F7AD', 
+                  color: '#333',
+                  border: '1px solid #D6F7AD'
+                }}
+              />
+            </Grid>
           </Grid>
-          <Grid item>
-            <Chip
-              icon={<ScheduleIcon />}
-              label="Due Today/Tomorrow"
-              size="small"
-              sx={{ backgroundColor: '#fd7e14', color: 'white' }}
-            />
-          </Grid>
-          <Grid item>
-            <Chip
-              icon={<ScheduleIcon />}
-              label="Overdue"
-              size="small"
-              sx={{ backgroundColor: '#dc3545', color: 'white' }}
-            />
-          </Grid>
-          <Grid item>
-            <Chip
-              icon={<AssignmentIcon />}
-              label="Upcoming"
-              size="small"
-              sx={{ backgroundColor: '#3174ad', color: 'white' }}
-            />
-          </Grid>
-        </Grid>
-      </Paper>
+        </div>
+      </div>
 
-      <Paper elevation={1} sx={{ height: '600px' }}>
+      <div className="dashboard-card" style={{ height: '600px' }}>
         <Calendar
           localizer={localizer}
           events={calendarEvents}
@@ -207,7 +227,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
           showMultiDayTimes
           selectable
         />
-      </Paper>
+      </div>
 
       {/* Event Details Dialog */}
       <Dialog open={eventDialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
@@ -224,15 +244,15 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
             <Box>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
-                  <Card variant="outlined">
-                    <CardContent>
+                  <div className="dashboard-card">
+                    <div className="card-content">
                       <Typography variant="subtitle1" gutterBottom>
                         Assignment Details
                       </Typography>
                       
                       {selectedEvent.resource.homework.course && (
                         <Box display="flex" alignItems="center" mb={1}>
-                          <SchoolIcon sx={{ mr: 1, fontSize: 16 }} />
+                          <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
                           <Typography variant="body2">
                             <strong>Course:</strong> {selectedEvent.resource.homework.course.name} ({selectedEvent.resource.homework.course.code})
                           </Typography>
@@ -240,7 +260,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                       )}
                       
                       <Box display="flex" alignItems="center" mb={1}>
-                        <ScheduleIcon sx={{ mr: 1, fontSize: 16 }} />
+                        <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
                         <Typography variant="body2">
                           <strong>Due Date:</strong> {moment(selectedEvent.start).format('MMMM Do YYYY, h:mm a')}
                         </Typography>
@@ -262,7 +282,11 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                         <Box sx={{ mt: 1 }}>
                           <Chip
                             label={`Status: ${selectedEvent.resource.homework.completion_status}`}
-                            color={selectedEvent.resource.homework.completion_status === 'completed' ? 'success' : 'warning'}
+                            sx={{
+                              backgroundColor: selectedEvent.resource.homework.completion_status === 'completed' ? 'rgba(149, 225, 211, 0.3)' : 'rgba(252, 227, 138, 0.3)',
+                              color: '#333',
+                              border: selectedEvent.resource.homework.completion_status === 'completed' ? '1px solid #95E1D3' : '1px solid #FCE38A'
+                            }}
                             size="small"
                           />
                         </Box>
@@ -272,13 +296,17 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                         <Box sx={{ mt: 1 }}>
                           <Chip
                             label={`Deadline: ${selectedEvent.resource.homework.deadline_verification_status}`}
-                            color={selectedEvent.resource.homework.deadline_verification_status === 'verified' ? 'success' : 'warning'}
+                            sx={{
+                              backgroundColor: selectedEvent.resource.homework.deadline_verification_status === 'verified' ? 'rgba(149, 225, 211, 0.3)' : 'rgba(252, 227, 138, 0.3)',
+                              color: '#333',
+                              border: selectedEvent.resource.homework.deadline_verification_status === 'verified' ? '1px solid #95E1D3' : '1px solid #FCE38A'
+                            }}
                             size="small"
                           />
                         </Box>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </Grid>
               </Grid>
             </Box>
