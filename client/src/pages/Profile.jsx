@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Card, CardContent, Typography, TextField, Button, Grid, Avatar, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, TextField, Button, Grid, Avatar, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import DashboardLayout from '../Components/DashboardLayout';
 import { useUserSyncContext } from '../contexts/UserSyncContext';
 import { apiService } from '../services/api';
@@ -125,8 +125,8 @@ function Profile() {
 
   const content = (
     <Box sx={{ p: 2 }}>
-      <Card sx={{ maxWidth: 800, mx: 'auto' }}>
-        <CardContent>
+      <div className="dashboard-card" style={{ maxWidth: 800, margin: '0 auto' }}>
+        <div className="card-content">
           <Typography variant="h5" sx={{ mb: 2 }}>Edit Profile</Typography>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
@@ -188,15 +188,30 @@ function Profile() {
               variant="contained"
               onClick={save}
               disabled={saving || (data.username && !isValidUsername(data.username)) || usernameCheck.available === false}
+              sx={{ 
+                backgroundColor: '#95E1D3', 
+                color: '#333',
+                '&:hover': { backgroundColor: '#7dd3c0' }
+              }}
             >
               {saving ? <CircularProgress size={20} /> : 'Save Changes'}
             </Button>
-            <Button variant="text" onClick={load} disabled={loading}>Reset</Button>
+            <Button 
+              variant="text" 
+              onClick={load} 
+              disabled={loading}
+              sx={{ 
+                color: '#FCE38A',
+                '&:hover': { backgroundColor: 'rgba(252, 227, 138, 0.1)' }
+              }}
+            >
+              Reset
+            </Button>
           </Box>
 
           {/* Danger Zone */}
           <Box mt={4} pt={3} borderTop="1px solid #e0e0e0">
-            <Typography variant="h6" color="error" gutterBottom>
+            <Typography variant="h6" sx={{ color: '#F38181' }} gutterBottom>
               Danger Zone
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
@@ -204,19 +219,23 @@ function Profile() {
             </Typography>
             <Button
               variant="outlined"
-              color="error"
               onClick={openDeleteDialog}
               disabled={deleting}
+              sx={{ 
+                borderColor: '#F38181', 
+                color: '#F38181',
+                '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+              }}
             >
               Delete Account
             </Button>
           </Box>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Delete Account Dialog */}
       <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog} maxWidth="sm" fullWidth>
-        <DialogTitle color="error">Delete Account</DialogTitle>
+        <DialogTitle sx={{ color: '#F38181' }}>Delete Account</DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
             This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
@@ -248,14 +267,25 @@ function Profile() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDeleteDialog} disabled={deleting}>
+          <Button 
+            onClick={closeDeleteDialog} 
+            disabled={deleting}
+            sx={{ 
+              color: '#95E1D3',
+              '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+            }}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleDeleteAccount}
-            color="error"
             variant="contained"
             disabled={deleting || deleteConfirmation !== 'DELETE'}
+            sx={{ 
+              backgroundColor: '#F38181', 
+              color: 'white',
+              '&:hover': { backgroundColor: '#e85a6b' }
+            }}
           >
             {deleting ? <CircularProgress size={20} /> : 'Delete Account'}
           </Button>

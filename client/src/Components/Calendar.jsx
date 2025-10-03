@@ -76,6 +76,11 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     // Determine color based on status and urgency using 4-color theme
     const dueDate = new Date(event.start);
     const today = new Date();
+    
+    // Normalize dates to midnight for accurate comparison
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
     const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
 
     let backgroundColor = '#95E1D3'; // Default light teal
@@ -106,20 +111,50 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     const homework = event.resource?.homework;
     const dueDate = new Date(event.start);
     const today = new Date();
+    
+    // Normalize dates to midnight for accurate comparison
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
     const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
 
+    // Determine color based on status and urgency using 4-color theme
+    let backgroundColor = '#95E1D3'; // Default light teal
+    let textColor = '#333';
+
+    if (homework?.completion_status === 'completed' || homework?.status === 'graded') {
+      backgroundColor = '#95E1D3'; // Light teal for completed
+    } else if (daysUntilDue < 0) {
+      backgroundColor = '#F38181'; // Light coral for overdue
+    } else if (daysUntilDue <= 1) {
+      backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
+    } else if (daysUntilDue <= 3) {
+      backgroundColor = '#FCE38A'; // Light yellow for warning
+    } else {
+      backgroundColor = '#D6F7AD'; // Light green for normal
+    }
+
     return (
-      <Box>
-        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
+      <Box sx={{ 
+        backgroundColor, 
+        color: textColor,
+        padding: '2px 4px',
+        borderRadius: '4px',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center'
+      }}>
+        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', fontSize: '11px' }}>
           {event.title}
         </Typography>
         {homework?.course && (
-          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.7rem' }}>
+          <Typography variant="caption" sx={{ display: 'block', fontSize: '9px', opacity: 0.8 }}>
             {homework.course.name || homework.course.code}
           </Typography>
         )}
         {daysUntilDue <= 1 && (
-          <Typography variant="caption" sx={{ display: 'block', fontSize: '0.7rem', fontWeight: 'bold' }}>
+          <Typography variant="caption" sx={{ display: 'block', fontSize: '9px', fontWeight: 'bold' }}>
             {daysUntilDue < 0 ? 'Overdue!' : daysUntilDue === 0 ? 'Due Today!' : 'Due Tomorrow!'}
           </Typography>
         )}
@@ -141,7 +176,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
           {/* Debug Info */}
           <Box sx={{ mb: 2, p: 1, backgroundColor: 'rgba(149, 225, 211, 0.2)', borderRadius: 1 }}>
             <Typography variant="caption" display="block">
-              Current Date: {currentDate.toLocaleDateString()}
+              Current Date: {new Date().toLocaleDateString()}
             </Typography>
             <Typography variant="caption" display="block">
               Current View: {currentView}

@@ -199,9 +199,9 @@ const HomeworkManagement = () => {
           startIcon={<AddIcon />}
           onClick={() => setCreateDialogOpen(true)}
           sx={{
-            backgroundColor: '#D6F7AD',
+            backgroundColor: '#95E1D3',
             color: '#333',
-            '&:hover': { backgroundColor: '#c8f299' }
+            '&:hover': { backgroundColor: '#7dd3c0' }
           }}
         >
           Add Homework

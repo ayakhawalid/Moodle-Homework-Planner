@@ -4,9 +4,6 @@ import {
   Grid, 
   Box, 
   Typography, 
-  Card, 
-  CardContent, 
-  CardActions, 
   Button, 
   FormControl, 
   InputLabel, 
@@ -27,8 +24,7 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
-  Divider,
-  Paper
+  Divider
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -77,7 +73,6 @@ function ChoosePartner() {
       );
       setPartnerData(response.data);
     } catch (err) {
-      console.error('Error fetching partner data:', err);
       setError('Failed to load partner data. Please try again.');
     } finally {
       setLoading(false);
@@ -91,12 +86,9 @@ function ChoosePartner() {
   // Fetch partner requests
   const fetchPartnerRequests = async () => {
     try {
-      console.log('ChoosePartner - Attempting to fetch partner requests...');
       const response = await apiService.studentDashboard.getPartnerRequests();
-      console.log('ChoosePartner - Partner requests fetched successfully:', response.data);
       setPartnerRequests(response.data);
     } catch (err) {
-      console.error('Error fetching partner requests:', err);
       setError('Failed to load partner requests. Please try again.');
     }
   };
@@ -128,7 +120,6 @@ function ChoosePartner() {
       setPartnerMessage('');
       setSuccess('Partnership request sent successfully! Wait for the other student to accept.');
     } catch (err) {
-      console.error('Error sending partner request:', err);
       setError('Failed to send partnership request. Please try again.');
     } finally {
       setSendingRequest(false);
@@ -138,19 +129,10 @@ function ChoosePartner() {
   // Respond to partnership request
   const handleRespondToRequest = async (requestId, action) => {
     try {
-      console.log(`ChoosePartner - Attempting to ${action} request:`, requestId);
-      console.log('ChoosePartner - User context:', { user: !!user, syncStatus });
-      
       const response = await apiService.studentDashboard.respondToPartnerRequest(requestId, action);
-      console.log(`ChoosePartner - ${action} response:`, response.data);
       await fetchPartnerRequests(); // Refresh requests
       setSuccess(`Partnership request ${action}ed successfully`);
     } catch (err) {
-      console.error(`Error ${action}ing partner request:`, err);
-      console.error('Error details:', err.response?.data);
-      console.error('Error status:', err.response?.status);
-      console.error('Error headers:', err.response?.headers);
-      
       // More specific error messages
       if (err.response?.status === 401) {
         setError('Authentication failed. Please log in again.');
@@ -169,18 +151,10 @@ function ChoosePartner() {
   // Update partnership status
   const handleUpdatePartnership = async (partnershipId, newStatus) => {
     try {
-      console.log(`ChoosePartner - Attempting to update partnership:`, { partnershipId, newStatus });
-      console.log('ChoosePartner - User context:', { user: !!user, syncStatus });
-      
       const response = await apiService.studentDashboard.respondToPartnerRequest(partnershipId, newStatus);
-      console.log(`ChoosePartner - Update response:`, response.data);
       await fetchPartnerRequests(); // Refresh requests
       setSuccess(`Partnership ${newStatus} successfully`);
     } catch (err) {
-      console.error(`Error updating partnership:`, err);
-      console.error('Error details:', err.response?.data);
-      console.error('Error status:', err.response?.status);
-      
       // More specific error messages
       if (err.response?.status === 401) {
         setError('Authentication failed. Please log in again.');
@@ -209,7 +183,6 @@ function ChoosePartner() {
       
       setSuccess('Partnership ended successfully! You can now choose a new partner.');
     } catch (err) {
-      console.error('Error changing partner:', err);
       setError('Failed to change partner. Please try again.');
     } finally {
       setSendingRequest(false);
@@ -252,12 +225,11 @@ function ChoosePartner() {
 
   return (
     <DashboardLayout userRole="student">
-      <div className="choose-partner">
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h4" className="partner-title">
-            <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-            Choose Study Partner
-          </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4" className="partner-title">
+          <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Choose Study Partner
+        </Typography>
           <Button
             variant="outlined"
             startIcon={<GroupIcon />}
@@ -268,10 +240,9 @@ function ChoosePartner() {
           </Button>
         </Box>
 
-        <div className="partner-content">
-          <Typography variant="body1" color="text.secondary" paragraph>
-            Find and connect with study partners for collaborative learning and homework assignments.
-          </Typography>
+        <Typography variant="body1" color="text.secondary" paragraph>
+          Find and connect with study partners for collaborative learning and homework assignments.
+        </Typography>
           
           {/* Success Message */}
           {success && (
@@ -287,20 +258,15 @@ function ChoosePartner() {
             </Alert>
           )}
           
-          {/* Debug Info */}
-          <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Debug Info: Sync Status: {syncStatus}, User: {user ? 'Logged in' : 'Not logged in'}
-            </Typography>
-          </Box>
 
           {/* Partner Requests Section */}
           {showRequests && (
-            <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Partnership Requests
-              </Typography>
+            <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+              <div className="card-content">
+                <Typography variant="h6" gutterBottom>
+                  <GroupIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
+                  Partnership Requests
+                </Typography>
               
               {partnerRequests ? (
                 <Box>
@@ -313,11 +279,11 @@ function ChoosePartner() {
                       <Grid container spacing={2}>
                         {partnerRequests.pending_requests.map((request) => (
                           <Grid item xs={12} md={6} key={request._id}>
-                            <Card elevation={3} sx={{ height: '100%' }}>
-                              <CardContent>
+                            <div className="dashboard-card" style={{ height: '100%' }}>
+                              <div className="card-content">
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
-                                  <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 56, height: 56 }}>
+                                  <Avatar sx={{ bgcolor: '#95E1D3', mr: 2, width: 56, height: 56 }}>
                                     <PersonIcon fontSize="large" />
                                   </Avatar>
                                   <Box flex={1}>
@@ -371,8 +337,8 @@ function ChoosePartner() {
                                     </Box>
                                   )}
                                 </Box>
-                              </CardContent>
-                              <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
+                              </div>
+                              <div className="card-actions" style={{ justifyContent: 'space-between', padding: '16px' }}>
                                 <Button
                                   size="small"
                                   color="success"
@@ -391,8 +357,8 @@ function ChoosePartner() {
                                 >
                                   Decline
                                 </Button>
-                              </CardActions>
-                            </Card>
+                              </div>
+                            </div>
                           </Grid>
                         ))}
                       </Grid>
@@ -408,11 +374,11 @@ function ChoosePartner() {
                       <Grid container spacing={2}>
                         {partnerRequests.sent_requests.map((request) => (
                           <Grid item xs={12} md={6} key={request._id}>
-                            <Card elevation={3} sx={{ height: '100%' }}>
-                              <CardContent>
+                            <div className="dashboard-card" style={{ height: '100%' }}>
+                              <div className="card-content">
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
-                                  <Avatar sx={{ bgcolor: 'secondary.main', mr: 2, width: 56, height: 56 }}>
+                                  <Avatar sx={{ bgcolor: '#95E1D3', mr: 2 }}>
                                     <PersonIcon fontSize="large" />
                                   </Avatar>
                                   <Box flex={1}>
@@ -466,22 +432,26 @@ function ChoosePartner() {
                                     </Box>
                                   )}
                                 </Box>
-                              </CardContent>
-                              <CardActions sx={{ justifyContent: 'center', p: 2 }}>
+                              </div>
+                              <div className="card-actions" style={{ justifyContent: 'center', padding: '16px' }}>
                                 <Button
                                   size="small"
-                                  color="info"
                                   variant="outlined"
                                   startIcon={<SendIcon />}
                                   onClick={() => {
                                     // Could add functionality to resend or modify request
                                     setSuccess('Request is pending. You can send a follow-up message if needed.');
                                   }}
+                                  sx={{ 
+                                    borderColor: '#95E1D3', 
+                                    color: '#95E1D3',
+                                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                                  }}
                                 >
                                   Follow Up
                                 </Button>
-                              </CardActions>
-                            </Card>
+                              </div>
+                            </div>
                           </Grid>
                         ))}
                       </Grid>
@@ -497,8 +467,8 @@ function ChoosePartner() {
                       <Grid container spacing={2}>
                         {partnerRequests.active_partnerships.map((partnership) => (
                           <Grid item xs={12} md={6} key={partnership._id}>
-                            <Card elevation={3} sx={{ height: '100%' }}>
-                              <CardContent>
+                            <div className="dashboard-card" style={{ height: '100%' }}>
+                              <div className="card-content">
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
                                   <Avatar sx={{ bgcolor: 'success.main', mr: 2, width: 56, height: 56 }}>
@@ -550,8 +520,8 @@ function ChoosePartner() {
                                     <strong>Accepted:</strong> {new Date(partnership.accepted_at).toLocaleDateString()} at {new Date(partnership.accepted_at).toLocaleTimeString()}
                                   </Typography>
                                 </Box>
-                              </CardContent>
-                              <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
+                              </div>
+                              <div className="card-actions" style={{ justifyContent: 'space-between', padding: '16px' }}>
                                 <Button
                                   size="small"
                                   color="info"
@@ -572,8 +542,8 @@ function ChoosePartner() {
                                 >
                                   Mark Complete
                                 </Button>
-                              </CardActions>
-                            </Card>
+                              </div>
+                            </div>
                           </Grid>
                         ))}
                       </Grid>
@@ -589,11 +559,11 @@ function ChoosePartner() {
                       <Grid container spacing={2}>
                         {partnerRequests.completed_partnerships.map((partnership) => (
                           <Grid item xs={12} md={6} key={partnership._id}>
-                            <Card elevation={3} sx={{ height: '100%' }}>
-                              <CardContent>
+                            <div className="dashboard-card" style={{ height: '100%' }}>
+                              <div className="card-content">
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
-                                  <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
+                                  <Avatar sx={{ bgcolor: '#F38181', mr: 2 }}>
                                     {partnership.partner.name.charAt(0).toUpperCase()}
                                   </Avatar>
                                   <Box>
@@ -628,8 +598,8 @@ function ChoosePartner() {
                                     Completed: {new Date(partnership.completed_at).toLocaleDateString()}
                                   </Typography>
                                 </Box>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </div>
                           </Grid>
                         ))}
                       </Grid>
@@ -651,15 +621,17 @@ function ChoosePartner() {
                   <CircularProgress />
                 </Box>
               )}
-            </Paper>
-          )}
+            </div>
+          </div>
+        )}
 
-          {/* Filters */}
-          <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Filter Partners
-            </Typography>
+        {/* Filters */}
+          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+            <div className="card-content">
+              <Typography variant="h6" gutterBottom>
+                <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#FCE38A' }} />
+                Filter Partners
+              </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
@@ -703,33 +675,38 @@ function ChoosePartner() {
                 </FormControl>
               </Grid>
             </Grid>
-          </Paper>
+            </div>
+          </div>
 
           {/* Selected Course/Homework Info */}
           {partnerData?.selected_course && (
-            <Paper elevation={1} sx={{ p: 2, mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-              <Typography variant="h6" gutterBottom>
-                <SchoolIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                {partnerData.selected_course.course_code} - {partnerData.selected_course.course_name}
-              </Typography>
-              {partnerData.selected_course.lecturer && (
-                <Typography variant="body2">
-                  Lecturer: {partnerData.selected_course.lecturer.name}
+            <div className="dashboard-card" style={{ marginBottom: '24px', backgroundColor: 'rgba(149, 225, 211, 0.3)' }}>
+              <div className="card-content">
+                <Typography variant="h6" gutterBottom>
+                  <SchoolIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
+                  {partnerData.selected_course.course_code} - {partnerData.selected_course.course_name}
                 </Typography>
-              )}
-            </Paper>
+                {partnerData.selected_course.lecturer && (
+                  <Typography variant="body2">
+                    Lecturer: {partnerData.selected_course.lecturer.name}
+                  </Typography>
+                )}
+              </div>
+            </div>
           )}
 
           {partnerData?.selected_homework && (
-            <Paper elevation={1} sx={{ p: 2, mb: 3, bgcolor: 'secondary.light', color: 'secondary.contrastText' }}>
-              <Typography variant="h6" gutterBottom>
-                <AssignmentIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                {partnerData.selected_homework.title}
-              </Typography>
-              <Typography variant="body2">
-                Due: {new Date(partnerData.selected_homework.due_date).toLocaleDateString()}
-              </Typography>
-            </Paper>
+            <div className="dashboard-card" style={{ marginBottom: '24px', backgroundColor: 'rgba(214, 247, 173, 0.3)' }}>
+              <div className="card-content">
+                <Typography variant="h6" gutterBottom>
+                  <AssignmentIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
+                  {partnerData.selected_homework.title}
+                </Typography>
+                <Typography variant="body2">
+                  Due: {new Date(partnerData.selected_homework.due_date).toLocaleDateString()}
+                </Typography>
+              </div>
+            </div>
           )}
 
           {/* Course-based Partner Management */}
@@ -754,10 +731,10 @@ function ChoosePartner() {
               <Grid container spacing={2}>
                 {partnerData?.courses?.map((course) => (
                   <Grid item xs={12} sm={6} md={4} key={course._id}>
-                    <Card className="course-card" elevation={2}>
-                      <CardContent>
+                    <div className="dashboard-card" style={{ height: '100%' }}>
+                      <div className="card-content">
                         <Box display="flex" alignItems="center" mb={2}>
-                          <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                                  <Avatar sx={{ bgcolor: '#D6F7AD', mr: 2 }}>
                             <SchoolIcon />
                           </Avatar>
                           <Box>
@@ -796,8 +773,8 @@ function ChoosePartner() {
                             Partner functionality is disabled by lecturer
                           </Typography>
                         )}
-                      </CardContent>
-                      <CardActions>
+                      </div>
+                      <div className="card-actions">
                         <Button
                           size="small"
                           startIcon={<GroupIcon />}
@@ -813,8 +790,8 @@ function ChoosePartner() {
                               : 'Choose Partner'
                           }
                         </Button>
-                      </CardActions>
-                    </Card>
+                      </div>
+                    </div>
                   </Grid>
                 ))}
               </Grid>
@@ -824,28 +801,30 @@ function ChoosePartner() {
               {/* Current Partners for Selected Course */}
               {partnerData?.current_partners && partnerData.current_partners.length > 0 && (
                 <Box mb={3}>
-                  <Paper elevation={1} sx={{ p: 2, mb: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
-                    <Typography variant="h6" gutterBottom>
-                      <CheckCircleIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                      Current Partners ({partnerData.current_partners.length}/{partnerData.selected_course?.max_partners || 1})
-                    </Typography>
-                    <Typography variant="body2">
-                      {partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1)
-                        ? 'You have reached the maximum number of partners for this course.'
-                        : 'You can add more partners for this course.'
-                      }
-                    </Typography>
-                  </Paper>
+                  <div className="dashboard-card" style={{ marginBottom: '16px', backgroundColor: 'rgba(149, 225, 211, 0.3)' }}>
+                    <div className="card-content">
+                      <Typography variant="h6" gutterBottom>
+                        <CheckCircleIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
+                        Current Partners ({partnerData.current_partners.length}/{partnerData.selected_course?.max_partners || 1})
+                      </Typography>
+                      <Typography variant="body2">
+                        {partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1)
+                          ? 'You have reached the maximum number of partners for this course.'
+                          : 'You can add more partners for this course.'
+                        }
+                      </Typography>
+                    </div>
+                  </div>
                   
                   {/* Display Current Partners */}
                   <Grid container spacing={2}>
                     {partnerData.current_partners.map((partnership) => (
                       <Grid item xs={12} md={6} key={partnership._id}>
-                        <Card elevation={3} sx={{ height: '100%' }}>
-                          <CardContent>
+                        <div className="dashboard-card" style={{ height: '100%' }}>
+                          <div className="card-content">
                             {/* Partner Information Header */}
                             <Box display="flex" alignItems="center" mb={3}>
-                              <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                              <Avatar sx={{ bgcolor: '#FCE38A', mr: 2 }}>
                                 {(partnership.student1_id?._id === partnerData?.user_id 
                                   ? (partnership.student2_id?.name || partnership.student2_id?.full_name || 'P')
                                   : (partnership.student1_id?.name || partnership.student1_id?.full_name || 'P')
@@ -909,8 +888,8 @@ function ChoosePartner() {
                                 Change Partner
                               </Button>
                             </Box>
-                          </CardContent>
-                        </Card>
+                          </div>
+                        </div>
                       </Grid>
                     ))}
                   </Grid>
@@ -934,10 +913,10 @@ function ChoosePartner() {
                 <Grid container spacing={2}>
                   {getUniquePartners().map((partner) => (
                     <Grid item xs={12} sm={6} md={4} key={partner._id}>
-                      <Card className="partner-card" elevation={2}>
-                        <CardContent>
+                      <div className="dashboard-card" style={{ height: '100%' }}>
+                        <div className="card-content">
                           <Box display="flex" alignItems="center" mb={2}>
-                            <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                            <Avatar sx={{ bgcolor: '#D6F7AD', mr: 2 }}>
                               <PersonIcon />
                             </Avatar>
                             <Box>
@@ -966,8 +945,8 @@ function ChoosePartner() {
                               variant="outlined" 
                             />
                           </Box>
-                        </CardContent>
-                        <CardActions>
+                        </div>
+                        <div className="card-actions">
                           <Button
                             size="small"
                             startIcon={<SendIcon />}
@@ -984,8 +963,8 @@ function ChoosePartner() {
                                 : 'Choose Partner'
                             }
                           </Button>
-                        </CardActions>
-                      </Card>
+                        </div>
+                      </div>
                     </Grid>
                   ))}
                 </Grid>
@@ -1007,11 +986,12 @@ function ChoosePartner() {
             </Box>
           )}
 
-          {/* Partner Statistics */}
-          <Paper elevation={1} sx={{ p: 2, mt: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Partner Statistics
-            </Typography>
+        {/* Partner Statistics */}
+        <div className="dashboard-card" style={{ marginTop: '48px' }}>
+            <div className="card-content">
+              <Typography variant="h6" gutterBottom>
+                Partner Statistics
+              </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
                 <Box textAlign="center">
@@ -1044,8 +1024,8 @@ function ChoosePartner() {
                 </Box>
               </Grid>
             </Grid>
-          </Paper>
-        </div>
+            </div>
+          </div>
 
         {/* Partner Request Dialog */}
         <Dialog 
@@ -1097,7 +1077,6 @@ function ChoosePartner() {
             </Button>
           </DialogActions>
         </Dialog>
-      </div>
     </DashboardLayout>
   );
 }
