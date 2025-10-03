@@ -6,8 +6,6 @@ import { apiService } from '../services/api';
 import { useUserSyncContext } from '../contexts/UserSyncContext';
 import {
   Box,
-  Card,
-  CardContent,
   Typography,
   Button,
   FormControl,
@@ -26,6 +24,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Schedule as ScheduleIcon
+  
 } from '@mui/icons-material';
 
 const RoleRequests = () => {
@@ -153,13 +152,29 @@ const RoleRequests = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved':
-        return 'success';
+        return {
+          backgroundColor: 'rgba(149, 225, 211, 0.3)',
+          color: '#333',
+          border: '1px solid #95E1D3'
+        };
       case 'rejected':
-        return 'error';
+        return {
+          backgroundColor: 'rgba(243, 129, 129, 0.3)',
+          color: '#333',
+          border: '1px solid #F38181'
+        };
       case 'pending':
-        return 'warning';
+        return {
+          backgroundColor: 'rgba(252, 227, 138, 0.3)',
+          color: '#333',
+          border: '1px solid #FCE38A'
+        };
       default:
-        return 'default';
+        return {
+          backgroundColor: 'rgba(149, 225, 211, 0.2)',
+          color: '#333',
+          border: '1px solid #95E1D3'
+        };
     }
   };
 
@@ -182,20 +197,20 @@ const RoleRequests = () => {
         </Typography>
 
         {/* Current Role Card */}
-        <Card sx={{ mb: 3, bgcolor: '#f8f9fa' }}>
-          <CardContent>
+        <div className="dashboard-card" style={{ marginBottom: '24px', backgroundColor: 'rgba(149, 225, 211, 0.3)' }}>
+          <div className="card-content">
             <Box display="flex" alignItems="center" gap={2}>
               {getCurrentRoleIcon()}
               <Typography variant="h6">
                 Current Role: {user?.role || 'Student'}
               </Typography>
             </Box>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* New Request Card */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
+        <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+          <div className="card-content">
             <Typography variant="h6" gutterBottom>
               Request Role Change
             </Typography>
@@ -235,6 +250,11 @@ const RoleRequests = () => {
                 onClick={handleSubmitRequest}
                 disabled={loading || !selectedRole || selectedRole === user?.role}
                 startIcon={loading ? <CircularProgress size={20} /> : null}
+                sx={{ 
+                  backgroundColor: '#95E1D3', 
+                  color: '#333',
+                  '&:hover': { backgroundColor: '#7dd3c0' }
+                }}
               >
                 {loading ? 'Submitting...' : 'Submit Request'}
               </Button>
@@ -251,12 +271,12 @@ const RoleRequests = () => {
                 {success}
               </Alert>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* My Requests Card */}
-        <Card>
-          <CardContent>
+        <div className="dashboard-card">
+          <div className="card-content">
             <Typography variant="h6" gutterBottom>
               My Role Requests
             </Typography>
@@ -283,7 +303,7 @@ const RoleRequests = () => {
                       
                       <Chip
                         label={request.status}
-                        color={getStatusColor(request.status)}
+                        sx={getStatusColor(request.status)}
                         size="small"
                       />
                     </Box>
@@ -305,8 +325,8 @@ const RoleRequests = () => {
                 ))}
               </Box>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </Box>
     </DashboardLayout>
   );

@@ -130,13 +130,21 @@
   font-weight: 500;
   cursor: pointer;
   border: none !important;
-  background: #F38181 !important;
   color: white !important;
+  background: transparent !important;
 }
 
 .rbc-event:hover {
   opacity: 0.8;
-  background: #e85a6b !important;
+}
+
+/* Remove any default event background colors */
+.rbc-event-content {
+  background: transparent !important;
+}
+
+.rbc-event-label {
+  background: transparent !important;
 }
 
 /* Today's date highlighting */

@@ -277,7 +277,7 @@ const CourseEnrollment = () => {
             <div className="dashboard-card">
               <div className="card-content">
                 <Typography variant="h6" gutterBottom display="flex" alignItems="center">
-                  <AddIcon sx={{ mr: 1, color: '#D6F7AD' }} />
+                  <AddIcon sx={{ mr: 1, color: '#2E7D32' }} />
                   Available Courses ({filteredAvailableCourses.length})
                 </Typography>
 
@@ -403,9 +403,9 @@ const CourseEnrollment = () => {
                           </IconButton>
                           <IconButton
                             edge="end"
-                            sx={{ 
-                              color: '#D6F7AD',
-                              '&:hover': { backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                            sx={{
+                              color: '#2E7D32',
+                              '&:hover': { backgroundColor: 'rgba(46, 125, 50, 0.1)' }
                             }}
                             onClick={() => handleEnroll(course._id)}
                           >
