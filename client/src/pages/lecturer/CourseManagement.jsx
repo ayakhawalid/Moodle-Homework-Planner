@@ -256,12 +256,12 @@ const CourseManagement = () => {
 
   const getSemesterChipColor = (semester) => {
     const colors = {
-      fall: 'warning',
-      spring: 'success',
-      summer: 'info',
-      winter: 'primary'
+      fall: { backgroundColor: 'rgba(252, 227, 138, 0.3)', color: '#333', border: '1px solid #FCE38A' },
+      spring: { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' },
+      summer: { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' },
+      winter: { backgroundColor: 'rgba(243, 129, 129, 0.3)', color: '#333', border: '1px solid #F38181' }
     };
-    return colors[semester] || 'default';
+    return colors[semester] || { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' };
   };
 
   if (loading) {
@@ -286,6 +286,11 @@ const CourseManagement = () => {
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
             size="large"
+            sx={{
+              backgroundColor: '#95E1D3',
+              color: '#333',
+              '&:hover': { backgroundColor: '#7dd3c0' }
+            }}
           >
             Add New Course
           </Button>
@@ -303,11 +308,11 @@ const CourseManagement = () => {
           </Alert>
         )}
 
-        <Card>
-          <CardContent>
+        <div className="dashboard-card">
+          <div className="card-content">
             {courses.length === 0 ? (
               <Box textAlign="center" py={4}>
-                <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <SchoolIcon sx={{ fontSize: 64, color: '#95E1D3', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   No courses found
                 </Typography>
@@ -318,21 +323,26 @@ const CourseManagement = () => {
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => handleOpenDialog()}
+                  sx={{
+                    backgroundColor: '#D6F7AD',
+                    color: '#333',
+                    '&:hover': { backgroundColor: '#c8f299' }
+                  }}
                 >
                   Create Your First Course
                 </Button>
               </Box>
             ) : (
-              <TableContainer component={Paper}>
+              <TableContainer sx={{ background: 'transparent' }}>
                 <Table>
                   <TableHead>
-                    <TableRow>
-                      <TableCell>Course Details</TableCell>
-                      <TableCell>Code</TableCell>
-                      <TableCell>Semester/Year</TableCell>
-                      <TableCell>Credits</TableCell>
-                      <TableCell>Students</TableCell>
-                      <TableCell>Actions</TableCell>
+                    <TableRow sx={{ backgroundColor: 'rgba(149, 225, 211, 0.2)' }}>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Course Details</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Code</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Semester/Year</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Credits</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Students</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -363,9 +373,8 @@ const CourseManagement = () => {
                             {course.semester && (
                               <Chip 
                                 label={course.semester.charAt(0).toUpperCase() + course.semester.slice(1)} 
-                                color={getSemesterChipColor(course.semester)}
                                 size="small"
-                                sx={{ mr: 1 }}
+                                sx={{ mr: 1, ...getSemesterChipColor(course.semester) }}
                               />
                             )}
                             <Typography variant="body2" color="text.secondary">
@@ -388,8 +397,8 @@ const CourseManagement = () => {
                           <Tooltip title="View Course">
                             <IconButton 
                               size="small" 
-                              color="primary"
                               onClick={() => handleViewCourse(course)}
+                              sx={{ color: '#F38181', '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' } }}
                             >
                               <ViewIcon />
                             </IconButton>
@@ -397,8 +406,8 @@ const CourseManagement = () => {
                           <Tooltip title="Edit Course">
                             <IconButton 
                               size="small" 
-                              color="primary"
                               onClick={() => handleOpenDialog(course)}
+                              sx={{ color: '#F38181', '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' } }}
                             >
                               <EditIcon />
                             </IconButton>
@@ -406,8 +415,8 @@ const CourseManagement = () => {
                           <Tooltip title="Manage Assignments">
                             <IconButton 
                               size="small" 
-                              color="secondary"
                               onClick={() => handleManageAssignments(course)}
+                              sx={{ color: '#F38181', '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' } }}
                             >
                               <AssignmentIcon />
                             </IconButton>
@@ -415,8 +424,13 @@ const CourseManagement = () => {
                           <Tooltip title="Partner Settings">
                             <IconButton 
                               size="small" 
-                              color={course.partner_settings?.enabled !== false ? "success" : "warning"}
                               onClick={() => handleOpenPartnerSettings(course)}
+                              sx={{ 
+                                color: '#F38181',
+                                '&:hover': { 
+                                  backgroundColor: 'rgba(243, 129, 129, 0.1)' 
+                                }
+                              }}
                             >
                               {course.partner_settings?.enabled !== false ? <ToggleOnIcon /> : <ToggleOffIcon />}
                             </IconButton>
@@ -424,8 +438,8 @@ const CourseManagement = () => {
                           <Tooltip title="Delete Course">
                             <IconButton 
                               size="small" 
-                              color="error"
                               onClick={() => handleDeleteCourse(course._id)}
+                              sx={{ color: '#F38181', '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' } }}
                             >
                               <DeleteIcon />
                             </IconButton>
@@ -437,8 +451,8 @@ const CourseManagement = () => {
                 </Table>
               </TableContainer>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Add/Edit Course Dialog */}
         <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
@@ -545,8 +559,21 @@ const CourseManagement = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained">
+            <Button 
+              onClick={handleCloseDialog}
+              sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmit} 
+              variant="contained"
+              sx={{ 
+                backgroundColor: '#D6F7AD',
+                color: '#333',
+                '&:hover': { backgroundColor: '#c8f299' }
+              }}
+            >
               {editingCourse ? 'Update Course' : 'Create Course'}
             </Button>
           </DialogActions>
@@ -700,13 +727,23 @@ const CourseManagement = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseViewDialog}>Close</Button>
+            <Button 
+              onClick={handleCloseViewDialog}
+              sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
+            >
+              Close
+            </Button>
             <Button 
               onClick={() => {
                 handleCloseViewDialog();
                 handleOpenDialog(viewingCourse);
               }} 
               variant="contained"
+              sx={{ 
+                backgroundColor: '#FCE38A',
+                color: '#333',
+                '&:hover': { backgroundColor: '#fbd65e' }
+              }}
             >
               Edit Course
             </Button>
@@ -784,13 +821,21 @@ const CourseManagement = () => {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleClosePartnerSettings}>
+            <Button 
+              onClick={handleClosePartnerSettings}
+              sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
+            >
               Cancel
             </Button>
             <Button 
               onClick={handleSavePartnerSettings}
               variant="contained"
               startIcon={<SettingsIcon />}
+              sx={{ 
+                backgroundColor: '#F38181',
+                color: 'white',
+                '&:hover': { backgroundColor: '#e85a6b' }
+              }}
             >
               Save Settings
             </Button>

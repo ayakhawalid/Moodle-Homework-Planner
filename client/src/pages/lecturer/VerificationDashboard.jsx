@@ -70,45 +70,17 @@ const VerificationDashboard = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching verifications...');
-      console.log('About to call apiService.studentHomework.getVerifications()');
-      
       const response = await apiService.studentHomework.getVerifications();
-      console.log('Verifications response:', response);
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
       
       if (!response || !response.data) {
         throw new Error('Invalid verifications response');
       }
       
       const verifications = response.data.verifications || [];
-      console.log('Verifications data:', verifications);
-      console.log('Verifications count:', verifications.length);
       setVerifications(verifications);
-      
-      // Debug: Log summary
-      console.log('=== VERIFICATION DASHBOARD SUMMARY ===');
-      console.log('Total verifications:', verifications.length);
-      console.log('Deadline verifications:', verifications.filter(v => v.deadline_verification_status === 'pending_review' || v.deadline_verification_status === 'unverified').length);
-      console.log('All verification statuses:', verifications.map(v => ({ 
-        id: v._id, 
-        title: v.title, 
-        course: v.course?.name, 
-        deadline_status: v.deadline_verification_status,
-        completion_status: v.completion_status
-      })));
-      console.log('Raw response data:', response.data);
-      console.log('=====================================');
       
     } catch (err) {
       console.error('Error fetching verifications:', err);
-      console.error('Error details:', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-        config: err.config?.url
-      });
       setError(`Failed to fetch verifications: ${err.message}`);
     } finally {
       setLoading(false);
@@ -190,32 +162,6 @@ const VerificationDashboard = () => {
         Review and verify student-submitted homework deadlines and grades
       </Typography>
       
-      {/* Debug Section */}
-      <Box mb={3} p={2} border="1px solid #ccc" borderRadius={1}>
-        <Typography variant="h6" gutterBottom>Debug Tools</Typography>
-        <Button 
-          variant="outlined" 
-          onClick={async () => {
-            try {
-              console.log('Testing verification endpoint...');
-              const response = await apiService.studentHomework.getVerifications();
-              console.log('Direct verification test:', response);
-              console.log('Verification data:', response.data);
-            } catch (err) {
-              console.error('Verification endpoint test failed:', err);
-            }
-          }}
-          sx={{ mr: 2 }}
-        >
-          Test Verification Endpoint
-        </Button>
-        <Button 
-          variant="outlined" 
-          onClick={fetchVerifications}
-        >
-          Refresh Verifications
-        </Button>
-      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -229,33 +175,49 @@ const VerificationDashboard = () => {
         </Alert>
       )}
 
-      <Paper elevation={1} sx={{ mb: 3 }}>
-        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
-          <Tab 
-            label={`Deadline Verifications (${deadlineVerifications.length})`} 
-            icon={<ScheduleIcon />}
-          />
-        </Tabs>
-      </Paper>
+      <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+        <div className="card-content">
+          <Tabs 
+            value={activeTab} 
+            onChange={(e, newValue) => setActiveTab(newValue)}
+            sx={{
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#666'
+              }
+            }}
+          >
+            <Tab 
+              label={`Deadline Verifications (${deadlineVerifications.length})`} 
+              icon={<ScheduleIcon sx={{ color: '#666' }} />}
+              sx={{ 
+                color: '#666',
+                '&.Mui-selected': { color: '#666' }
+              }}
+            />
+          </Tabs>
+        </div>
+      </div>
 
       {/* Deadline Verifications Tab */}
       {activeTab === 0 && (
         <Box>
           {deadlineVerifications.length === 0 ? (
-            <Paper elevation={1} sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary">
-                No pending deadline verifications
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                All deadline verifications are up to date
-              </Typography>
-            </Paper>
+            <div className="dashboard-card" style={{ textAlign: 'center', padding: '32px' }}>
+              <div className="card-content">
+                <Typography variant="h6" color="text.secondary">
+                  No pending deadline verifications
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  All deadline verifications are up to date
+                </Typography>
+              </div>
+            </div>
           ) : (
             <Grid container spacing={3}>
               {deadlineVerifications.map((verification) => (
                 <Grid item xs={12} md={6} lg={4} key={verification._id}>
-                  <Card elevation={3}>
-                    <CardContent>
+                  <div className="dashboard-card">
+                    <div className="card-content">
                       <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                         <Typography variant="h6" component="h2">
                           {verification.title}
@@ -264,21 +226,21 @@ const VerificationDashboard = () => {
                       </Box>
 
                       <Box display="flex" alignItems="center" mb={1}>
-                        <SchoolIcon sx={{ mr: 1, fontSize: 16 }} />
+                        <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
                         <Typography variant="body2" color="text.secondary">
                           {verification.course.name} ({verification.course.code})
                         </Typography>
                       </Box>
 
                       <Box display="flex" alignItems="center" mb={1}>
-                        <PersonIcon sx={{ mr: 1, fontSize: 16 }} />
+                        <PersonIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
                         <Typography variant="body2" color="text.secondary">
                           {verification.uploaded_by.name} ({verification.uploaded_by.role})
                         </Typography>
                       </Box>
 
                       <Box display="flex" alignItems="center" mb={2}>
-                        <ScheduleIcon sx={{ mr: 1, fontSize: 16 }} />
+                        <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#FCE38A' }} />
                         <Typography variant="body2" color="text.secondary">
                           Claimed Deadline: {new Date(verification.claimed_deadline).toLocaleString()}
                         </Typography>
@@ -290,24 +252,32 @@ const VerificationDashboard = () => {
                         <Button
                           size="small"
                           variant="contained"
-                          color="success"
                           startIcon={<CheckCircleIcon />}
                           onClick={() => openVerifyDialog(verification)}
+                          sx={{ 
+                            backgroundColor: '#95E1D3',
+                            color: '#333',
+                            '&:hover': { backgroundColor: '#7dd3c0' }
+                          }}
                         >
                           Verify
                         </Button>
                         <Button
                           size="small"
                           variant="outlined"
-                          color="error"
                           startIcon={<CancelIcon />}
                           onClick={() => openVerifyDialog(verification)}
+                          sx={{ 
+                            borderColor: '#F38181',
+                            color: '#F38181',
+                            '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                          }}
                         >
                           Reject
                         </Button>
                       </Box>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </Grid>
               ))}
             </Grid>
@@ -362,11 +332,24 @@ const VerificationDashboard = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setVerifyDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={() => setVerifyDialogOpen(false)}
+            sx={{ 
+              color: '#95E1D3',
+              '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleVerify}
             variant="contained"
             disabled={submitting}
+            sx={{ 
+              backgroundColor: '#D6F7AD',
+              color: '#333',
+              '&:hover': { backgroundColor: '#c8f299' }
+            }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Update Verification'}
           </Button>

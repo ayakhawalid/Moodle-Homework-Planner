@@ -163,10 +163,61 @@ const Auth0Login = () => {
                   helperText="3-30 characters: letters, numbers, underscore, dot"
                   inputProps={{ pattern: '^[a-z0-9_.]{3,30}$' }}
                 />
-                <Button variant={selectedRole === 'student' ? 'contained' : 'outlined'} startIcon={<StudentIcon />} onClick={() => setSelectedRole('student')}>I'm a Student</Button>
-                <Button variant={selectedRole === 'lecturer' ? 'contained' : 'outlined'} startIcon={<LecturerIcon />} onClick={() => setSelectedRole('lecturer')}>I'm a Lecturer</Button>
-                <Button variant={selectedRole === 'admin' ? 'contained' : 'outlined'} onClick={() => setSelectedRole('admin')}>I'm an Admin (request)</Button>
-                <Button variant="contained" onClick={handleSignupWithRole}>Continue</Button>
+                <Button 
+                  variant="contained"
+                  startIcon={<StudentIcon />} 
+                  onClick={() => setSelectedRole('student')}
+                  sx={{
+                    backgroundColor: selectedRole === 'student' ? '#95E1D3' : 'rgba(149, 225, 211, 0.3)',
+                    color: '#333',
+                    border: selectedRole === 'student' ? '2px solid #95E1D3' : '1px solid #95E1D3',
+                    '&:hover': { 
+                      backgroundColor: selectedRole === 'student' ? '#7dd3c0' : 'rgba(149, 225, 211, 0.5)' 
+                    }
+                  }}
+                >
+                  I'm a Student
+                </Button>
+                <Button 
+                  variant="contained"
+                  startIcon={<LecturerIcon />} 
+                  onClick={() => setSelectedRole('lecturer')}
+                  sx={{
+                    backgroundColor: selectedRole === 'lecturer' ? '#D6F7AD' : 'rgba(214, 247, 173, 0.3)',
+                    color: '#333',
+                    border: selectedRole === 'lecturer' ? '2px solid #D6F7AD' : '1px solid #D6F7AD',
+                    '&:hover': { 
+                      backgroundColor: selectedRole === 'lecturer' ? '#c8f299' : 'rgba(214, 247, 173, 0.5)' 
+                    }
+                  }}
+                >
+                  I'm a Lecturer
+                </Button>
+                <Button 
+                  variant="contained"
+                  onClick={() => setSelectedRole('admin')}
+                  sx={{
+                    backgroundColor: selectedRole === 'admin' ? '#FCE38A' : 'rgba(252, 227, 138, 0.3)',
+                    color: '#333',
+                    border: selectedRole === 'admin' ? '2px solid #FCE38A' : '1px solid #FCE38A',
+                    '&:hover': { 
+                      backgroundColor: selectedRole === 'admin' ? '#fbd65e' : 'rgba(252, 227, 138, 0.5)' 
+                    }
+                  }}
+                >
+                  I'm an Admin (request)
+                </Button>
+                <Button 
+                  variant="contained" 
+                  onClick={handleSignupWithRole}
+                  sx={{
+                    backgroundColor: '#F38181',
+                    color: 'white',
+                    '&:hover': { backgroundColor: '#e85a6b' }
+                  }}
+                >
+                  Continue
+                </Button>
               </Box>
             </>
           ) : (

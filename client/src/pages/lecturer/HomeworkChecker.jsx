@@ -76,24 +76,20 @@ function HomeworkChecker() {
 
   return (
     <DashboardLayout userRole="lecturer">
-      <div className="welcome-section">
-        <h1 className="welcome-title">Homework Checker ✅</h1>
-        <p className="welcome-subtitle">
-          Review, grade, and provide feedback on student homework submissions
-          {courseName && (
-            <span style={{ display: 'block', marginTop: '8px', fontSize: '16px', fontWeight: 'bold', color: '#1976d2' }}>
-              📚 Currently viewing: {courseName}
-            </span>
-          )}
-        </p>
-      </div>
+      {courseName && (
+        <div style={{ marginBottom: '20px', padding: '10px', background: 'rgba(149, 225, 211, 0.3)', borderRadius: '8px', border: '1px solid #95E1D3' }}>
+          <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>
+            📚 Currently viewing: {courseName}
+          </span>
+        </div>
+      )}
 
             <div className="dashboard-grid">
         {/* Filters */}
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon primary">
-              <AssignmentIcon />
+              <AssignmentIcon style={{ color: '#95E1D3' }} />
             </div>
             <div>
               <h3 className="card-title">Filters</h3>
@@ -154,7 +150,7 @@ function HomeworkChecker() {
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon primary">
-              <AssignmentIcon />
+              <AssignmentIcon style={{ color: '#D6F7AD' }} />
             </div>
             <div>
               <h3 className="card-title">Pending Submissions</h3>
@@ -210,7 +206,7 @@ function HomeworkChecker() {
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon secondary">
-              <GradingIcon />
+              <GradingIcon style={{ color: '#FCE38A' }} />
             </div>
             <div>
               <h3 className="card-title">Grading Progress</h3>
@@ -253,7 +249,7 @@ function HomeworkChecker() {
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon accent">
-              <CommentIcon />
+              <CommentIcon style={{ color: '#F38181' }} />
             </div>
             <div>
               <h3 className="card-title">Feedback Tools</h3>
@@ -276,7 +272,7 @@ function HomeworkChecker() {
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon primary">
-              <AssessmentIcon />
+              <AssessmentIcon style={{ color: '#95E1D3' }} />
             </div>
             <div>
               <h3 className="card-title">Grade Analytics</h3>
