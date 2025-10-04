@@ -83,15 +83,6 @@ const CourseWorkloadOverview = () => {
     }
   }, [isAuthenticated, selectedTimeframe]);
 
-  // Debug: Monitor allHomework state changes
-  useEffect(() => {
-    console.log('allHomework state changed:', allHomework.length, 'items');
-    console.log('allHomework details:', allHomework.map(hw => ({
-      id: hw._id,
-      title: hw.title,
-      uploader_role: hw.uploader_role
-    })));
-  }, [allHomework]);
 
   const fetchData = async () => {
     try {
@@ -194,55 +185,11 @@ const CourseWorkloadOverview = () => {
           grade_verification_status: hw.grade_verification_status
         })));
         
-        // Debug: Check homework by uploader role
         const lecturerCreatedHomework = lecturerHomework.filter(hw => hw.uploader_role === 'lecturer');
         const studentCreatedHomework = lecturerHomework.filter(hw => hw.uploader_role === 'student');
-        console.log('Lecturer-created homework count:', lecturerCreatedHomework.length);
-        console.log('Student-created homework count:', studentCreatedHomework.length);
-        console.log('Lecturer-created homework:', lecturerCreatedHomework.map(hw => ({ id: hw._id, title: hw.title })));
-        console.log('Student-created homework:', studentCreatedHomework.map(hw => ({ id: hw._id, title: hw.title, deadline_status: hw.deadline_verification_status })));
         
-        // Debug: Check courses data structure
-        console.log('Courses data:', courses.map(c => ({
-          id: c._id,
-          name: c.course_name,
-          id_type: typeof c._id,
-          id_string: c._id ? c._id.toString() : 'null'
-        })));
         
-        // Debug: Check if homework is being filtered out somewhere
-        console.log('=== DETAILED HOMEWORK ANALYSIS ===');
-        lecturerHomework.forEach((hw, index) => {
-          console.log(`Homework ${index + 1}:`, {
-            id: hw._id,
-            title: hw.title,
-            uploader_role: hw.uploader_role,
-            uploaded_by: hw.uploaded_by,
-            course_id: hw.course_id,
-            course: hw.course,
-            completion_status: hw.completion_status,
-            deadline_verification_status: hw.deadline_verification_status,
-            claimed_deadline: hw.claimed_deadline
-          });
-        });
-        console.log('================================');
-        
-        console.log('Setting allHomework state with:', lecturerHomework.length, 'items');
         setAllHomework(lecturerHomework);
-        
-        // Debug: Verify state was set correctly
-        setTimeout(() => {
-          console.log('State after setAllHomework:', allHomework.length);
-        }, 100);
-      
-      // Debug: Log summary
-      console.log('=== WORKLOAD OVERVIEW SUMMARY ===');
-      console.log('Lecturer ID:', lecturerId);
-      console.log('Active courses count:', lecturerCourses.length);
-      console.log('Total homework count:', lecturerHomework.length);
-      console.log('Courses:', lecturerCourses.map(c => ({ id: c._id, name: c.course_name, code: c.course_code })));
-      console.log('Homework:', lecturerHomework.map(h => ({ id: h._id, title: h.title, course: h.course._id })));
-      console.log('================================');
 
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -468,174 +415,6 @@ const CourseWorkloadOverview = () => {
         </Alert>
       )}
 
-      {/* Debug Section */}
-      <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-        <Typography variant="h6" gutterBottom>Debug Tools</Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          Total homework loaded: <strong>{allHomework.length}</strong> items
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          Courses loaded: <strong>{courses.length}</strong> courses
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          First course ID: <strong>{courses[0]?._id}</strong> (type: {typeof courses[0]?._id})
-        </Typography>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          First homework course ID: <strong>{allHomework[0]?.course_id}</strong> (type: {typeof allHomework[0]?.course_id})
-        </Typography>
-        <Box display="flex" gap={2}>
-          <Button 
-            variant="outlined" 
-            onClick={async () => {
-              try {
-                console.log('Testing server connectivity...');
-                const healthResponse = await fetch('http://localhost:5000/api/health');
-                console.log('Health check response:', healthResponse.status, healthResponse.statusText);
-                
-                // Test with API service to check token
-                console.log('Testing API service with token...');
-                try {
-                  const testResponse = await apiService.user.getProfile();
-                  console.log('API test successful:', testResponse);
-                } catch (apiError) {
-                  console.error('API test failed:', apiError);
-                  console.error('API error details:', {
-                    message: apiError.message,
-                    status: apiError.response?.status,
-                    data: apiError.response?.data
-                  });
-                }
-                
-                const response = await apiService.testData.getStatus();
-                console.log('=== DEBUG STATUS ===');
-                console.log('User:', response.data.user);
-                console.log('Courses:', response.data.courses);
-                console.log('Homework:', response.data.homework);
-                console.log('==================');
-                
-                // Also test the specific homework endpoints
-                try {
-                  console.log('Testing lecturer-homework endpoint...');
-                  const lecturerHomeworkResponse = await apiService.studentHomework.getLecturerHomework();
-                  console.log('Lecturer homework response:', lecturerHomeworkResponse);
-                  console.log('Lecturer homework data:', lecturerHomeworkResponse.data);
-                } catch (homeworkError) {
-                  console.error('Lecturer homework endpoint failed:', homeworkError);
-                }
-                
-                try {
-                  console.log('Testing student-homework endpoint (should fail for lecturer)...');
-                  const studentHomeworkResponse = await apiService.studentHomework.getHomework();
-                  console.log('Student homework response:', studentHomeworkResponse);
-                } catch (homeworkError) {
-                  console.log('Student homework endpoint failed as expected for lecturer:', homeworkError.message);
-                }
-                
-                // Show detailed homework info
-                if (response.data.homework.list && response.data.homework.list.length > 0) {
-                  const homework = response.data.homework.list[0];
-                  console.log('=== FIRST HOMEWORK DETAILS ===');
-                  console.log('Homework ID:', homework._id);
-                  console.log('Title:', homework.title);
-                  console.log('Course ID:', homework.course);
-                  console.log('Uploaded by:', homework.uploaded_by);
-                  console.log('Uploader role:', homework.uploader_role);
-                  console.log('Deadline status:', homework.deadline_status);
-                  console.log('Grade status:', homework.grade_status);
-                  console.log('Completion status:', homework.completion_status);
-                  console.log('=============================');
-                }
-                
-                alert(`Found ${response.data.courses.total} courses and ${response.data.homework.total} homework items. Check console for details.`);
-              } catch (err) {
-                console.error('Debug error:', err);
-                console.error('Error details:', {
-                  message: err.message,
-                  code: err.code,
-                  response: err.response?.data,
-                  status: err.response?.status
-                });
-                alert(`Debug failed: ${err.message}\n\nCheck console for detailed error information.`);
-              }
-            }}
-          >
-            Check Data Status
-          </Button>
-          <Button 
-            variant="outlined" 
-            onClick={async () => {
-              try {
-                const response = await apiService.testData.createSample();
-                console.log('Sample created:', response.data);
-                alert('Sample homework created! Refresh the page to see it.');
-                fetchData(); // Refresh data
-              } catch (err) {
-                console.error('Create sample error:', err);
-                alert('Create sample failed: ' + err.message);
-              }
-            }}
-          >
-            Create Sample Data
-          </Button>
-          <Button 
-            variant="outlined" 
-            onClick={() => {
-              console.log('=== MANUAL FILTERING TEST ===');
-              if (courses.length > 0 && allHomework.length > 0) {
-                const testCourse = courses[0];
-                const testCourseIdStr = testCourse._id.toString();
-                console.log('Test course:', testCourse.course_name, 'ID:', testCourseIdStr);
-                
-                const matchingHomework = allHomework.filter(hw => {
-                  const hwCourseId = hw.course_id || (hw.course && hw.course._id);
-                  const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
-                  const match = hwCourseIdStr === testCourseIdStr;
-                  console.log(`Homework "${hw.title}": course_id=${hwCourseIdStr}, match=${match}`);
-                  return match;
-                });
-                
-                console.log(`Found ${matchingHomework.length} matching homework for ${testCourse.course_name}`);
-                console.log('Matching homework:', matchingHomework.map(hw => hw.title));
-                alert(`Found ${matchingHomework.length} matching homework for ${testCourse.course_name}. Check console for details.`);
-              } else {
-                console.log('No courses or homework available for testing');
-                alert('No courses or homework available for testing');
-              }
-            }}
-          >
-            Test Filtering
-          </Button>
-          <Button 
-            variant="outlined" 
-            onClick={() => {
-              console.log('=== TEST FILTERING FOR COMPUTER GRAPHICS ===');
-              // Find Computer Graphics course (which has homework)
-              const computerGraphicsCourse = courses.find(c => c.course_name === 'Computer Graphics');
-              if (computerGraphicsCourse && allHomework.length > 0) {
-                const courseIdStr = computerGraphicsCourse._id.toString();
-                console.log('Computer Graphics course ID:', courseIdStr);
-                
-                const matchingHomework = allHomework.filter(hw => {
-                  const hwCourseId = hw.course_id || (hw.course && hw.course._id);
-                  const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
-                  const match = hwCourseIdStr === courseIdStr;
-                  console.log(`Homework "${hw.title}": course_id=${hwCourseIdStr}, match=${match}`);
-                  return match;
-                });
-                
-                console.log(`Found ${matchingHomework.length} matching homework for Computer Graphics`);
-                console.log('Matching homework:', matchingHomework.map(hw => hw.title));
-                alert(`Found ${matchingHomework.length} matching homework for Computer Graphics. Check console for details.`);
-              } else {
-                console.log('Computer Graphics course not found or no homework available');
-                alert('Computer Graphics course not found or no homework available');
-              }
-            }}
-          >
-            Test Computer Graphics
-          </Button>
-        </Box>
-      </Box>
 
       {/* Timeframe Selector */}
       <Box sx={{ mb: 3 }}>
@@ -656,10 +435,10 @@ const CourseWorkloadOverview = () => {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <div className="dashboard-card">
+            <div className="card-content">
               <Box display="flex" alignItems="center">
-                <SchoolIcon color="primary" sx={{ mr: 2 }} />
+                <SchoolIcon sx={{ mr: 2, color: '#95E1D3' }} />
                 <Box>
                   <Typography variant="h4">{courses?.length || 0}</Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -667,14 +446,14 @@ const CourseWorkloadOverview = () => {
                   </Typography>
                 </Box>
               </Box>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <div className="dashboard-card">
+            <div className="card-content">
               <Box display="flex" alignItems="center">
-                <AssignmentIcon color="secondary" sx={{ mr: 2 }} />
+                <AssignmentIcon sx={{ mr: 2, color: '#D6F7AD' }} />
                 <Box>
                   <Typography variant="h4">{allHomework?.length || 0}</Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -682,14 +461,14 @@ const CourseWorkloadOverview = () => {
                   </Typography>
                 </Box>
               </Box>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <div className="dashboard-card">
+            <div className="card-content">
               <Box display="flex" alignItems="center">
-                <ScheduleIcon color="warning" sx={{ mr: 2 }} />
+                <ScheduleIcon sx={{ mr: 2, color: '#FCE38A' }} />
                 <Box>
                   <Typography variant="h4">
                     {workloadData?.reduce((sum, course) => sum + (course?.upcomingDeadlines || 0), 0) || 0}
@@ -699,14 +478,14 @@ const CourseWorkloadOverview = () => {
                   </Typography>
                 </Box>
               </Box>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+          <div className="dashboard-card">
+            <div className="card-content">
               <Box display="flex" alignItems="center">
-                <WarningIcon color="error" sx={{ mr: 2 }} />
+                <WarningIcon sx={{ mr: 2, color: '#F38181' }} />
                 <Box>
                   <Typography variant="h4">
                     {workloadData?.reduce((sum, course) => sum + (course?.overdue || 0), 0) || 0}
@@ -716,8 +495,8 @@ const CourseWorkloadOverview = () => {
                   </Typography>
                 </Box>
               </Box>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Grid>
       </Grid>
 
@@ -725,8 +504,8 @@ const CourseWorkloadOverview = () => {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {/* Course Workload Comparison */}
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
+          <div className="dashboard-card">
+            <div className="card-content">
               <Typography variant="h6" gutterBottom>
                 Assignment Distribution by Course
                 {workloadData.length > 8 && (
@@ -765,20 +544,20 @@ const CourseWorkloadOverview = () => {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="totalHomework" fill="#8884d8" name="Total Assignments" />
-                    <Bar dataKey="upcomingDeadlines" fill="#82ca9d" name="Upcoming Deadlines" />
-                    <Bar dataKey="overdue" fill="#ff7300" name="Overdue" />
+                    <Bar dataKey="totalHomework" fill="#7DD3C0" name="Total Assignments" />
+                    <Bar dataKey="upcomingDeadlines" fill="#C8F299" name="Upcoming Deadlines" />
+                    <Bar dataKey="overdue" fill="#E85A6B" name="Overdue" />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Grid>
 
         {/* Timeline */}
         <Grid item xs={12}>
-          <Card>
-            <CardContent>
+          <div className="dashboard-card">
+            <div className="card-content">
               <Typography variant="h6" gutterBottom>
                 Assignment Timeline (Next {selectedTimeframe} Days)
               </Typography>
@@ -806,13 +585,13 @@ const CourseWorkloadOverview = () => {
                       labelFormatter={(label) => `Date: ${label}`}
                     />
                     <Legend />
-                    <Line type="monotone" dataKey="assignments" stroke="#8884d8" name="Assignments Due" strokeWidth={3} />
-                    <Line type="monotone" dataKey="courses" stroke="#82ca9d" name="Courses Affected" strokeWidth={3} />
+                    <Line type="monotone" dataKey="assignments" stroke="#7DD3C0" name="Assignments Due" strokeWidth={3} />
+                    <Line type="monotone" dataKey="courses" stroke="#E85A6B" name="Courses Affected" strokeWidth={3} />
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </Grid>
       </Grid>
 
@@ -824,8 +603,8 @@ const CourseWorkloadOverview = () => {
       <Grid container spacing={3}>
         {workloadData.map((course) => (
           <Grid item xs={12} md={6} lg={4} key={course.courseId}>
-            <Card elevation={3}>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Typography variant="h6" gutterBottom>
                   {course.courseName}
                 </Typography>
@@ -836,19 +615,31 @@ const CourseWorkloadOverview = () => {
                 <Box display="flex" gap={1} mb={2} flexWrap="wrap">
                   <Chip
                     label={`${course.totalHomework} Total`}
-                    color="primary"
                     size="small"
+                    sx={{ 
+                      backgroundColor: 'rgba(149, 225, 211, 0.3)', 
+                      color: '#333',
+                      border: '1px solid #95E1D3'
+                    }}
                   />
                   <Chip
                     label={`${course.upcomingDeadlines} Upcoming`}
-                    color="warning"
                     size="small"
+                    sx={{ 
+                      backgroundColor: 'rgba(214, 247, 173, 0.3)', 
+                      color: '#333',
+                      border: '1px solid #D6F7AD'
+                    }}
                   />
                   {course.overdue > 0 && (
                     <Chip
                       label={`${course.overdue} Overdue`}
-                      color="error"
                       size="small"
+                      sx={{ 
+                        backgroundColor: 'rgba(243, 129, 129, 0.3)', 
+                        color: '#333',
+                        border: '1px solid #F38181'
+                      }}
                     />
                   )}
                 </Box>
@@ -976,8 +767,8 @@ const CourseWorkloadOverview = () => {
                     </List>
                   </AccordionDetails>
                 </Accordion>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
         ))}
       </Grid>

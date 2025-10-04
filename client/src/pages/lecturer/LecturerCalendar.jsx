@@ -37,62 +37,54 @@ const LecturerCalendar = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch homework from both traditional and student homework systems
-      const [traditionalResponse, studentResponse] = await Promise.all([
-        apiService.homework.getAll(),
-        apiService.studentHomework.getLecturerHomework()
-      ]);
-
-      console.log('Traditional response:', traditionalResponse);
-      console.log('Student response:', studentResponse);
-
-      // Ensure we have arrays to work with
-      const traditionalData = Array.isArray(traditionalResponse.data) ? traditionalResponse.data : [];
-      const studentData = Array.isArray(studentResponse.data) ? studentResponse.data : [];
-
-      // Combine both types of homework
-      const traditionalHomework = traditionalData.map(hw => ({
+      // Use the same approach as student calendar - get combined data from lecturer endpoint
+      const response = await apiService.studentHomework.getLecturerHomework();
+      
+      console.log('Lecturer homework response:', response);
+      console.log('Response data:', response.data);
+      
+      // Handle different response structures
+      let homeworkData = [];
+      if (Array.isArray(response.data)) {
+        homeworkData = response.data;
+      } else if (response.data && Array.isArray(response.data.homework)) {
+        homeworkData = response.data.homework;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        homeworkData = response.data.data;
+      }
+      
+      console.log('Processed homework data:', homeworkData);
+      console.log('Homework data length:', homeworkData.length);
+      
+      // Convert to calendar format (same as student calendar)
+      const calendarHomework = Array.isArray(homeworkData) ? homeworkData.map(hw => ({
         _id: hw._id,
-        title: hw.title,
+        title: hw.uploader_role === 'lecturer' ? `[LECTURER] ${hw.title}` : `[STUDENT] ${hw.title}`,
         description: hw.description,
-        due_date: hw.due_date,
+        due_date: hw.claimed_deadline || hw.verified_deadline,
         course: {
-          _id: hw.course_id._id,
-          name: hw.course_id.course_name,
-          code: hw.course_id.course_code
+          _id: hw.course_id?._id || hw.course?._id,
+          name: hw.course_id?.course_name || hw.course?.name,
+          code: hw.course_id?.course_code || hw.course?.code
         },
-        status: 'traditional',
-        completion_status: 'not_started',
-        deadline_verification_status: 'verified',
-        uploader_role: 'lecturer'
-      }));
-
-      const studentHomework = studentData.map(hw => ({
-        _id: hw._id,
-        title: hw.title,
-        description: hw.description,
-        due_date: hw.claimed_deadline,
-        course: {
-          _id: hw.course_id._id,
-          name: hw.course_id.course_name,
-          code: hw.course_id.course_code
-        },
-        status: 'student_created',
         completion_status: hw.completion_status,
         deadline_verification_status: hw.deadline_verification_status,
         claimed_grade: hw.claimed_grade,
-        uploader_role: hw.uploader_role
-      }));
+        uploader_role: hw.uploader_role,
+        status: hw.completion_status === 'completed' ? 'graded' : 'pending'
+      })) : [];
 
-      const allHomework = [...traditionalHomework, ...studentHomework];
-      setHomework(allHomework);
+      setHomework(calendarHomework);
 
-      console.log('Lecturer calendar - Total homework:', allHomework.length);
-      console.log('Traditional homework:', traditionalHomework.length);
-      console.log('Student homework:', studentHomework.length);
+      console.log('Lecturer calendar - Total homework:', calendarHomework.length);
+      console.log('Lecturer-created homework:', calendarHomework.filter(hw => hw.uploader_role === 'lecturer').length);
+      console.log('Student-created homework:', calendarHomework.filter(hw => hw.uploader_role === 'student').length);
+      console.log('All homework data:', calendarHomework);
 
     } catch (err) {
       console.error('Error fetching lecturer homework:', err);
+      console.error('Error details:', err.response?.data);
+      console.error('Error status:', err.response?.status);
       setError(err.response?.data?.error || 'Failed to fetch homework data');
     } finally {
       setLoading(false);
@@ -121,8 +113,8 @@ const LecturerCalendar = () => {
 
   // Calculate statistics
   const totalHomework = homework.length;
-  const traditionalHomework = homework.filter(hw => hw.status === 'traditional').length;
-  const studentHomework = homework.filter(hw => hw.status === 'student_created').length;
+  const traditionalHomework = homework.filter(hw => hw.uploader_role === 'lecturer').length;
+  const studentHomework = homework.filter(hw => hw.uploader_role === 'student').length;
   const pendingVerifications = homework.filter(hw => 
     hw.deadline_verification_status === 'pending_review' || 
     hw.deadline_verification_status === 'unverified'
@@ -141,10 +133,10 @@ const LecturerCalendar = () => {
         {/* Statistics Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Box display="flex" alignItems="center">
-                  <AssignmentIcon color="primary" sx={{ mr: 2 }} />
+                  <AssignmentIcon sx={{ mr: 2, color: '#95E1D3' }} />
                   <Box>
                     <Typography variant="h4">
                       {totalHomework}
@@ -154,15 +146,15 @@ const LecturerCalendar = () => {
                     </Typography>
                   </Box>
                 </Box>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
           
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Box display="flex" alignItems="center">
-                  <SchoolIcon color="secondary" sx={{ mr: 2 }} />
+                  <SchoolIcon sx={{ mr: 2, color: '#D6F7AD' }} />
                   <Box>
                     <Typography variant="h4">
                       {traditionalHomework}
@@ -172,15 +164,15 @@ const LecturerCalendar = () => {
                     </Typography>
                   </Box>
                 </Box>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Box display="flex" alignItems="center">
-                  <AssignmentIcon color="info" sx={{ mr: 2 }} />
+                  <AssignmentIcon sx={{ mr: 2, color: '#FCE38A' }} />
                   <Box>
                     <Typography variant="h4">
                       {studentHomework}
@@ -190,15 +182,15 @@ const LecturerCalendar = () => {
                     </Typography>
                   </Box>
                 </Box>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Box display="flex" alignItems="center">
-                  <ScheduleIcon color="warning" sx={{ mr: 2 }} />
+                  <ScheduleIcon sx={{ mr: 2, color: '#F38181' }} />
                   <Box>
                     <Typography variant="h4">
                       {pendingVerifications}
@@ -208,8 +200,8 @@ const LecturerCalendar = () => {
                     </Typography>
                   </Box>
                 </Box>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
         </Grid>
 

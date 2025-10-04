@@ -128,8 +128,8 @@ function AddHomework() {
     <DashboardLayout userRole="lecturer">
       <Box sx={{ maxWidth: 800, margin: '0 auto', padding: 2 }}>
         {/* Header */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
+        <div className="dashboard-card" style={{ marginBottom: '24px' }}>
+          <div className="card-content">
             <Box display="flex" alignItems="center" gap={2} mb={2}>
               <AssignmentIcon sx={{ fontSize: 32, color: '#95E1D3' }} />
               <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: '#333' }}>
@@ -139,8 +139,8 @@ function AddHomework() {
             <Typography variant="body1" color="textSecondary">
               Create a new homework assignment for your students
             </Typography>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Success Message */}
         {success && (
@@ -157,8 +157,8 @@ function AddHomework() {
         )}
 
         {/* Form */}
-        <Card>
-          <CardContent>
+        <div className="dashboard-card">
+          <div className="card-content">
             <form onSubmit={handleSubmit}>
               <Grid container spacing={3}>
                 {/* Course Selection */}
@@ -297,16 +297,15 @@ function AddHomework() {
               {/* Action Buttons */}
               <Box display="flex" gap={2} justifyContent="flex-end">
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   onClick={handleCancel}
                   startIcon={<CancelIcon />}
                   disabled={submitting}
                   sx={{
-                    borderColor: '#F38181',
-                    color: '#F38181',
+                    backgroundColor: '#F38181',
+                    color: 'white',
                     '&:hover': {
-                      backgroundColor: '#FFEBEE',
-                      borderColor: '#E06B6B'
+                      backgroundColor: '#e85a6b'
                     }
                   }}
                 >
@@ -318,9 +317,10 @@ function AddHomework() {
                   disabled={submitting}
                   startIcon={submitting ? <CircularProgress size={20} /> : <SaveIcon />}
                   sx={{
-                    backgroundColor: '#95E1D3',
+                    backgroundColor: '#FCE38A',
+                    color: '#333',
                     '&:hover': {
-                      backgroundColor: '#7DD3C0'
+                      backgroundColor: '#fbd65e'
                     }
                   }}
                 >
@@ -328,8 +328,8 @@ function AddHomework() {
                 </Button>
               </Box>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </Box>
     </DashboardLayout>
   );

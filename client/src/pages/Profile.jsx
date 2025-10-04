@@ -197,12 +197,13 @@ function Profile() {
               {saving ? <CircularProgress size={20} /> : 'Save Changes'}
             </Button>
             <Button 
-              variant="text" 
+              variant="contained" 
               onClick={load} 
               disabled={loading}
               sx={{ 
-                color: '#FCE38A',
-                '&:hover': { backgroundColor: 'rgba(252, 227, 138, 0.1)' }
+                backgroundColor: '#FCE38A',
+                color: '#333',
+                '&:hover': { backgroundColor: '#fbd65e' }
               }}
             >
               Reset
@@ -294,16 +295,17 @@ function Profile() {
     </Box>
   );
 
-  if (loading) {
+  // Wait for user data to be loaded before determining role
+  if (loading || !user) {
     return (
-      <DashboardLayout userRole={user?.role || 'student'}>
+      <DashboardLayout userRole="student">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh"><CircularProgress /></Box>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout userRole={user?.role || 'student'}>
+    <DashboardLayout userRole={user.role}>
       {content}
     </DashboardLayout>
   );
