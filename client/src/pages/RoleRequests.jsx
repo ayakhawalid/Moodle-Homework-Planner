@@ -197,7 +197,7 @@ const RoleRequests = () => {
         </Typography>
 
         {/* Current Role Card */}
-        <div className="dashboard-card" style={{ marginBottom: '24px', backgroundColor: 'rgba(149, 225, 211, 0.3)' }}>
+        <div className="dashboard-card" style={{ marginBottom: '24px' }}>
           <div className="card-content">
             <Box display="flex" alignItems="center" gap={2}>
               {getCurrentRoleIcon()}

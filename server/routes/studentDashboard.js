@@ -1279,6 +1279,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
     const auth0Id = req.userInfo.auth0_id;
     const { course_id, homework_id } = req.query;
     
+    
     // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
     if (!user) {
@@ -1304,7 +1305,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
     if (course_id) {
       // Get potential partners for specific course
       selectedCourse = await Course.findById(course_id)
-        .populate('students', 'name email full_name')
+        .populate('students', 'name email full_name picture')
         .populate('lecturer_id', 'name email full_name');
       
       if (selectedCourse) {
@@ -1322,10 +1323,10 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
             { student1_id: studentId },
             { student2_id: studentId }
           ],
-          partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+          partnership_status: { $in: ['pending', 'accepted', 'active'] }
         })
-        .populate('student1_id', 'name email full_name')
-        .populate('student2_id', 'name email full_name')
+        .populate('student1_id', 'name email full_name picture')
+        .populate('student2_id', 'name email full_name picture')
         .populate('homework_id', 'title course_id')
         .populate({
           path: 'homework_id',
@@ -1365,7 +1366,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
                 { student1_id: student._id },
                 { student2_id: student._id }
               ],
-              partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+              partnership_status: { $in: ['pending', 'accepted', 'active'] }
             }).populate('homework_id', 'course_id');
             
             const coursePartners = studentPartners.filter(partner => 
@@ -1406,7 +1407,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           }
           
           const populatedCourse = await Course.findById(course._id)
-            .populate('students', 'name email full_name');
+            .populate('students', 'name email full_name picture');
           
           // Get current partners for this student in this course (exclude completed partnerships)
           const existingPartners = await Partner.find({
@@ -1414,10 +1415,10 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
               { student1_id: studentId },
               { student2_id: studentId }
             ],
-            partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+            partnership_status: { $in: ['pending', 'accepted', 'active'] }
           })
-          .populate('student1_id', 'name email full_name')
-          .populate('student2_id', 'name email full_name')
+          .populate('student1_id', 'name email full_name picture')
+          .populate('student2_id', 'name email full_name picture')
           .populate('homework_id', 'title course_id')
           .populate({
             path: 'homework_id',
@@ -1454,7 +1455,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
                   { student1_id: student._id },
                   { student2_id: student._id }
                 ],
-                partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] }
+                partnership_status: { $in: ['pending', 'accepted', 'active'] }
               }).populate('homework_id', 'course_id');
               
               const studentCoursePartners = studentPartners.filter(partner => 
@@ -1488,15 +1489,85 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
       potentialPartners = coursesWithPartners.flatMap(course => course.potential_partners);
     }
     
-    // Get homework assignments for the selected course
+    // Get homework assignments for the selected course (from both traditional and student-created homework)
     let homeworkAssignments = [];
     if (course_id) {
-      homeworkAssignments = await Homework.find({
-        course_id: course_id,
+      
+      // Import StudentHomework model
+      const StudentHomework = require('../models/StudentHomework');
+      
+      // Convert course_id to ObjectId for proper database query
+      const mongoose = require('mongoose');
+      const courseObjectId = new mongoose.Types.ObjectId(course_id);
+      
+      // Fetch traditional homework
+      const traditionalHomework = await Homework.find({
+        course_id: courseObjectId,
         is_active: true
       })
       .populate('course_id', 'course_name course_code')
       .sort({ due_date: 1 });
+
+      // Filter out traditional homework that the student has already completed
+      const completedTraditionalHomework = await Grade.find({
+        student_id: studentId,
+        homework_id: { $in: traditionalHomework.map(hw => hw._id) },
+        status: 'completed'
+      }).select('homework_id');
+
+      const completedTraditionalIds = new Set(completedTraditionalHomework.map(g => g.homework_id.toString()));
+      const activeTraditionalHomework = traditionalHomework.filter(hw => !completedTraditionalIds.has(hw._id.toString()));
+
+      // Fetch student-created homework for this course
+      const studentHomework = await StudentHomework.find({
+        'course_id': courseObjectId,
+        'completion_status': { $ne: 'completed' } // Only show active homework
+      })
+      .populate('course_id', 'course_name course_code')
+      .sort({ claimed_deadline: 1 });
+
+
+      // Combine both types of homework
+      homeworkAssignments = [
+        ...activeTraditionalHomework.map(hw => ({
+          _id: hw._id,
+          title: hw.title,
+          due_date: hw.due_date,
+          points_possible: hw.points_possible,
+          course: {
+            _id: hw.course_id._id,
+            name: hw.course_id.course_name,
+            code: hw.course_id.course_code
+          },
+          type: 'traditional'
+        })),
+        ...studentHomework.map(hw => ({
+          _id: hw._id,
+          title: hw.title,
+          due_date: hw.claimed_deadline || hw.verified_deadline,
+          points_possible: hw.claimed_grade || 100,
+          course: {
+            _id: hw.course_id._id,
+            name: hw.course_id.course_name,
+            code: hw.course_id.course_code
+          },
+          type: 'student_created'
+        }))
+      ].sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+      
+      // Filter out homework that already has completed partnerships
+      const homeworkWithCompletedPartnerships = await Partner.find({
+        $or: [
+          { student1_id: studentId },
+          { student2_id: studentId }
+        ],
+        partnership_status: 'completed',
+        homework_id: { $in: homeworkAssignments.map(hw => hw._id) }
+      }).select('homework_id');
+
+      const completedPartnershipHomeworkIds = new Set(homeworkWithCompletedPartnerships.map(p => p.homework_id.toString()));
+      homeworkAssignments = homeworkAssignments.filter(hw => !completedPartnershipHomeworkIds.has(hw._id.toString()));
+
     }
 
     const partnerData = {
@@ -1510,17 +1581,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
       })),
       potential_partners: potentialPartners,
       current_partners: currentPartners,
-      homework_assignments: homeworkAssignments.map(hw => ({
-        _id: hw._id,
-        title: hw.title,
-        due_date: hw.due_date,
-        points_possible: hw.points_possible,
-        course: {
-          _id: hw.course_id._id,
-          name: hw.course_id.course_name,
-          code: hw.course_id.course_code
-        }
-      })),
+      homework_assignments: homeworkAssignments,
       selected_course: selectedCourse ? {
         _id: selectedCourse._id,
         course_name: selectedCourse.course_name,
@@ -1572,7 +1633,7 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
       student2_id: studentId,
       partnership_status: 'pending'
     })
-    .populate('student1_id', 'name email full_name')
+    .populate('student1_id', 'name email full_name picture')
     .populate('homework_id', 'title due_date')
     .populate({
       path: 'homework_id',
@@ -1587,7 +1648,7 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
       student1_id: studentId,
       partnership_status: 'pending'
     })
-    .populate('student2_id', 'name email full_name')
+    .populate('student2_id', 'name email full_name picture')
     .populate('homework_id', 'title due_date')
     .populate({
       path: 'homework_id',
@@ -1605,8 +1666,8 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
       ],
       partnership_status: { $in: ['accepted', 'active'] }
     })
-    .populate('student1_id', 'name email full_name')
-    .populate('student2_id', 'name email full_name')
+    .populate('student1_id', 'name email full_name picture')
+    .populate('student2_id', 'name email full_name picture')
     .populate('homework_id', 'title due_date')
     .populate({
       path: 'homework_id',
@@ -1624,8 +1685,8 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
       ],
       partnership_status: 'completed'
     })
-    .populate('student1_id', 'name email full_name')
-    .populate('student2_id', 'name email full_name')
+    .populate('student1_id', 'name email full_name picture')
+    .populate('student2_id', 'name email full_name picture')
     .populate('homework_id', 'title due_date')
     .populate({
       path: 'homework_id',
@@ -1641,7 +1702,8 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
         partner: {
           _id: req.student1_id._id,
           name: req.student1_id.name || req.student1_id.full_name,
-          email: req.student1_id.email
+          email: req.student1_id.email,
+          picture: req.student1_id.picture
         },
         homework: {
           _id: req.homework_id._id,
@@ -1661,7 +1723,8 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
         partner: {
           _id: req.student2_id._id,
           name: req.student2_id.name || req.student2_id.full_name,
-          email: req.student2_id.email
+          email: req.student2_id.email,
+          picture: req.student2_id.picture
         },
         homework: {
           _id: req.homework_id._id,
@@ -1685,7 +1748,10 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
             : (req.student1_id.name || req.student1_id.full_name),
           email: req.student1_id._id.equals(studentId) 
             ? req.student2_id.email 
-            : req.student1_id.email
+            : req.student1_id.email,
+          picture: req.student1_id._id.equals(studentId) 
+            ? req.student2_id.picture 
+            : req.student1_id.picture
         },
         homework: {
           _id: req.homework_id._id,
@@ -1709,7 +1775,10 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
             : (req.student1_id.name || req.student1_id.full_name),
           email: req.student1_id._id.equals(studentId) 
             ? req.student2_id.email 
-            : req.student1_id.email
+            : req.student1_id.email,
+          picture: req.student1_id._id.equals(studentId) 
+            ? req.student2_id.picture 
+            : req.student1_id.picture
         },
         homework: {
           _id: req.homework_id._id,

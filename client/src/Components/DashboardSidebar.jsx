@@ -83,10 +83,10 @@ function DashboardSidebar({ userRole }) {
     { path: '/student/homework', label: 'Homework Planner', icon: <AssignmentIcon /> },
     { path: '/student/homework-management', label: 'Homework Management', icon: <AssignmentIcon /> },
     { path: '/student/calendar', label: 'Calendar', icon: <CalendarTodayIcon /> },
-    { path: '/student/study-progress', label: 'Study Progress', icon: <BarChartIcon /> },
     { path: '/student/classes', label: 'Classes Planner', icon: <CalendarTodayIcon /> },
     { path: '/student/exams', label: 'Exams', icon: <QuizIcon /> },
     { path: '/student/timer', label: 'Study Timer', icon: <TimerIcon /> },
+    { path: '/student/study-progress', label: 'Study Progress', icon: <BarChartIcon /> },
     { path: '/student/partner', label: 'Choose Partner', icon: <GroupIcon /> },
     { path: '/profile', label: 'Profile', icon: <AccountCircleIcon /> },
     { path: '/role-requests', label: 'Role Requests', icon: <SwapHorizIcon /> }
@@ -139,7 +139,20 @@ function DashboardSidebar({ userRole }) {
         {!isCollapsed && (
           <div className="user-info">
             <div className="user-avatar">
-              {userRole === 'student' ? '👨‍🎓' : userRole === 'lecturer' ? '👨‍🏫' : '👨‍💼'}
+              {auth0User?.picture ? (
+                <img 
+                  src={auth0User.picture} 
+                  alt="Profile" 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: '50%',
+                    objectFit: 'cover'
+                  }} 
+                />
+              ) : (
+                userRole === 'student' ? '👨‍🎓' : userRole === 'lecturer' ? '👨‍🏫' : '👨‍💼'
+              )}
             </div>
             <div className="user-details">
               <span className="user-role">
