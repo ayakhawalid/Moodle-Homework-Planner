@@ -284,7 +284,20 @@ function ChoosePartner() {
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
                                   <Avatar sx={{ bgcolor: '#95E1D3', mr: 2, width: 56, height: 56 }}>
-                                    <PersonIcon fontSize="large" />
+                                    {request.partner.picture ? (
+                                      <img 
+                                        src={request.partner.picture} 
+                                        alt="Partner" 
+                                        style={{ 
+                                          width: '100%', 
+                                          height: '100%', 
+                                          borderRadius: '50%',
+                                          objectFit: 'cover'
+                                        }} 
+                                      />
+                                    ) : (
+                                      <PersonIcon fontSize="large" />
+                                    )}
                                   </Avatar>
                                   <Box flex={1}>
                                     <Typography variant="h6" fontWeight="bold">
@@ -379,7 +392,20 @@ function ChoosePartner() {
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
                                   <Avatar sx={{ bgcolor: '#95E1D3', mr: 2 }}>
-                                    <PersonIcon fontSize="large" />
+                                    {request.partner.picture ? (
+                                      <img 
+                                        src={request.partner.picture} 
+                                        alt="Partner" 
+                                        style={{ 
+                                          width: '100%', 
+                                          height: '100%', 
+                                          borderRadius: '50%',
+                                          objectFit: 'cover'
+                                        }} 
+                                      />
+                                    ) : (
+                                      <PersonIcon fontSize="large" />
+                                    )}
                                   </Avatar>
                                   <Box flex={1}>
                                     <Typography variant="h6" fontWeight="bold">
@@ -472,7 +498,20 @@ function ChoosePartner() {
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
                                   <Avatar sx={{ bgcolor: 'success.main', mr: 2, width: 56, height: 56 }}>
-                                    <PersonIcon fontSize="large" />
+                                    {partnership.partner.picture ? (
+                                      <img 
+                                        src={partnership.partner.picture} 
+                                        alt="Partner" 
+                                        style={{ 
+                                          width: '100%', 
+                                          height: '100%', 
+                                          borderRadius: '50%',
+                                          objectFit: 'cover'
+                                        }} 
+                                      />
+                                    ) : (
+                                      <PersonIcon fontSize="large" />
+                                    )}
                                   </Avatar>
                                   <Box flex={1}>
                                     <Typography variant="h6" fontWeight="bold">
@@ -564,7 +603,20 @@ function ChoosePartner() {
                                 {/* Partner Information Header */}
                                 <Box display="flex" alignItems="center" mb={3}>
                                   <Avatar sx={{ bgcolor: '#F38181', mr: 2 }}>
-                                    {partnership.partner.name.charAt(0).toUpperCase()}
+                                    {partnership.partner.picture ? (
+                                      <img 
+                                        src={partnership.partner.picture} 
+                                        alt="Partner" 
+                                        style={{ 
+                                          width: '100%', 
+                                          height: '100%', 
+                                          borderRadius: '50%',
+                                          objectFit: 'cover'
+                                        }} 
+                                      />
+                                    ) : (
+                                      partnership.partner.name.charAt(0).toUpperCase()
+                                    )}
                                   </Avatar>
                                   <Box>
                                     <Typography variant="h6" component="div">
@@ -675,12 +727,19 @@ function ChoosePartner() {
                 </FormControl>
               </Grid>
             </Grid>
+            
+            {/* No homework available message */}
+            {selectedCourse && partnerData?.homework_assignments?.length === 0 && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                No available homework assignments found for this course. All homework may be completed or not yet available.
+              </Alert>
+            )}
             </div>
           </div>
 
           {/* Selected Course/Homework Info */}
           {partnerData?.selected_course && (
-            <div className="dashboard-card" style={{ marginBottom: '24px', backgroundColor: 'rgba(149, 225, 211, 0.3)' }}>
+            <div className="dashboard-card" style={{ marginBottom: '24px' }}>
               <div className="card-content">
                 <Typography variant="h6" gutterBottom>
                   <SchoolIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
@@ -695,19 +754,6 @@ function ChoosePartner() {
             </div>
           )}
 
-          {partnerData?.selected_homework && (
-            <div className="dashboard-card" style={{ marginBottom: '24px', backgroundColor: 'rgba(214, 247, 173, 0.3)' }}>
-              <div className="card-content">
-                <Typography variant="h6" gutterBottom>
-                  <AssignmentIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
-                  {partnerData.selected_homework.title}
-                </Typography>
-                <Typography variant="body2">
-                  Due: {new Date(partnerData.selected_homework.due_date).toLocaleDateString()}
-                </Typography>
-              </div>
-            </div>
-          )}
 
           {/* Course-based Partner Management */}
           {selectedCourse === '' ? (
@@ -801,7 +847,7 @@ function ChoosePartner() {
               {/* Current Partners for Selected Course */}
               {partnerData?.current_partners && partnerData.current_partners.length > 0 && (
                 <Box mb={3}>
-                  <div className="dashboard-card" style={{ marginBottom: '16px', backgroundColor: 'rgba(149, 225, 211, 0.3)' }}>
+                  <div className="dashboard-card" style={{ marginBottom: '16px' }}>
                     <div className="card-content">
                       <Typography variant="h6" gutterBottom>
                         <CheckCircleIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
@@ -826,9 +872,28 @@ function ChoosePartner() {
                             <Box display="flex" alignItems="center" mb={3}>
                               <Avatar sx={{ bgcolor: '#FCE38A', mr: 2 }}>
                                 {(partnership.student1_id?._id === partnerData?.user_id 
-                                  ? (partnership.student2_id?.name || partnership.student2_id?.full_name || 'P')
-                                  : (partnership.student1_id?.name || partnership.student1_id?.full_name || 'P')
-                                )?.charAt(0)?.toUpperCase()}
+                                  ? partnership.student2_id?.picture 
+                                  : partnership.student1_id?.picture
+                                ) ? (
+                                  <img 
+                                    src={(partnership.student1_id?._id === partnerData?.user_id 
+                                      ? partnership.student2_id?.picture 
+                                      : partnership.student1_id?.picture
+                                    )} 
+                                    alt="Partner" 
+                                    style={{ 
+                                      width: '100%', 
+                                      height: '100%', 
+                                      borderRadius: '50%',
+                                      objectFit: 'cover'
+                                    }} 
+                                  />
+                                ) : (
+                                  (partnership.student1_id?._id === partnerData?.user_id 
+                                    ? (partnership.student2_id?.name || partnership.student2_id?.full_name || 'P')
+                                    : (partnership.student1_id?.name || partnership.student1_id?.full_name || 'P')
+                                  )?.charAt(0)?.toUpperCase()
+                                )}
                               </Avatar>
                               <Box>
                                 <Typography variant="h6" component="div">
@@ -898,7 +963,7 @@ function ChoosePartner() {
 
 
               {/* Available Partners */}
-              <Typography variant="h5" gutterBottom>
+              <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
                 Available Study Partners
               </Typography>
 
@@ -917,7 +982,20 @@ function ChoosePartner() {
                         <div className="card-content">
                           <Box display="flex" alignItems="center" mb={2}>
                             <Avatar sx={{ bgcolor: '#D6F7AD', mr: 2 }}>
-                              <PersonIcon />
+                              {partner.picture ? (
+                                <img 
+                                  src={partner.picture} 
+                                  alt="Partner" 
+                                  style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    borderRadius: '50%',
+                                    objectFit: 'cover'
+                                  }} 
+                                />
+                              ) : (
+                                <PersonIcon />
+                              )}
                             </Avatar>
                             <Box>
                               <Typography variant="h6">
@@ -946,7 +1024,7 @@ function ChoosePartner() {
                             />
                           </Box>
                         </div>
-                        <div className="card-actions">
+                        <div className="card-actions" style={{ marginTop: '24px' }}>
                           <Button
                             size="small"
                             startIcon={<SendIcon />}
@@ -971,7 +1049,7 @@ function ChoosePartner() {
               )}
 
               {/* Back to Course Selection */}
-              <Box mt={3}>
+              <Box mt={6}>
                 <Button
                   variant="outlined"
                   startIcon={<SchoolIcon />}
