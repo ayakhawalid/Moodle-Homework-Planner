@@ -127,7 +127,28 @@ function Profile() {
     <Box sx={{ p: 2 }}>
       <div className="dashboard-card" style={{ maxWidth: 800, margin: '0 auto' }}>
         <div className="card-content">
-          <Typography variant="h5" sx={{ mb: 2 }}>Edit Profile</Typography>
+          <Typography variant="h3" component="h1" sx={{ 
+            fontWeight: '600',
+            fontSize: '2.5rem',
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            letterSpacing: '-0.01em',
+            lineHeight: '1.2',
+            color: '#2c3e50',
+            mb: 1
+          }}>
+            Edit Profile
+          </Typography>
+          <Typography variant="h6" color="text.secondary" sx={{ 
+            mb: 4,
+            fontWeight: '300',
+            fontSize: '1.1rem',
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            color: '#7f8c8d',
+            lineHeight: '1.6',
+            letterSpacing: '0.3px'
+          }}>
+            Manage your personal information and account settings
+          </Typography>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
@@ -295,8 +316,8 @@ function Profile() {
     </Box>
   );
 
-  // Wait for user data to be loaded before determining role
-  if (loading || !user) {
+  // Wait for user context to be loaded before determining role
+  if (!user) {
     return (
       <DashboardLayout userRole="student">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh"><CircularProgress /></Box>
@@ -304,9 +325,23 @@ function Profile() {
     );
   }
 
+  // Debug: Log the user role to see what's happening
+  console.log('Profile component - user:', user);
+  console.log('Profile component - user.role:', user.role);
+
+  // Ensure we have a valid role, default to student if not
+  const userRole = user?.role || 'student';
+  console.log('Profile component - final userRole:', userRole);
+
   return (
-    <DashboardLayout userRole={user.role}>
-      {content}
+    <DashboardLayout userRole={userRole}>
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      ) : (
+        content
+      )}
     </DashboardLayout>
   );
 }

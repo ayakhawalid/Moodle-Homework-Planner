@@ -190,10 +190,32 @@ const HomeworkManagement = () => {
   return (
     <DashboardLayout userRole="student">
       <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
+      <Box mb={4}>
+        <Typography variant="h3" component="h1" sx={{ 
+          fontWeight: '600',
+          fontSize: '2.5rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: '1.2',
+          color: '#2c3e50',
+          mb: 1
+        }}>
           Homework Management
         </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ 
+          mb: 3,
+          fontWeight: '300',
+          fontSize: '1.1rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          color: '#7f8c8d',
+          lineHeight: '1.6',
+          letterSpacing: '0.3px'
+        }}>
+          Create, manage, and track your homework assignments
+        </Typography>
+      </Box>
+      
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}

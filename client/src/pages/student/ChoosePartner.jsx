@@ -226,8 +226,15 @@ function ChoosePartner() {
   return (
     <DashboardLayout userRole="student">
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4" className="partner-title">
-          <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+        <Typography variant="h3" component="h1" sx={{ 
+          fontWeight: '600',
+          fontSize: '2.5rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: '1.2',
+          color: '#2c3e50',
+          mb: 1
+        }}>
           Choose Study Partner
         </Typography>
           <Button
@@ -240,7 +247,15 @@ function ChoosePartner() {
           </Button>
         </Box>
 
-        <Typography variant="body1" color="text.secondary" paragraph>
+        <Typography variant="h6" color="text.secondary" sx={{ 
+          mb: 4,
+          fontWeight: '300',
+          fontSize: '1.1rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          color: '#7f8c8d',
+          lineHeight: '1.6',
+          letterSpacing: '0.3px'
+        }}>
           Find and connect with study partners for collaborative learning and homework assignments.
         </Typography>
           

@@ -30,45 +30,45 @@ const DataManagement = () => {
         <Grid container spacing={3}>
           {/* Quick Stats */}
           <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Box display="flex" alignItems="center" mb={2}>
-                  <StorageIcon sx={{ mr: 1, color: '#1976d2' }} />
+                  <StorageIcon sx={{ mr: 1, color: '#95E1D3' }} />
                   <Typography variant="h6">Data Tables</Typography>
                 </Box>
                 <Typography variant="body2" color="textSecondary">
                   Manage all your database tables including users, courses, assignments, and inventory data.
                 </Typography>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Box display="flex" alignItems="center" mb={2}>
-                  <DashboardIcon sx={{ mr: 1, color: '#4caf50' }} />
+                  <DashboardIcon sx={{ mr: 1, color: '#D6F7AD' }} />
                   <Typography variant="h6">Reports</Typography>
                 </Box>
                 <Typography variant="body2" color="textSecondary">
                   Generate reports and analytics from your data to track performance and usage.
                 </Typography>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
+            <div className="dashboard-card">
+              <div className="card-content">
                 <Box display="flex" alignItems="center" mb={2}>
-                  <SettingsIcon sx={{ mr: 1, color: '#ff9800' }} />
+                  <SettingsIcon sx={{ mr: 1, color: '#FCE38A' }} />
                   <Typography variant="h6">Configuration</Typography>
                 </Box>
                 <Typography variant="body2" color="textSecondary">
                   Configure data relationships, permissions, and automated workflows.
                 </Typography>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Grid>
 
           {/* Embedded Budibase App */}
@@ -82,8 +82,8 @@ const DataManagement = () => {
         </Grid>
 
         {/* Help Section */}
-        <Card sx={{ mt: 3, bgcolor: '#f8f9fa' }}>
-          <CardContent>
+        <div className="dashboard-card" style={{ marginTop: '24px' }}>
+          <div className="card-content">
             <Typography variant="h6" gutterBottom>
               How to Use Data Management
             </Typography>
@@ -111,8 +111,8 @@ const DataManagement = () => {
                 </ul>
               </Grid>
             </Grid>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </Box>
     </DashboardLayout>
   );

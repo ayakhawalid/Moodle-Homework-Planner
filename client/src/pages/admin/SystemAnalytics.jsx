@@ -30,7 +30,7 @@ const SystemAnalytics = () => {
           show: false
         }
       },
-      colors: ['#1976d2'],
+      colors: ['#95E1D3'],
       dataLabels: {
         enabled: false
       },
@@ -65,7 +65,7 @@ const SystemAnalytics = () => {
         height: 350
       },
       labels: ['Students', 'Lecturers', 'Admins'],
-      colors: ['#4caf50', '#ff9800', '#f44336'],
+      colors: ['#D6F7AD', '#FCE38A', '#F38181'],
       legend: {
         position: 'bottom'
       },
@@ -99,7 +99,7 @@ const SystemAnalytics = () => {
           show: false
         }
       },
-      colors: ['#1976d2', '#4caf50'],
+      colors: ['#95E1D3', '#D6F7AD'],
       plotOptions: {
         bar: {
           horizontal: false,
@@ -192,104 +192,110 @@ const SystemAnalytics = () => {
         <Grid container spacing={3}>
           {/* User Growth Chart */}
           <Grid item xs={12} lg={8}>
-            <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                User Growth Over Time
-              </Typography>
-              <Chart
-                options={userGrowthData.options}
-                series={userGrowthData.series}
-                type="area"
-                height={350}
-              />
-            </Paper>
+            <div className="dashboard-card">
+              <div className="card-content">
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  User Growth Over Time
+                </Typography>
+                <Chart
+                  options={userGrowthData.options}
+                  series={userGrowthData.series}
+                  type="area"
+                  height={350}
+                />
+              </div>
+            </div>
           </Grid>
 
           {/* Role Distribution */}
           <Grid item xs={12} lg={4}>
-            <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                User Role Distribution
-              </Typography>
-              <Chart
-                options={roleDistributionData.options}
-                series={roleDistributionData.series}
-                type="donut"
-                height={350}
-              />
-              <Box mt={2}>
-                <Typography variant="body2" color="textSecondary">Students: {stats?.roles?.students ?? '—'}</Typography>
-                <Typography variant="body2" color="textSecondary">Lecturers: {stats?.roles?.lecturers ?? '—'}</Typography>
-                <Typography variant="body2" color="textSecondary">Admins: {stats?.roles?.admins ?? '—'}</Typography>
-              </Box>
-            </Paper>
+            <div className="dashboard-card">
+              <div className="card-content">
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  User Role Distribution
+                </Typography>
+                <Chart
+                  options={roleDistributionData.options}
+                  series={roleDistributionData.series}
+                  type="donut"
+                  height={350}
+                />
+                <Box mt={2}>
+                  <Typography variant="body2" color="textSecondary">Students: {stats?.roles?.students ?? '—'}</Typography>
+                  <Typography variant="body2" color="textSecondary">Lecturers: {stats?.roles?.lecturers ?? '—'}</Typography>
+                  <Typography variant="body2" color="textSecondary">Admins: {stats?.roles?.admins ?? '—'}</Typography>
+                </Box>
+              </div>
+            </div>
           </Grid>
 
           {/* Weekly Activity */}
           <Grid item xs={12}>
-            <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                Weekly Activity Overview
-              </Typography>
-              <Chart
-                options={activityData.options}
-                series={activityData.series}
-                type="bar"
-                height={350}
-              />
-            </Paper>
+            <div className="dashboard-card">
+              <div className="card-content">
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+                  Weekly Activity Overview
+                </Typography>
+                <Chart
+                  options={activityData.options}
+                  series={activityData.series}
+                  type="bar"
+                  height={350}
+                />
+              </div>
+            </div>
           </Grid>
 
           {/* Key Metrics */}
           <Grid item xs={12}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <CardContent>
-                    <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                <div className="dashboard-card" style={{ textAlign: 'center' }}>
+                  <div className="card-content">
+                    <Typography variant="h4" sx={{ color: '#95E1D3', fontWeight: 'bold' }}>
                       {loading ? '…' : (stats?.total_users ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Total Users
                     </Typography>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <CardContent>
-                    <Typography variant="h4" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                <div className="dashboard-card" style={{ textAlign: 'center' }}>
+                  <div className="card-content">
+                    <Typography variant="h4" sx={{ color: '#D6F7AD', fontWeight: 'bold' }}>
                       {loading ? '…' : (stats?.verified_users ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Verified Users
                     </Typography>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <CardContent>
-                    <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                <div className="dashboard-card" style={{ textAlign: 'center' }}>
+                  <div className="card-content">
+                    <Typography variant="h4" sx={{ color: '#FCE38A', fontWeight: 'bold' }}>
                       {loading ? '…' : (stats?.roles?.students ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Students
                     </Typography>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Card sx={{ textAlign: 'center', p: 2 }}>
-                  <CardContent>
-                    <Typography variant="h4" sx={{ color: '#f44336', fontWeight: 'bold' }}>
+                <div className="dashboard-card" style={{ textAlign: 'center' }}>
+                  <div className="card-content">
+                    <Typography variant="h4" sx={{ color: '#F38181', fontWeight: 'bold' }}>
                       {loading ? '…' : (stats?.roles?.lecturers ?? 0)}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Lecturers
                     </Typography>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </Grid>
             </Grid>
           </Grid>

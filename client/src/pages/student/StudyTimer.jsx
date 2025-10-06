@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { Timer as TimerIcon, PlayArrow as PlayArrowIcon, Pause as PauseIcon, Stop as StopIcon, History as HistoryIcon, VolumeOff as VolumeOffIcon, VolumeUp as VolumeUpIcon } from '@mui/icons-material';
+import { Typography, Box } from '@mui/material';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { apiService } from '../../services/api';
 import '../../styles/DashboardLayout.css';
@@ -234,10 +235,30 @@ function StudyTimer() {
 
   return (
     <DashboardLayout userRole="student">
-      <div className="welcome-section">
-        <h1 className="welcome-title">Study Timer</h1>
-        <p className="welcome-subtitle">Use the Pomodoro technique and other timing methods to enhance your study sessions</p>
-      </div>
+      <Box>
+        <Typography variant="h3" component="h1" sx={{ 
+          fontWeight: '600',
+          fontSize: '2.5rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: '1.2',
+          color: '#2c3e50',
+          mb: 1
+        }}>
+          Study Timer
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ 
+          mb: 4,
+          fontWeight: '300',
+          fontSize: '1.1rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          color: '#7f8c8d',
+          lineHeight: '1.6',
+          letterSpacing: '0.3px'
+        }}>
+          Use the Pomodoro technique and other timing methods to enhance your study sessions
+        </Typography>
+      </Box>
 
       <div className="dashboard-grid">
         {/* Main Timer Card */}

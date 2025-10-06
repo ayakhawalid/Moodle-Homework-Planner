@@ -338,10 +338,14 @@ const UserManagement = () => {
         <Typography variant="h4">User Management</Typography>
         <Button
           variant="contained"
-          color="primary"
           startIcon={refreshingRoles ? <CircularProgress size={20} /> : <RefreshIcon />}
           onClick={handleRefreshRoles}
           disabled={refreshingRoles}
+          sx={{
+            backgroundColor: '#95E1D3',
+            color: '#333',
+            '&:hover': { backgroundColor: '#7dd3c0' }
+          }}
         >
           {refreshingRoles ? 'Refreshing...' : 'Refresh Roles from Auth0'}
         </Button>
@@ -364,18 +368,19 @@ const UserManagement = () => {
           )}
         </Alert>
       )}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>User</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
+      <div className="dashboard-card">
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: 'rgba(149, 225, 211, 0.2)' }}>
+                <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>User</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>Created</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
           <TableBody>
             {users && users.length > 0 ? users.map((u) => (
               <TableRow key={u._id}>
@@ -415,6 +420,7 @@ const UserManagement = () => {
                       setNewRole(u.role || '');
                       setRoleDialogOpen(true);
                     }}
+                    sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
                   >
                     <EditIcon />
                   </IconButton>
@@ -422,6 +428,7 @@ const UserManagement = () => {
                     size="small"
                     onClick={() => handleDeactivate(u._id)}
                     disabled={u._id === user?._id || u._id === user?.id} // Can't deactivate self (DB _id or auth id)
+                    sx={{ color: '#F38181', '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' } }}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -438,7 +445,8 @@ const UserManagement = () => {
             )}
           </TableBody>
         </Table>
-      </TableContainer>
+        </TableContainer>
+      </div>
       <Box display="flex" justifyContent="center" mt={3}>
         <Pagination 
           count={totalPages}
@@ -465,8 +473,25 @@ const UserManagement = () => {
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRoleDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleRoleChange} variant="contained">
+          <Button 
+            onClick={() => setRoleDialogOpen(false)}
+            sx={{ 
+              borderColor: '#F38181', 
+              color: '#F38181',
+              '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleRoleChange} 
+            variant="contained"
+            sx={{
+              backgroundColor: '#95E1D3',
+              color: '#333',
+              '&:hover': { backgroundColor: '#7dd3c0' }
+            }}
+          >
             Update Role
           </Button>
         </DialogActions>
