@@ -46,7 +46,6 @@ function AddHomework() {
     instructions: '',
     due_date: '',
     points_possible: 100,
-    submission_type: 'both',
     allow_late_submission: false
   });
 
@@ -255,23 +254,6 @@ function AddHomework() {
                     inputProps={{ min: 0, max: 1000 }}
                     helperText="Maximum points for this homework"
                   />
-                </Grid>
-
-                {/* Submission Type */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Submission Type</InputLabel>
-                    <Select
-                      name="submission_type"
-                      value={formData.submission_type}
-                      onChange={handleInputChange}
-                      label="Submission Type"
-                    >
-                      <MenuItem value="file">File Upload Only</MenuItem>
-                      <MenuItem value="text">Text Submission Only</MenuItem>
-                      <MenuItem value="both">Both File and Text</MenuItem>
-                    </Select>
-                  </FormControl>
                 </Grid>
 
                 {/* Allow Late Submission */}

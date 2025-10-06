@@ -141,7 +141,7 @@ const AdminDashboard = () => {
           />
 
           {/* Debug Section */}
-          <div className="dashboard-card" style={{ marginTop: '24px', backgroundColor: 'rgba(252, 227, 138, 0.3)' }}>
+          <div className="dashboard-card" style={{ marginTop: '24px' }}>
             <div className="card-header">
               <div className="card-icon accent">
                 <AdminIcon />
@@ -165,24 +165,24 @@ const AdminDashboard = () => {
               <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
                 <Button
                   onClick={refreshUser}
-                  variant="outlined"
+                  variant="contained"
                   size="small"
                   sx={{ 
-                    borderColor: '#95E1D3', 
-                    color: '#95E1D3',
-                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                    backgroundColor: '#95E1D3', 
+                    color: '#333',
+                    '&:hover': { backgroundColor: '#7dd3c0' }
                   }}
                 >
                   🔄 Refresh User Data
                 </Button>
                 <Button
                   onClick={testDirectAPI}
-                  variant="outlined"
+                  variant="contained"
                   size="small"
                   sx={{ 
-                    borderColor: '#D6F7AD', 
+                    backgroundColor: '#D6F7AD', 
                     color: '#333',
-                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                    '&:hover': { backgroundColor: '#c8f299' }
                   }}
                 >
                   🧪 Test Direct API
@@ -296,7 +296,7 @@ const AdminDashboard = () => {
         </Grid>
 
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={4}>
             <div className="dashboard-card">
               <div className="card-header">
                 <div className="card-icon primary">
@@ -310,37 +310,37 @@ const AdminDashboard = () => {
               <div className="card-content">
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Button 
-                    variant="outlined" 
+                    variant="contained" 
                     href="/admin/users"
                     fullWidth
                     sx={{ 
-                      borderColor: '#95E1D3', 
-                      color: '#95E1D3',
-                      '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                      backgroundColor: '#95E1D3', 
+                      color: '#333',
+                      '&:hover': { backgroundColor: '#7dd3c0' }
                     }}
                   >
                     Manage Users
                   </Button>
                   <Button 
-                    variant="outlined" 
+                    variant="contained" 
                     href="/admin/analytics"
                     fullWidth
                     sx={{ 
-                      borderColor: '#D6F7AD', 
+                      backgroundColor: '#D6F7AD', 
                       color: '#333',
-                      '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                      '&:hover': { backgroundColor: '#c8f299' }
                     }}
                   >
                     View Analytics
                   </Button>
                   <Button 
-                    variant="outlined" 
+                    variant="contained" 
                     href="/admin/settings"
                     fullWidth
                     sx={{ 
-                      borderColor: '#FCE38A', 
+                      backgroundColor: '#FCE38A', 
                       color: '#333',
-                      '&:hover': { borderColor: '#fbd65e', backgroundColor: 'rgba(252, 227, 138, 0.1)' }
+                      '&:hover': { backgroundColor: '#fbd65e' }
                     }}
                   >
                     System Settings
@@ -350,8 +350,8 @@ const AdminDashboard = () => {
             </div>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <div className="dashboard-card">
+          <Grid item xs={12} md={8}>
+            <div className="dashboard-card" style={{ minHeight: '400px' }}>
               <div className="card-header">
                 <div className="card-icon accent">
                   <CheckCircleIcon />
@@ -361,7 +361,7 @@ const AdminDashboard = () => {
                   <p className="card-subtitle">Manage user permissions</p>
                 </div>
               </div>
-              <div className="card-content">
+              <div className="card-content" style={{ padding: '20px' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Button 
                     size="small" 
@@ -378,12 +378,31 @@ const AdminDashboard = () => {
 
                 {roleRequests && roleRequests.length > 0 ? (
                   roleRequests.map((rr) => (
-                    <Box key={rr._id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid #eee', mb: 1 }}>
-                      <Box>
-                        <Typography variant="body1">{rr.user?.name || rr.user?.email}</Typography>
-                        <Typography variant="caption" color="textSecondary">Requested: {rr.desired_role}</Typography>
+                    <Box key={rr._id} sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'flex-start', 
+                      py: 2, 
+                      px: 2,
+                      borderBottom: '1px solid #eee', 
+                      mb: 2,
+                      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                      borderRadius: '8px'
+                    }}>
+                      <Box sx={{ flex: 1, mr: 2 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 0.5 }}>
+                          {rr.user?.name || rr.user?.email}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Requested Role: <strong>{rr.desired_role}</strong>
+                        </Typography>
+                        {rr.user?.email && (
+                          <Typography variant="caption" color="textSecondary" display="block">
+                            Email: {rr.user.email}
+                          </Typography>
+                        )}
                       </Box>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
                         <Button 
                           size="small" 
                           variant="contained" 

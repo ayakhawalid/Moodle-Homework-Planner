@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { Assignment as AssignmentIcon, Add as AddIcon, CalendarToday as CalendarTodayIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
-import { Alert, CircularProgress } from '@mui/material';
+import { Alert, CircularProgress, Typography, Box } from '@mui/material';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/DashboardLayout.css';
@@ -35,10 +35,30 @@ function HomeworkPlanner() {
 
   return (
     <DashboardLayout userRole="student">
-      <div className="welcome-section">
-        <h1 className="welcome-title">Homework Planner</h1>
-        <p className="welcome-subtitle">Organize and track your homework assignments efficiently</p>
-      </div>
+      <Box>
+        <Typography variant="h3" component="h1" sx={{ 
+          fontWeight: '600',
+          fontSize: '2.5rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: '1.2',
+          color: '#2c3e50',
+          mb: 1
+        }}>
+          Homework Planner
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ 
+          mb: 4,
+          fontWeight: '300',
+          fontSize: '1.1rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          color: '#7f8c8d',
+          lineHeight: '1.6',
+          letterSpacing: '0.3px'
+        }}>
+          Organize and track your homework assignments efficiently
+        </Typography>
+      </Box>
 
       {/* Loading State */}
       {loading && (

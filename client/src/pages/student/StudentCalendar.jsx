@@ -114,10 +114,26 @@ const StudentCalendar = () => {
   return (
     <DashboardLayout userRole="student">
       <Box>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h3" gutterBottom sx={{ 
+          fontWeight: '600',
+          fontSize: '2.5rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: '1.2',
+          color: '#2c3e50',
+          mb: 1
+        }}>
           Student Calendar
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography variant="h6" color="text.secondary" sx={{ 
+          mb: 4,
+          fontWeight: '300',
+          fontSize: '1.1rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          color: '#7f8c8d',
+          lineHeight: '1.6',
+          letterSpacing: '0.3px'
+        }}>
           Track your homework deadlines and assignments in calendar view
         </Typography>
 

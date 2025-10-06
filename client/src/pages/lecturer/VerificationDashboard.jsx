@@ -154,11 +154,26 @@ const VerificationDashboard = () => {
   return (
     <DashboardLayout userRole="lecturer">
       <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h3" component="h1" sx={{ 
+        fontWeight: '600',
+        fontSize: '2.5rem',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        letterSpacing: '-0.01em',
+        lineHeight: '1.2',
+        color: '#2c3e50',
+        mb: 1
+      }}>
         Verification Dashboard
       </Typography>
-      
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="h6" color="text.secondary" sx={{ 
+        mb: 4,
+        fontWeight: '300',
+        fontSize: '1.1rem',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        color: '#7f8c8d',
+        lineHeight: '1.6',
+        letterSpacing: '0.3px'
+      }}>
         Review and verify student-submitted homework deadlines and grades
       </Typography>
       

@@ -278,7 +278,15 @@ const CourseManagement = () => {
     <DashboardLayout userRole="lecturer">
       <Box p={3}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h3" component="h1" sx={{ 
+            fontWeight: '600',
+            fontSize: '2.5rem',
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            letterSpacing: '-0.01em',
+            lineHeight: '1.2',
+            color: '#2c3e50',
+            mb: 1
+          }}>
             Course Management
           </Typography>
           <Button
