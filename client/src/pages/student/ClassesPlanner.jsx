@@ -13,7 +13,16 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Divider
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   CalendarToday as CalendarTodayIcon,
@@ -37,6 +46,17 @@ function ClassesPlanner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [openAddClassDialog, setOpenAddClassDialog] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [classFormData, setClassFormData] = useState({
+    course_id: '',
+    topic: '',
+    date: '',
+    start_time: '',
+    end_time: '',
+    location: '',
+    description: ''
+  });
 
   // Fetch classes data
   const fetchClassesData = async () => {
@@ -109,6 +129,52 @@ function ClassesPlanner() {
     return date.toDateString() === today.toDateString();
   };
 
+  // Fetch student's courses
+  const fetchCourses = async () => {
+    try {
+      console.log('Fetching student courses...');
+      const response = await apiService.studentDashboard.getStudentCourses();
+      console.log('Courses response:', response.data);
+      setCourses(response.data);
+    } catch (err) {
+      console.error('Failed to fetch courses:', err);
+    }
+  };
+
+  // Handle form input changes
+  const handleClassFormChange = (e) => {
+    const { name, value } = e.target;
+    setClassFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle add class submission
+  const handleAddClass = async () => {
+    try {
+      await apiService.studentDashboard.addClass(classFormData);
+      setOpenAddClassDialog(false);
+      setClassFormData({
+        course_id: '',
+        topic: '',
+        date: '',
+        start_time: '',
+        end_time: '',
+        location: '',
+        description: ''
+      });
+      fetchClassesData(); // Refresh the classes data
+    } catch (err) {
+      setError('Failed to add class. Please try again.');
+    }
+  };
+
+  // Fetch courses when component mounts
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
   if (loading) {
     return (
       <DashboardLayout userRole="student">
@@ -131,14 +197,46 @@ function ClassesPlanner() {
 
   return (
     <DashboardLayout userRole="student">
-      <Typography variant="h4" className="classes-title" gutterBottom>
-        <CalendarTodayIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+      <Typography variant="h3" component="h1" sx={{ 
+        fontWeight: '600',
+        fontSize: '2.5rem',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        letterSpacing: '-0.01em',
+        lineHeight: '1.2',
+        color: '#2c3e50',
+        mb: 1
+      }}>
         Classes Planner
       </Typography>
-
-      <Typography variant="body1" color="text.secondary" paragraph>
-        Plan and organize your class schedules and academic calendar.
+      <Typography variant="h6" color="text.secondary" sx={{ 
+        mb: 4,
+        fontWeight: '300',
+        fontSize: '1.1rem',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        color: '#7f8c8d',
+        lineHeight: '1.6',
+        letterSpacing: '0.3px'
+      }}>
+        Plan and organize your class schedules and academic calendar
       </Typography>
+
+      {/* Add Class Button */}
+      <Box display="flex" justifyContent="flex-start" mb={3}>
+        <Button
+          variant="contained"
+          startIcon={<CalendarTodayIcon />}
+          onClick={() => setOpenAddClassDialog(true)}
+          sx={{
+            backgroundColor: '#95E1D3',
+            color: '#333',
+            '&:hover': {
+              backgroundColor: '#7dd3c0'
+            }
+          }}
+        >
+          Add Class
+        </Button>
+      </Box>
 
           {/* Week Navigation */}
           <div className="dashboard-card" style={{ marginBottom: '24px' }}>
@@ -390,6 +488,112 @@ function ClassesPlanner() {
               </div>
             </div>
           )}
+
+      {/* Add Class Dialog */}
+      <Dialog open={openAddClassDialog} onClose={() => setOpenAddClassDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Add New Class</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  name="course_id"
+                  value={classFormData.course_id}
+                  onChange={handleClassFormChange}
+                  label="Course"
+                >
+                  {courses.map((course) => (
+                    <MenuItem key={course._id} value={course._id}>
+                      {course.course_code} - {course.course_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="topic"
+                label="Class Topic"
+                value={classFormData.topic}
+                onChange={handleClassFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="date"
+                label="Date"
+                type="date"
+                value={classFormData.date}
+                onChange={handleClassFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="start_time"
+                label="Start Time"
+                type="time"
+                value={classFormData.start_time}
+                onChange={handleClassFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="end_time"
+                label="End Time"
+                type="time"
+                value={classFormData.end_time}
+                onChange={handleClassFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="location"
+                label="Location/Room"
+                value={classFormData.location}
+                onChange={handleClassFormChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                name="description"
+                label="Description"
+                multiline
+                rows={3}
+                value={classFormData.description}
+                onChange={handleClassFormChange}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddClassDialog(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleAddClass} 
+            variant="contained"
+            sx={{
+              backgroundColor: '#95E1D3',
+              color: '#333',
+              '&:hover': {
+                backgroundColor: '#7dd3c0'
+              }
+            }}
+          >
+            Add Class
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   );
 }

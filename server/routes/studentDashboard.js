@@ -616,6 +616,143 @@ router.get('/courses-info', checkJwt, extractUser, requireStudent, async (req, r
   }
 });
 
+// GET /api/student-dashboard/student-courses - Get student's enrolled courses for dropdowns
+router.get('/student-courses', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Get student's enrolled courses (simplified for dropdowns)
+    const courses = await Course.find({ 
+      students: studentId, 
+      is_active: true 
+    })
+    .select('_id course_name course_code')
+    .sort({ course_code: 1 });
+    
+    res.json(courses);
+  } catch (error) {
+    console.error('Error fetching student courses:', error);
+    res.status(500).json({ error: 'Failed to fetch student courses' });
+  }
+});
+
+// POST /api/student-dashboard/add-class - Add a new class
+router.post('/add-class', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const { course_id, topic, date, start_time, end_time, location, description } = req.body;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Verify the student is enrolled in the course
+    const course = await Course.findOne({ 
+      _id: course_id, 
+      students: studentId, 
+      is_active: true 
+    });
+    
+    if (!course) {
+      return res.status(403).json({ error: 'You are not enrolled in this course' });
+    }
+    
+    // Create the class
+    const newClass = new Class({
+      course_id,
+      class_title: topic,
+      class_date: new Date(date),
+      start_time,
+      end_time,
+      room: location,
+      description,
+      class_type: 'lecture', // Default type
+      is_active: true
+    });
+    
+    await newClass.save();
+    
+    // Add the class to the course
+    course.classes.push(newClass._id);
+    await course.save();
+    
+    res.status(201).json({ 
+      message: 'Class added successfully', 
+      class: newClass 
+    });
+  } catch (error) {
+    console.error('Error adding class:', error);
+    res.status(500).json({ error: 'Failed to add class' });
+  }
+});
+
+// POST /api/student-dashboard/add-exam - Add a new exam
+router.post('/add-exam', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const { course_id, title, exam_date, exam_time, duration, location, description, exam_type } = req.body;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const studentId = user._id;
+    
+    // Verify the student is enrolled in the course
+    const course = await Course.findOne({ 
+      _id: course_id, 
+      students: studentId, 
+      is_active: true 
+    });
+    
+    if (!course) {
+      return res.status(403).json({ error: 'You are not enrolled in this course' });
+    }
+    
+    // Create the exam
+    const newExam = new Exam({
+      course_id,
+      exam_title: title,
+      due_date: new Date(exam_date),
+      start_time: exam_time,
+      duration_minutes: parseInt(duration),
+      room: location,
+      description,
+      exam_type,
+      is_active: true,
+      is_published: true
+    });
+    
+    await newExam.save();
+    
+    // Add the exam to the course
+    course.exams.push(newExam._id);
+    await course.save();
+    
+    res.status(201).json({ 
+      message: 'Exam added successfully', 
+      exam: newExam 
+    });
+  } catch (error) {
+    console.error('Error adding exam:', error);
+    res.status(500).json({ error: 'Failed to add exam' });
+  }
+});
+
 // GET /api/student-dashboard/study-progress - Get study progress data
 router.get('/study-progress', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {

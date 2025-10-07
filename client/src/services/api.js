@@ -253,7 +253,10 @@ export const apiService = {
     respondToPartnerRequest: (requestId, action) => {
       console.log('API Service - respondToPartnerRequest called:', { requestId, action });
       return api.post(`/student-dashboard/partner-requests/${requestId}/respond`, { action });
-    }
+    },
+    getStudentCourses: () => api.get('/student-dashboard/student-courses'),
+    addClass: (classData) => api.post('/student-dashboard/add-class', classData),
+    addExam: (examData) => api.post('/student-dashboard/add-exam', examData)
   },
 
   // Lecturer management

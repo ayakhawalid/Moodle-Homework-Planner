@@ -19,7 +19,12 @@ import {
   Divider,
   LinearProgress,
   IconButton,
-  Tooltip
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import {
   Quiz as QuizIcon,
@@ -45,6 +50,18 @@ function ExamsFinals() {
   const [error, setError] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('');
+  const [openAddExamDialog, setOpenAddExamDialog] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [examFormData, setExamFormData] = useState({
+    course_id: '',
+    title: '',
+    exam_date: '',
+    exam_time: '',
+    duration: '',
+    location: '',
+    description: '',
+    exam_type: 'midterm'
+  });
 
   // Fetch exams data
   const fetchExamsData = async () => {
@@ -109,6 +126,53 @@ function ExamsFinals() {
     return colors[type] || { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' };
   };
 
+  // Fetch student's courses
+  const fetchCourses = async () => {
+    try {
+      console.log('Fetching student courses...');
+      const response = await apiService.studentDashboard.getStudentCourses();
+      console.log('Courses response:', response.data);
+      setCourses(response.data);
+    } catch (err) {
+      console.error('Failed to fetch courses:', err);
+    }
+  };
+
+  // Handle form input changes
+  const handleExamFormChange = (e) => {
+    const { name, value } = e.target;
+    setExamFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle add exam submission
+  const handleAddExam = async () => {
+    try {
+      await apiService.studentDashboard.addExam(examFormData);
+      setOpenAddExamDialog(false);
+      setExamFormData({
+        course_id: '',
+        title: '',
+        exam_date: '',
+        exam_time: '',
+        duration: '',
+        location: '',
+        description: '',
+        exam_type: 'midterm'
+      });
+      fetchExamsData(); // Refresh the exams data
+    } catch (err) {
+      setError('Failed to add exam. Please try again.');
+    }
+  };
+
+  // Fetch courses when component mounts
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
   if (loading) {
     return (
       <DashboardLayout userRole="student">
@@ -131,14 +195,46 @@ function ExamsFinals() {
 
   return (
     <DashboardLayout userRole="student">
-      <Typography variant="h4" className="exams-title" gutterBottom>
-        <QuizIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+      <Typography variant="h3" component="h1" sx={{ 
+        fontWeight: '600',
+        fontSize: '2.5rem',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        letterSpacing: '-0.01em',
+        lineHeight: '1.2',
+        color: '#2c3e50',
+        mb: 1
+      }}>
         Exams & Finals
       </Typography>
-
-      <Typography variant="body1" color="text.secondary" paragraph>
-        Prepare for your exams and final assessments with organized study plans and schedules.
+      <Typography variant="h6" color="text.secondary" sx={{ 
+        mb: 4,
+        fontWeight: '300',
+        fontSize: '1.1rem',
+        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+        color: '#7f8c8d',
+        lineHeight: '1.6',
+        letterSpacing: '0.3px'
+      }}>
+        Prepare for your exams and final assessments with organized study plans and schedules
       </Typography>
+
+      {/* Add Exam Button */}
+      <Box display="flex" justifyContent="flex-start" mb={3}>
+        <Button
+          variant="contained"
+          startIcon={<QuizIcon />}
+          onClick={() => setOpenAddExamDialog(true)}
+          sx={{
+            backgroundColor: '#F38181',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: '#e85a6b'
+            }
+          }}
+        >
+          Add Exam
+        </Button>
+      </Box>
 
           {/* Filters */}
           <div className="dashboard-card" style={{ marginBottom: '24px' }}>
@@ -399,6 +495,126 @@ function ExamsFinals() {
             )}
             </div>
           </div>
+
+      {/* Add Exam Dialog */}
+      <Dialog open={openAddExamDialog} onClose={() => setOpenAddExamDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Add New Exam</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  name="course_id"
+                  value={examFormData.course_id}
+                  onChange={handleExamFormChange}
+                  label="Course"
+                >
+                  {courses.map((course) => (
+                    <MenuItem key={course._id} value={course._id}>
+                      {course.course_code} - {course.course_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="title"
+                label="Exam Title"
+                value={examFormData.title}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="exam_date"
+                label="Exam Date"
+                type="date"
+                value={examFormData.exam_date}
+                onChange={handleExamFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="exam_time"
+                label="Exam Time"
+                type="time"
+                value={examFormData.exam_time}
+                onChange={handleExamFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="duration"
+                label="Duration (minutes)"
+                type="number"
+                value={examFormData.duration}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="location"
+                label="Location/Room"
+                value={examFormData.location}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Exam Type</InputLabel>
+                <Select
+                  name="exam_type"
+                  value={examFormData.exam_type}
+                  onChange={handleExamFormChange}
+                  label="Exam Type"
+                >
+                  <MenuItem value="midterm">Midterm</MenuItem>
+                  <MenuItem value="final">Final</MenuItem>
+                  <MenuItem value="quiz">Quiz</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                name="description"
+                label="Description"
+                multiline
+                rows={3}
+                value={examFormData.description}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddExamDialog(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleAddExam} 
+            variant="contained"
+            sx={{
+              backgroundColor: '#F38181',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: '#e85a6b'
+              }
+            }}
+          >
+            Add Exam
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardLayout>
   );
 }
