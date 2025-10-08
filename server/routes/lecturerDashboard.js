@@ -49,9 +49,11 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
     
     console.log(`Dashboard overview - Traditional homework: ${traditionalHomework.length}, Student homework: ${studentHomework.length}, Total: ${allHomework.length}`);
     
-    // Get grading statistics (only traditional homework has grades in Grade table)
+    // Get grading statistics from BOTH homework tables
     const traditionalHomeworkIds = traditionalHomework.map(hw => hw._id);
-    const grades = await Grade.find({ homework_id: { $in: traditionalHomeworkIds } });
+    const studentHomeworkIds = studentHomework.map(hw => hw._id);
+    const allHomeworkIds = [...traditionalHomeworkIds, ...studentHomeworkIds];
+    const grades = await Grade.find({ homework_id: { $in: allHomeworkIds } });
     
     // Calculate statistics
     const totalStudents = courses.reduce((sum, course) => sum + course.students.length, 0);
@@ -81,14 +83,15 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       return classDate >= today && classDate <= todayEnd;
     }).sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
-    // Get recent homework submissions (last 7 days)
+    // Get recent homework submissions (last 7 days) - when students submit homework from BOTH tables
+    const allHomeworkIdsForSubmissions = [...traditionalHomeworkIds, ...studentHomeworkIds];
     const recentSubmissions = await Grade.find({ 
-      homework_id: { $in: traditionalHomeworkIds },
-      graded_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
+      homework_id: { $in: allHomeworkIdsForSubmissions },
+      submitted_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
     })
     .populate('homework_id', 'title due_date')
     .populate('student_id', 'name email')
-    .sort({ graded_at: -1 })
+    .sort({ submitted_at: -1 })
     .limit(10);
 
     // Get all students across all courses
@@ -97,37 +100,58 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       allStudents.push(...course.students);
     });
 
-    // Calculate student performance statistics
+    // Calculate student performance statistics using real letter grades
     const studentGrades = {};
     grades.forEach(grade => {
       const studentId = grade.student_id.toString();
       if (!studentGrades[studentId]) {
         studentGrades[studentId] = [];
       }
-      studentGrades[studentId].push(grade.grade);
+      // Use letter_grade if available, otherwise calculate it
+      const letterGrade = grade.letter_grade || grade.calculateLetterGrade();
+      studentGrades[studentId].push({
+        numeric: grade.grade,
+        letter: letterGrade
+      });
     });
 
-    // Calculate performance metrics
+    // Calculate performance metrics based on actual letter grades
     const topPerformers = [];
     const strugglingStudents = [];
     
     Object.entries(studentGrades).forEach(([studentId, gradeList]) => {
-      const averageGrade = gradeList.reduce((sum, grade) => sum + grade, 0) / gradeList.length;
+      const averageGrade = gradeList.reduce((sum, grade) => sum + grade.numeric, 0) / gradeList.length;
       const student = allStudents.find(s => s._id.toString() === studentId);
       
       if (student) {
-        if (averageGrade >= 85) { // A grade
+        // Count A grades (A+, A, A-)
+        const aGrades = gradeList.filter(g => ['A+', 'A', 'A-'].includes(g.letter)).length;
+        const aGradePercentage = (aGrades / gradeList.length) * 100;
+        
+        // Count failing grades (D+, D, D-, F)
+        const failingGrades = gradeList.filter(g => ['D+', 'D', 'D-', 'F'].includes(g.letter)).length;
+        const failingPercentage = (failingGrades / gradeList.length) * 100;
+        
+        // Top performers: students with 60% or more A grades
+        if (aGradePercentage >= 60) {
           topPerformers.push({
             _id: student._id,
             name: student.name || student.full_name,
             average_grade: Math.round(averageGrade * 100) / 100,
+            letter_grade: gradeList[0].letter, // Most recent letter grade
+            a_grade_percentage: Math.round(aGradePercentage),
             grade_count: gradeList.length
           });
-        } else if (averageGrade < 70) { // Below C grade
+        }
+        
+        // Struggling students: students with 40% or more failing grades
+        if (failingPercentage >= 40) {
           strugglingStudents.push({
             _id: student._id,
             name: student.name || student.full_name,
             average_grade: Math.round(averageGrade * 100) / 100,
+            letter_grade: gradeList[0].letter, // Most recent letter grade
+            failing_percentage: Math.round(failingPercentage),
             grade_count: gradeList.length
           });
         }
@@ -190,17 +214,53 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       });
     }
 
+    // Add recent student homework that needs verification
+    const unverifiedStudentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds },
+      deadline_verification_status: 'pending',
+      uploader_role: 'student'
+    }).populate('course_id', 'course_name course_code').limit(3);
+
+    if (unverifiedStudentHomework.length > 0) {
+      recentActivity.push({
+        type: 'verification',
+        message: `${unverifiedStudentHomework.length} homework deadlines need verification`,
+        timestamp: new Date(),
+        count: unverifiedStudentHomework.length
+      });
+    }
+
+    // Add recent grading activity from BOTH homework tables
+    const allHomeworkIdsForGrading = [...traditionalHomeworkIds, ...studentHomeworkIds];
+    const recentGrading = await Grade.find({
+      homework_id: { $in: allHomeworkIdsForGrading },
+      graded_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
+    })
+    .populate('homework_id', 'title')
+    .populate('student_id', 'name')
+    .sort({ graded_at: -1 })
+    .limit(5);
+
+    if (recentGrading.length > 0) {
+      recentActivity.push({
+        type: 'grading',
+        message: `${recentGrading.length} homework assignments graded`,
+        timestamp: new Date(),
+        count: recentGrading.length
+      });
+    }
+
     // Add recent homework assignments (last 7 days) from BOTH tables
     const recentTraditionalHomework = await Homework.find({
       course_id: { $in: courseIds },
-      assigned_date: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
+      created_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
       is_active: true
-    }).populate('course_id', 'course_name course_code').sort({ assigned_date: -1 }).limit(5);
+    }).populate('course_id', 'course_name course_code').sort({ created_at: -1 }).limit(5);
 
     const recentStudentHomework = await StudentHomework.find({
       course_id: { $in: courseIds },
       created_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }, // Last 7 days
-      uploader_role: 'lecturer' // Only lecturer-created homework
+      uploader_role: 'student' // Student-created homework that needs verification
     }).populate('course_id', 'course_name course_code').sort({ created_at: -1 }).limit(5);
 
     // Combine both types
@@ -208,7 +268,7 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       ...recentTraditionalHomework.map(hw => ({
         title: hw.title,
         course: hw.course_id.course_name,
-        timestamp: hw.assigned_date,
+        timestamp: hw.created_at,
         type: 'traditional'
       })),
       ...recentStudentHomework.map(hw => ({
@@ -232,48 +292,82 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       });
     }
 
-    // Add overdue homework notifications
-    const overdueHomework = await Homework.find({
+    // Add overdue homework notifications from BOTH tables
+    const overdueTraditionalHomework = await Homework.find({
       course_id: { $in: courseIds },
       due_date: { $lt: new Date() },
       is_active: true
     }).populate('course_id', 'course_name course_code').limit(3);
 
-    if (overdueHomework.length > 0) {
+    const overdueStudentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds },
+      claimed_deadline: { $lt: new Date() },
+      completion_status: { $ne: 'completed' }
+    }).populate('course_id', 'course_name course_code').limit(3);
+
+    const allOverdueHomework = [
+      ...overdueTraditionalHomework.map(hw => ({
+        title: hw.title,
+        course: hw.course_id.course_name,
+        due_date: hw.due_date,
+        type: 'traditional'
+      })),
+      ...overdueStudentHomework.map(hw => ({
+        title: hw.title,
+        course: hw.course_id.course_name,
+        due_date: hw.claimed_deadline,
+        type: 'student'
+      }))
+    ];
+
+    if (allOverdueHomework.length > 0) {
       recentActivity.push({
         type: 'overdue',
-        message: `${overdueHomework.length} homework assignments are overdue`,
+        message: `${allOverdueHomework.length} homework assignments are overdue`,
         timestamp: new Date(),
-        count: overdueHomework.length,
-        homework: overdueHomework.map(hw => ({
-          title: hw.title,
-          course: hw.course_id.course_name,
-          due_date: hw.due_date
-        }))
+        count: allOverdueHomework.length,
+        homework: allOverdueHomework
       });
     }
 
-    // Add upcoming homework due soon (next 3 days)
+    // Add upcoming homework due soon (next 3 days) from BOTH tables
     const upcomingDue = new Date();
     upcomingDue.setDate(upcomingDue.getDate() + 3);
     
-    const upcomingHomework = await Homework.find({
+    const upcomingTraditionalHomework = await Homework.find({
       course_id: { $in: courseIds },
       due_date: { $gte: new Date(), $lte: upcomingDue },
       is_active: true
     }).populate('course_id', 'course_name course_code').sort({ due_date: 1 }).limit(3);
 
-    if (upcomingHomework.length > 0) {
+    const upcomingStudentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds },
+      claimed_deadline: { $gte: new Date(), $lte: upcomingDue },
+      completion_status: { $ne: 'completed' }
+    }).populate('course_id', 'course_name course_code').sort({ claimed_deadline: 1 }).limit(3);
+
+    const allUpcomingHomework = [
+      ...upcomingTraditionalHomework.map(hw => ({
+        title: hw.title,
+        course: hw.course_id.course_name,
+        due_date: hw.due_date,
+        type: 'traditional'
+      })),
+      ...upcomingStudentHomework.map(hw => ({
+        title: hw.title,
+        course: hw.course_id.course_name,
+        due_date: hw.claimed_deadline,
+        type: 'student'
+      }))
+    ].sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+    if (allUpcomingHomework.length > 0) {
       recentActivity.push({
         type: 'upcoming',
-        message: `${upcomingHomework.length} homework assignments due soon`,
+        message: `${allUpcomingHomework.length} homework assignments due soon`,
         timestamp: new Date(),
-        count: upcomingHomework.length,
-        homework: upcomingHomework.map(hw => ({
-          title: hw.title,
-          course: hw.course_id.course_name,
-          due_date: hw.due_date
-        }))
+        count: allUpcomingHomework.length,
+        homework: allUpcomingHomework
       });
     }
     
@@ -316,8 +410,19 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       student_performance: {
         top_performers: topPerformers.slice(0, 5), // Top 5
         struggling_students: strugglingStudents.slice(0, 3), // Top 3 needing attention
-        total_a_grades: topPerformers.length,
-        total_below_c: strugglingStudents.length
+        total_high_performers: topPerformers.length,
+        total_struggling_students: strugglingStudents.length,
+        performance_summary: {
+          total_students_with_grades: Object.keys(studentGrades).length,
+          average_class_performance: Math.round(averageGrade * 100) / 100,
+          grade_distribution: {
+            a_grades: grades.filter(g => ['A+', 'A', 'A-'].includes(g.letter_grade || g.calculateLetterGrade())).length,
+            b_grades: grades.filter(g => ['B+', 'B', 'B-'].includes(g.letter_grade || g.calculateLetterGrade())).length,
+            c_grades: grades.filter(g => ['C+', 'C', 'C-'].includes(g.letter_grade || g.calculateLetterGrade())).length,
+            d_grades: grades.filter(g => ['D+', 'D', 'D-'].includes(g.letter_grade || g.calculateLetterGrade())).length,
+            f_grades: grades.filter(g => g.letter_grade === 'F' || g.calculateLetterGrade() === 'F').length
+          }
+        }
       },
       recent_activity: recentActivity,
       todays_schedule: todaysClasses.map(cls => ({

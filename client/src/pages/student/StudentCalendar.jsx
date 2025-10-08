@@ -24,24 +24,27 @@ import {
 const StudentCalendar = () => {
   const { isAuthenticated } = useAuth0();
   const [homework, setHomework] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchStudentHomework();
+      fetchAllCalendarData();
     }
   }, [isAuthenticated]);
 
-  const fetchStudentHomework = async () => {
+  const fetchAllCalendarData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await apiService.studentHomework.getHomework();
-      const homeworkData = response.data.homework || [];
+      // Fetch homework
+      const homeworkResponse = await apiService.studentHomework.getHomework();
+      const homeworkData = homeworkResponse.data.homework || [];
       
-      // Convert to calendar format
+      // Convert homework to calendar format
       const calendarHomework = homeworkData.map(hw => ({
         _id: hw._id,
         title: hw.title,
@@ -56,18 +59,85 @@ const StudentCalendar = () => {
         deadline_verification_status: hw.deadline_verification_status,
         claimed_grade: hw.claimed_grade,
         uploader_role: hw.uploader_role,
-        status: hw.completion_status === 'completed' ? 'graded' : 'pending'
+        status: hw.completion_status === 'completed' ? 'graded' : 'pending',
+        type: 'homework'
       }));
 
       setHomework(calendarHomework);
 
+      // Fetch classes - get multiple weeks to cover the entire calendar view
+      try {
+        // Fetch classes for current month and next month
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        
+        // Calculate how many weeks we need to fetch
+        const weeks = Math.ceil((endOfNextMonth - startOfMonth) / (7 * 24 * 60 * 60 * 1000));
+        
+        const allClassesPromises = [];
+        for (let i = 0; i < weeks; i++) {
+          const weekStart = new Date(startOfMonth);
+          weekStart.setDate(startOfMonth.getDate() + (i * 7));
+          allClassesPromises.push(
+            apiService.studentDashboard.getClassesPlanner(weekStart.toISOString())
+          );
+        }
+        
+        const classesResponses = await Promise.allSettled(allClassesPromises);
+        const allClassesData = classesResponses
+          .filter(result => result.status === 'fulfilled')
+          .flatMap(result => result.value.data.schedule || [])
+          .flatMap(day => 
+            (day.classes || []).map(cls => ({
+              _id: cls._id,
+              title: cls.topic,
+              description: cls.description,
+              due_date: cls.class_date,
+              start_time: cls.start_time,
+              end_time: cls.end_time,
+              room: cls.room,
+              course: cls.course,
+              type: 'class'
+            }))
+          );
+        
+        setClasses(allClassesData);
+        console.log('Classes fetched:', allClassesData.length);
+      } catch (err) {
+        console.error('Error fetching classes:', err);
+      }
+
+      // Fetch exams
+      try {
+        const examsResponse = await apiService.studentDashboard.getExams();
+        const examsData = examsResponse.data.exams || [];
+        
+        const calendarExams = examsData.map(exam => ({
+          _id: exam._id,
+          title: exam.title || exam.exam_title,
+          description: exam.description,
+          due_date: exam.due_date,
+          exam_time: exam.start_time,
+          duration: exam.duration_minutes,
+          room: exam.room,
+          course: exam.course,
+          exam_type: exam.exam_type,
+          type: 'exam'
+        }));
+        
+        setExams(calendarExams);
+      } catch (err) {
+        console.error('Error fetching exams:', err);
+      }
+
       console.log('Student calendar - Total homework:', calendarHomework.length);
-      console.log('Completed homework:', calendarHomework.filter(hw => hw.completion_status === 'completed').length);
-      console.log('Pending homework:', calendarHomework.filter(hw => hw.completion_status !== 'completed').length);
+      console.log('Student calendar - Total classes:', classes.length);
+      console.log('Student calendar - Total exams:', exams.length);
 
     } catch (err) {
-      console.error('Error fetching student homework:', err);
-      setError(err.response?.data?.error || 'Failed to fetch homework data');
+      console.error('Error fetching calendar data:', err);
+      setError(err.response?.data?.error || 'Failed to fetch calendar data');
     } finally {
       setLoading(false);
     }
@@ -197,7 +267,7 @@ const StudentCalendar = () => {
         </Grid>
 
         {/* Calendar Component */}
-        <CalendarComponent events={homework} userRole="student" />
+        <CalendarComponent events={[...homework, ...classes, ...exams]} userRole="student" />
       </Box>
     </DashboardLayout>
   );
