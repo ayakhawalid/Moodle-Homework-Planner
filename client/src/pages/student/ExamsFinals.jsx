@@ -270,7 +270,7 @@ function ExamsFinals() {
                       <MenuItem value="">All Courses</MenuItem>
                       {examsData?.courses?.map((course) => (
                         <MenuItem key={course._id} value={course._id}>
-                          {course.course_code} - {course.course_name}
+                          {course.code} - {course.name}
                         </MenuItem>
                       ))}
                     </Select>
@@ -348,10 +348,10 @@ function ExamsFinals() {
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                           <Box>
                             <Typography variant="h6" gutterBottom>
-                              {exam.title}
+                              {exam.exam_title}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              {exam.course?.course_code} - {exam.course?.course_name}
+                              {exam.course?.code} - {exam.course?.name}
                             </Typography>
                           </Box>
                           <Chip 
@@ -432,7 +432,7 @@ function ExamsFinals() {
                         primary={
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="h6">
-                              {exam.title}
+                              {exam.exam_title}
                             </Typography>
                             <Chip 
                               icon={getExamStatusIcon(exam.status)}
@@ -451,7 +451,7 @@ function ExamsFinals() {
                         secondary={
                           <Box component="div">
                             <Typography variant="body2" color="text.secondary" component="div">
-                              {exam.course?.course_code} - {exam.course?.course_name}
+                              {exam.course?.code} - {exam.course?.name}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" component="div">
                               {new Date(exam.due_date).toLocaleDateString()} at {new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -502,7 +502,7 @@ function ExamsFinals() {
                 >
                   {courses.map((course) => (
                     <MenuItem key={course._id} value={course._id}>
-                      {course.course_code} - {course.course_name}
+                      {course.code || course.course_code} - {course.name || course.course_name}
                     </MenuItem>
                   ))}
                 </Select>
