@@ -356,7 +356,7 @@ function ExamsFinals() {
                           </Box>
                           <Chip 
                             icon={getExamStatusIcon(exam.status)}
-                            label={exam.exam_type}
+                            label={String(exam.exam_type || 'midterm').replace(/\b\w/g, l => l.toUpperCase())}
                             sx={getExamTypeColor(exam.exam_type)}
                             size="small"
                           />
@@ -436,28 +436,28 @@ function ExamsFinals() {
                             </Typography>
                             <Chip 
                               icon={getExamStatusIcon(exam.status)}
-                              label={exam.status}
+                              label={String(exam.status || 'upcoming').replace(/\b\w/g, l => l.toUpperCase())}
                               color={getExamStatusColor(exam.status)}
                               size="small"
                             />
                             <Chip 
-                              label={exam.exam_type}
-                              color={getExamTypeColor(exam.exam_type)}
+                              label={String(exam.exam_type || 'midterm').replace(/\b\w/g, l => l.toUpperCase())}
+                              sx={getExamTypeColor(exam.exam_type)}
                               size="small"
                               variant="outlined"
                             />
                           </Box>
                         }
                         secondary={
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
+                          <Box component="div">
+                            <Typography variant="body2" color="text.secondary" component="div">
                               {exam.course?.course_code} - {exam.course?.course_name}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="div">
                               {new Date(exam.due_date).toLocaleDateString()} at {new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </Typography>
                             {exam.days_until_due !== undefined && (
-                              <Typography variant="body2" color={exam.days_until_due <= 3 ? 'error.main' : exam.days_until_due <= 7 ? 'warning.main' : 'text.secondary'}>
+                              <Typography variant="body2" color={exam.days_until_due <= 3 ? 'error.main' : exam.days_until_due <= 7 ? 'warning.main' : 'text.secondary'} component="div">
                                 {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 
                                  exam.days_until_due === 0 ? 'Today' : 
                                  `${Math.abs(exam.days_until_due)} days overdue`}
@@ -468,16 +468,6 @@ function ExamsFinals() {
                       />
                       <ListItemSecondaryAction>
                         <Box display="flex" gap={1}>
-                          <Tooltip title="Study Plan">
-                            <IconButton size="small">
-                              <BookmarkIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Resources">
-                            <IconButton size="small">
-                              <AssignmentIcon />
-                            </IconButton>
-                          </Tooltip>
                           {exam.grade && (
                             <Chip 
                               label={`Grade: ${exam.grade}`}

@@ -684,9 +684,8 @@ router.post('/add-class', checkJwt, extractUser, requireStudent, async (req, res
     
     await newClass.save();
     
-    // Add the class to the course
-    course.classes.push(newClass._id);
-    await course.save();
+    // No need to add to course.classes since it's a virtual field
+    // The class is already linked to the course via course_id
     
     res.status(201).json({ 
       message: 'Class added successfully', 
@@ -739,9 +738,8 @@ router.post('/add-exam', checkJwt, extractUser, requireStudent, async (req, res)
     
     await newExam.save();
     
-    // Add the exam to the course
-    course.exams.push(newExam._id);
-    await course.save();
+    // No need to add to course.exams since it's a virtual field
+    // The exam is already linked to the course via course_id
     
     res.status(201).json({ 
       message: 'Exam added successfully', 
@@ -999,8 +997,7 @@ router.get('/classes-planner', checkJwt, extractUser, requireStudent, async (req
     
     // Get student's enrolled courses
     const courses = await Course.find({ 
-      students: studentId, 
-      is_active: true 
+      students: studentId
     });
     const courseIds = courses.map(course => course._id);
     
@@ -1021,14 +1018,21 @@ router.get('/classes-planner', checkJwt, extractUser, requireStudent, async (req
     weekEndDate.setDate(weekStartDate.getDate() + 6);
     weekEndDate.setHours(23, 59, 59, 999);
     
+    console.log('Classes planner query - Week range:', weekStartDate, 'to', weekEndDate);
+    console.log('Classes planner query - Course IDs:', courseIds);
+    
     // Get classes for the week
     const classes = await Class.find({
       course_id: { $in: courseIds },
-      class_date: { $gte: weekStartDate, $lte: weekEndDate },
-      is_active: true
+      class_date: { $gte: weekStartDate, $lte: weekEndDate }
     })
     .populate('course_id', 'course_name course_code')
     .sort({ class_date: 1 });
+    
+    console.log('Classes found:', classes.length);
+    classes.forEach(cls => {
+      console.log('- Class:', cls.class_title, 'Date:', cls.class_date, 'Course:', cls.course_id?.course_name);
+    });
     
     // Group classes by day
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

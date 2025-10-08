@@ -32,17 +32,74 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState('month');
 
-  // Convert homework data to calendar events
-  const calendarEvents = events.map((homework, index) => ({
-    id: homework._id || index,
-    title: homework.title,
-    start: new Date(homework.due_date || homework.claimed_deadline),
-    end: new Date(homework.due_date || homework.claimed_deadline),
-    resource: {
-      homework: homework,
-      type: 'homework'
+  // Convert all event data to calendar events
+  const calendarEvents = events.map((event, index) => {
+    const eventType = event.type || 'homework';
+    let start, end, title, allDay;
+    
+    if (eventType === 'class') {
+      // For classes, combine class_date with start_time and end_time
+      const classDate = new Date(event.due_date);
+      
+      if (event.start_time) {
+        const [startHours, startMinutes] = event.start_time.split(':');
+        start = new Date(classDate);
+        start.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
+      } else {
+        start = classDate;
+      }
+      
+      if (event.end_time) {
+        const [endHours, endMinutes] = event.end_time.split(':');
+        end = new Date(classDate);
+        end.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+      } else {
+        end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1 hour
+      }
+      
+      title = event.title;
+      allDay = false;
+    } else if (eventType === 'exam') {
+      // For exams, combine due_date with exam_time and duration
+      const examDate = new Date(event.due_date);
+      
+      if (event.exam_time) {
+        const [examHours, examMinutes] = event.exam_time.split(':');
+        start = new Date(examDate);
+        start.setHours(parseInt(examHours), parseInt(examMinutes), 0, 0);
+        
+        // Add duration to get end time
+        const durationMs = (event.duration || 60) * 60 * 1000;
+        end = new Date(start.getTime() + durationMs);
+      } else {
+        start = examDate;
+        end = new Date(examDate.getTime() + 60 * 60 * 1000); // Default 1 hour
+      }
+      
+      title = event.title;
+      allDay = false;
+    } else {
+      // Homework - show in all-day row for week/day views
+      start = new Date(event.due_date || event.claimed_deadline);
+      end = new Date(event.due_date || event.claimed_deadline);
+      title = event.title;
+      allDay = true; // This puts it in the all-day section of week/day views
     }
-  }));
+    
+    return {
+      id: event._id || index,
+      title: title,
+      start: start,
+      end: end,
+      allDay: allDay,
+      resource: {
+        homework: eventType === 'homework' ? event : null,
+        class: eventType === 'class' ? event : null,
+        exam: eventType === 'exam' ? event : null,
+        type: eventType
+      }
+    };
+  });
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
@@ -70,10 +127,12 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
   };
 
   const getEventStyle = (event) => {
-    const homework = event.resource?.homework;
-    if (!homework) return {};
+    const eventData = event.resource?.homework || event.resource?.class || event.resource?.exam;
+    const eventType = event.resource?.type;
+    
+    if (!eventData) return {};
 
-    // Determine color based on status and urgency using 4-color theme
+    // Determine color based on event type and status
     const dueDate = new Date(event.start);
     const today = new Date();
     
@@ -85,16 +144,22 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
 
     let backgroundColor = '#95E1D3'; // Default light teal
 
-    if (homework.completion_status === 'completed' || homework.status === 'graded') {
-      backgroundColor = '#95E1D3'; // Light teal for completed
-    } else if (daysUntilDue < 0) {
-      backgroundColor = '#F38181'; // Light coral for overdue
-    } else if (daysUntilDue <= 1) {
-      backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-    } else if (daysUntilDue <= 3) {
-      backgroundColor = '#FCE38A'; // Light yellow for warning
-    } else {
-      backgroundColor = '#D6F7AD'; // Light green for normal
+    if (eventType === 'homework') {
+      if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
+        backgroundColor = '#95E1D3'; // Light teal for completed
+      } else if (daysUntilDue < 0) {
+        backgroundColor = '#F38181'; // Light coral for overdue
+      } else if (daysUntilDue <= 1) {
+        backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
+      } else if (daysUntilDue <= 3) {
+        backgroundColor = '#FCE38A'; // Light yellow for warning
+      } else {
+        backgroundColor = '#D6F7AD'; // Light green for normal
+      }
+    } else if (eventType === 'class') {
+      backgroundColor = '#D6F7AD'; // Light green for classes
+    } else if (eventType === 'exam') {
+      backgroundColor = '#F38181'; // Light coral for exams
     }
 
     return {
@@ -103,12 +168,42 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
       opacity: 0.9,
       color: '#333',
       border: '0px',
-      display: 'block'
+      display: 'block',
+      padding: '4px 6px',
+      fontSize: '12px',
+      lineHeight: '1.4',
+      whiteSpace: 'normal',
+      overflow: 'visible'
     };
   };
 
   const EventComponent = ({ event }) => {
-    const homework = event.resource?.homework;
+    const eventData = event.resource?.homework || event.resource?.class || event.resource?.exam;
+    const eventType = event.resource?.type;
+    
+    // Debug: Log exam events to see what's being rendered
+    if (eventType === 'exam') {
+      console.log('Rendering exam in EventComponent:', {
+        title: event.title,
+        hasCourse: !!eventData?.course,
+        courseName: eventData?.course?.name,
+        courseCode: eventData?.course?.code,
+        courseCourseName: eventData?.course?.course_name,
+        courseCourseCode: eventData?.course?.course_code,
+        fullCourseData: eventData?.course
+      });
+    }
+    
+    if (eventType === 'class') {
+      console.log('Rendering class in EventComponent:', {
+        title: event.title,
+        hasCourse: !!eventData?.course,
+        courseName: eventData?.course?.name,
+        courseCode: eventData?.course?.code,
+        fullCourseData: eventData?.course
+      });
+    }
+    
     const dueDate = new Date(event.start);
     const today = new Date();
     
@@ -118,47 +213,78 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     
     const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
 
-    // Determine color based on status and urgency using 4-color theme
+    // Determine color based on event type and status
     let backgroundColor = '#95E1D3'; // Default light teal
     let textColor = '#333';
 
-    if (homework?.completion_status === 'completed' || homework?.status === 'graded') {
-      backgroundColor = '#95E1D3'; // Light teal for completed
-    } else if (daysUntilDue < 0) {
-      backgroundColor = '#F38181'; // Light coral for overdue
-    } else if (daysUntilDue <= 1) {
-      backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-    } else if (daysUntilDue <= 3) {
-      backgroundColor = '#FCE38A'; // Light yellow for warning
-    } else {
-      backgroundColor = '#D6F7AD'; // Light green for normal
+    if (eventType === 'homework') {
+      if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
+        backgroundColor = '#95E1D3'; // Light teal for completed
+      } else if (daysUntilDue < 0) {
+        backgroundColor = '#F38181'; // Light coral for overdue
+      } else if (daysUntilDue <= 1) {
+        backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
+      } else if (daysUntilDue <= 3) {
+        backgroundColor = '#FCE38A'; // Light yellow for warning
+      } else {
+        backgroundColor = '#D6F7AD'; // Light green for normal
+      }
+    } else if (eventType === 'class') {
+      backgroundColor = '#D6F7AD'; // Light green for classes
+    } else if (eventType === 'exam') {
+      backgroundColor = '#F38181'; // Light coral for exams
     }
 
     return (
-      <Box sx={{ 
+      <div style={{ 
         backgroundColor, 
         color: textColor,
-        padding: '2px 4px',
+        padding: '6px 8px',
         borderRadius: '4px',
         height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center'
+        width: '100%',
+        overflow: 'hidden',
+        boxSizing: 'border-box'
       }}>
-        <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', fontSize: '11px' }}>
-          {event.title}
-        </Typography>
-        {homework?.course && (
-          <Typography variant="caption" sx={{ display: 'block', fontSize: '9px', opacity: 0.8 }}>
-            {homework.course.name || homework.course.code}
-          </Typography>
+        <div style={{ 
+          fontWeight: 'bold', 
+          fontSize: '13px',
+          lineHeight: '1.4',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          marginBottom: '2px'
+        }}>
+          {event.title || 'Untitled'}
+        </div>
+        {eventData?.course && (
+          <div style={{ 
+            fontSize: '11px', 
+            opacity: 0.8,
+            lineHeight: '1.3',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            display: 'block',
+            color: '#333'
+          }}>
+            {eventData.course.name || eventData.course.course_name || eventData.course.code || eventData.course.course_code || ''}
+          </div>
         )}
-        {daysUntilDue <= 1 && (
-          <Typography variant="caption" sx={{ display: 'block', fontSize: '9px', fontWeight: 'bold' }}>
+        {eventType === 'homework' && daysUntilDue <= 1 && (
+          <div style={{ 
+            fontSize: '9px', 
+            fontWeight: 'bold',
+            lineHeight: '1.2',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            marginTop: '2px'
+          }}>
             {daysUntilDue < 0 ? 'Overdue!' : daysUntilDue === 0 ? 'Due Today!' : 'Due Tomorrow!'}
-          </Typography>
+          </div>
         )}
-      </Box>
+      </div>
     );
   };
 
@@ -316,7 +442,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                       {selectedEvent.resource.homework.completion_status && (
                         <Box sx={{ mt: 1 }}>
                           <Chip
-                            label={`Status: ${selectedEvent.resource.homework.completion_status}`}
+                            label={`Status: ${String(selectedEvent.resource.homework.completion_status).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`}
                             sx={{
                               backgroundColor: selectedEvent.resource.homework.completion_status === 'completed' ? 'rgba(149, 225, 211, 0.3)' : 'rgba(252, 227, 138, 0.3)',
                               color: '#333',
@@ -330,7 +456,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                       {selectedEvent.resource.homework.deadline_verification_status && (
                         <Box sx={{ mt: 1 }}>
                           <Chip
-                            label={`Deadline: ${selectedEvent.resource.homework.deadline_verification_status}`}
+                            label={`Deadline: ${String(selectedEvent.resource.homework.deadline_verification_status).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`}
                             sx={{
                               backgroundColor: selectedEvent.resource.homework.deadline_verification_status === 'verified' ? 'rgba(149, 225, 211, 0.3)' : 'rgba(252, 227, 138, 0.3)',
                               color: '#333',

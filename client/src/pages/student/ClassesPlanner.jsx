@@ -382,10 +382,9 @@ function ClassesPlanner() {
                             </Box>
                           )}
                           <Chip 
-                            label={classItem.class_type || 'lecture'} 
+                            label={String(classItem.class_type || 'lecture').replace(/\b\w/g, l => l.toUpperCase())} 
                             size="small" 
-                            color={getClassTypeColor(classItem.class_type)}
-                            sx={{ alignSelf: 'flex-start', fontSize: '0.7rem' }}
+                            sx={{ ...getClassTypeColor(classItem.class_type), alignSelf: 'flex-start', fontSize: '0.7rem' }}
                           />
                         </Box>
                       </div>
@@ -456,12 +455,12 @@ function ClassesPlanner() {
                                   />
                                 )}
                                 <Chip 
-                                  label={classItem.class_type || 'lecture'}
+                                  label={String(classItem.class_type || 'lecture').replace(/\b\w/g, l => l.toUpperCase())}
                                   size="small"
                                   sx={getClassTypeColor(classItem.class_type)}
                                 />
                                 <Chip 
-                                  label={`${classItem.duration_minutes} min`}
+                                  label={`${classItem.duration_minutes || 90} min`}
                                   size="small"
                                   variant="outlined"
                                   sx={{

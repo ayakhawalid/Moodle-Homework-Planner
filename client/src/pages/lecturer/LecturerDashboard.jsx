@@ -176,17 +176,29 @@ function LecturerDashboard() {
             <p>Monitor individual student performance and identify those who need help.</p>
             <div style={{marginTop: '15px'}}>
               <div style={{marginBottom: '10px', padding: '10px', background: 'rgba(149, 225, 211, 0.3)', borderRadius: '8px'}}>
-                <strong>Top Performers</strong><br />
+                <strong>High Performers</strong><br />
                 <small style={{color: '#333'}}>
-                  {dashboardData?.student_performance?.total_a_grades || 0} students with A grades
+                  {dashboardData?.student_performance?.total_high_performers || 0} students with 60%+ A grades
                 </small>
               </div>
               <div style={{padding: '10px', background: 'rgba(252, 227, 138, 0.3)', borderRadius: '8px'}}>
                 <strong>Need Attention</strong><br />
                 <small style={{color: '#333'}}>
-                  {dashboardData?.student_performance?.total_below_c || 0} students below C grade
+                  {dashboardData?.student_performance?.total_struggling_students || 0} students with 40%+ failing grades
                 </small>
               </div>
+              {dashboardData?.student_performance?.performance_summary && (
+                <div style={{marginTop: '10px', padding: '10px', background: 'rgba(214, 247, 173, 0.3)', borderRadius: '8px'}}>
+                  <strong>Grade Distribution</strong><br />
+                  <small style={{color: '#333'}}>
+                    A: {dashboardData.student_performance.performance_summary.grade_distribution.a_grades} | 
+                    B: {dashboardData.student_performance.performance_summary.grade_distribution.b_grades} | 
+                    C: {dashboardData.student_performance.performance_summary.grade_distribution.c_grades} | 
+                    D: {dashboardData.student_performance.performance_summary.grade_distribution.d_grades} | 
+                    F: {dashboardData.student_performance.performance_summary.grade_distribution.f_grades}
+                  </small>
+                </div>
+              )}
             </div>
           </div>
         </div>
