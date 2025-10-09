@@ -10,7 +10,7 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
   try {
     const { course_id, date, room, upcoming, today } = req.query;
     const userRole = req.userInfo.roles[0];
-    const userId = req.userInfo.auth0_id;
+    const auth0Id = req.userInfo.auth0_id;
     
     let filter = {};
     
@@ -31,13 +31,21 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
     
     // Role-based filtering
     if (userRole === 'student') {
-      const studentCourses = await Course.find({ students: userId, is_active: true }).select('_id');
-      const courseIds = studentCourses.map(course => course._id);
-      filter.course_id = { $in: courseIds };
+      // Find the user by Auth0 ID to get MongoDB ObjectId
+      const user = await User.findOne({ auth0_id: auth0Id });
+      if (user) {
+        const studentCourses = await Course.find({ students: user._id, is_active: true }).select('_id');
+        const courseIds = studentCourses.map(course => course._id);
+        filter.course_id = { $in: courseIds };
+      }
     } else if (userRole === 'lecturer') {
-      const lecturerCourses = await Course.find({ lecturer_id: userId, is_active: true }).select('_id');
-      const courseIds = lecturerCourses.map(course => course._id);
-      filter.course_id = { $in: courseIds };
+      // Find the user by Auth0 ID to get MongoDB ObjectId
+      const user = await User.findOne({ auth0_id: auth0Id });
+      if (user) {
+        const lecturerCourses = await Course.find({ lecturer_id: user._id, is_active: true }).select('_id');
+        const courseIds = lecturerCourses.map(course => course._id);
+        filter.course_id = { $in: courseIds };
+      }
     }
     
     let query;
@@ -65,13 +73,19 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
     // Apply role filtering to results if needed
     let filteredClasses = classes;
     if (userRole === 'student') {
-      filteredClasses = classes.filter(cls => 
-        cls.course_id.students.some(student => student.equals(userId))
-      );
+      const user = await User.findOne({ auth0_id: auth0Id });
+      if (user) {
+        filteredClasses = classes.filter(cls => 
+          cls.course_id.students.some(student => student.equals(user._id))
+        );
+      }
     } else if (userRole === 'lecturer') {
-      filteredClasses = classes.filter(cls => 
-        cls.course_id.lecturer_id.equals(userId)
-      );
+      const user = await User.findOne({ auth0_id: auth0Id });
+      if (user) {
+        filteredClasses = classes.filter(cls => 
+          cls.course_id.lecturer_id.equals(user._id)
+        );
+      }
     }
     
     res.json(filteredClasses);
@@ -100,15 +114,20 @@ router.get('/:id', checkJwt, extractUser, async (req, res) => {
     
     // Check access permissions
     const userRole = req.userInfo.roles[0];
-    const userId = req.userInfo.auth0_id;
+    const auth0Id = req.userInfo.auth0_id;
+    
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     
     if (userRole === 'student') {
-      const isEnrolled = classItem.course_id.students.some(student => student.equals(userId));
+      const isEnrolled = classItem.course_id.students.some(student => student.equals(user._id));
       if (!isEnrolled) {
         return res.status(403).json({ error: 'Access denied' });
       }
     } else if (userRole === 'lecturer') {
-      if (!classItem.course_id.lecturer_id.equals(userId)) {
+      if (!classItem.course_id.lecturer_id.equals(user._id)) {
         return res.status(403).json({ error: 'Access denied' });
       }
     }
@@ -293,20 +312,23 @@ router.get('/room/:room', checkJwt, extractUser, async (req, res) => {
 router.get('/today', checkJwt, extractUser, async (req, res) => {
   try {
     const userRole = req.userInfo.roles[0];
-    const userId = req.userInfo.auth0_id;
+    const auth0Id = req.userInfo.auth0_id;
     
     let classes = await Class.findToday()
       .populate('course_id', 'course_name course_code lecturer_id students');
     
     // Filter by user role
-    if (userRole === 'student') {
-      classes = classes.filter(cls => 
-        cls.course_id.students.some(student => student.equals(userId))
-      );
-    } else if (userRole === 'lecturer') {
-      classes = classes.filter(cls => 
-        cls.course_id.lecturer_id.equals(userId)
-      );
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (user) {
+      if (userRole === 'student') {
+        classes = classes.filter(cls => 
+          cls.course_id.students.some(student => student.equals(user._id))
+        );
+      } else if (userRole === 'lecturer') {
+        classes = classes.filter(cls => 
+          cls.course_id.lecturer_id.equals(user._id)
+        );
+      }
     }
     
     res.json(classes);
@@ -321,20 +343,23 @@ router.get('/upcoming/:days', checkJwt, extractUser, async (req, res) => {
   try {
     const days = parseInt(req.params.days) || 7;
     const userRole = req.userInfo.roles[0];
-    const userId = req.userInfo.auth0_id;
+    const auth0Id = req.userInfo.auth0_id;
     
     let classes = await Class.findUpcoming(days)
       .populate('course_id', 'course_name course_code lecturer_id students');
     
     // Filter by user role
-    if (userRole === 'student') {
-      classes = classes.filter(cls => 
-        cls.course_id.students.some(student => student.equals(userId))
-      );
-    } else if (userRole === 'lecturer') {
-      classes = classes.filter(cls => 
-        cls.course_id.lecturer_id.equals(userId)
-      );
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (user) {
+      if (userRole === 'student') {
+        classes = classes.filter(cls => 
+          cls.course_id.students.some(student => student.equals(user._id))
+        );
+      } else if (userRole === 'lecturer') {
+        classes = classes.filter(cls => 
+          cls.course_id.lecturer_id.equals(user._id)
+        );
+      }
     }
     
     res.json(classes);
