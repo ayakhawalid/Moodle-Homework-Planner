@@ -23,34 +23,36 @@ import {
 const LecturerCalendar = () => {
   const { isAuthenticated } = useAuth0();
   const [homework, setHomework] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchLecturerHomework();
+      fetchAllCalendarData();
     }
   }, [isAuthenticated]);
 
-  const fetchLecturerHomework = async () => {
+  const fetchAllCalendarData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Use the same approach as student calendar - get combined data from lecturer endpoint
-      const response = await apiService.studentHomework.getLecturerHomework();
+      // Fetch homework
+      const homeworkResponse = await apiService.studentHomework.getLecturerHomework();
       
-      console.log('Lecturer homework response:', response);
-      console.log('Response data:', response.data);
+      console.log('Lecturer homework response:', homeworkResponse);
+      console.log('Response data:', homeworkResponse.data);
       
       // Handle different response structures
       let homeworkData = [];
-      if (Array.isArray(response.data)) {
-        homeworkData = response.data;
-      } else if (response.data && Array.isArray(response.data.homework)) {
-        homeworkData = response.data.homework;
-      } else if (response.data && Array.isArray(response.data.data)) {
-        homeworkData = response.data.data;
+      if (Array.isArray(homeworkResponse.data)) {
+        homeworkData = homeworkResponse.data;
+      } else if (homeworkResponse.data && Array.isArray(homeworkResponse.data.homework)) {
+        homeworkData = homeworkResponse.data.homework;
+      } else if (homeworkResponse.data && Array.isArray(homeworkResponse.data.data)) {
+        homeworkData = homeworkResponse.data.data;
       }
       
       console.log('Processed homework data:', homeworkData);
@@ -59,7 +61,7 @@ const LecturerCalendar = () => {
       // Convert to calendar format (same as student calendar)
       const calendarHomework = Array.isArray(homeworkData) ? homeworkData.map(hw => ({
         _id: hw._id,
-        title: hw.uploader_role === 'lecturer' ? `[LECTURER] ${hw.title}` : `[STUDENT] ${hw.title}`,
+        title: hw.title,
         description: hw.description,
         due_date: hw.claimed_deadline || hw.verified_deadline,
         course: {
@@ -71,21 +73,76 @@ const LecturerCalendar = () => {
         deadline_verification_status: hw.deadline_verification_status,
         claimed_grade: hw.claimed_grade,
         uploader_role: hw.uploader_role,
-        status: hw.completion_status === 'completed' ? 'graded' : 'pending'
+        status: hw.completion_status === 'completed' ? 'graded' : 'pending',
+        type: 'homework'
       })) : [];
 
       setHomework(calendarHomework);
 
+      // Fetch classes
+      try {
+        const classesResponse = await apiService.lecturerDashboard.getClasses();
+        const classesData = classesResponse.data || [];
+        
+        const calendarClasses = classesData.map(cls => ({
+          _id: cls._id,
+          title: cls.class_title,
+          description: cls.description,
+          due_date: cls.class_date,
+          start_time: cls.start_time,
+          end_time: cls.end_time,
+          room: cls.room,
+          course: {
+            _id: cls.course_id?._id,
+            name: cls.course_id?.course_name,
+            code: cls.course_id?.course_code
+          },
+          type: 'class'
+        }));
+        
+        setClasses(calendarClasses);
+        console.log('Lecturer calendar - Total classes:', calendarClasses.length);
+      } catch (err) {
+        console.error('Error fetching classes:', err);
+      }
+
+      // Fetch exams
+      try {
+        const examsResponse = await apiService.lecturerDashboard.getExams();
+        const examsData = examsResponse.data || [];
+        
+        const calendarExams = examsData.map(exam => ({
+          _id: exam._id,
+          title: exam.exam_title,
+          description: exam.description,
+          due_date: exam.due_date,
+          exam_time: exam.start_time,
+          duration: exam.duration_minutes,
+          room: exam.room,
+          course: {
+            _id: exam.course_id?._id,
+            name: exam.course_id?.course_name,
+            code: exam.course_id?.course_code
+          },
+          exam_type: exam.exam_type,
+          type: 'exam'
+        }));
+        
+        setExams(calendarExams);
+        console.log('Lecturer calendar - Total exams:', calendarExams.length);
+      } catch (err) {
+        console.error('Error fetching exams:', err);
+      }
+
       console.log('Lecturer calendar - Total homework:', calendarHomework.length);
       console.log('Lecturer-created homework:', calendarHomework.filter(hw => hw.uploader_role === 'lecturer').length);
       console.log('Student-created homework:', calendarHomework.filter(hw => hw.uploader_role === 'student').length);
-      console.log('All homework data:', calendarHomework);
 
     } catch (err) {
-      console.error('Error fetching lecturer homework:', err);
+      console.error('Error fetching lecturer calendar data:', err);
       console.error('Error details:', err.response?.data);
       console.error('Error status:', err.response?.status);
-      setError(err.response?.data?.error || 'Failed to fetch homework data');
+      setError(err.response?.data?.error || 'Failed to fetch calendar data');
     } finally {
       setLoading(false);
     }
@@ -222,7 +279,7 @@ const LecturerCalendar = () => {
         </Grid>
 
         {/* Calendar Component */}
-        <CalendarComponent events={homework} userRole="lecturer" />
+        <CalendarComponent events={[...homework, ...classes, ...exams]} userRole="lecturer" />
       </Box>
     </DashboardLayout>
   );

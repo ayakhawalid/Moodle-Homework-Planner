@@ -201,6 +201,16 @@ export const apiService = {
       if (status) params.append('status', status);
       if (courseId) params.append('course_id', courseId);
       return api.get(`/lecturer-dashboard/homework-checker?${params.toString()}`);
+    },
+    getClasses: (courseId = null) => {
+      const params = new URLSearchParams();
+      if (courseId) params.append('course_id', courseId);
+      return api.get(`/classes?${params.toString()}`);
+    },
+    getExams: (courseId = null) => {
+      const params = new URLSearchParams();
+      if (courseId) params.append('course_id', courseId);
+      return api.get(`/exams?${params.toString()}`);
     }
   },
 
