@@ -177,29 +177,6 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
     // Calculate workload statistics
     const totalExams = await Exam.find({ course_id: { $in: courseIds }, is_active: true });
     const totalClasses = classes.length;
-    
-    // Calculate grade distribution
-    const gradeDistribution = {
-      a: grades.filter(g => g.grade >= 90).length,
-      b: grades.filter(g => g.grade >= 80 && g.grade < 90).length,
-      c: grades.filter(g => g.grade >= 70 && g.grade < 80).length,
-      d: grades.filter(g => g.grade >= 60 && g.grade < 70).length,
-      f: grades.filter(g => g.grade < 60).length
-    };
-
-    // Calculate letter grade from average
-    const getLetterGrade = (average) => {
-      if (average >= 90) return 'A';
-      if (average >= 80) return 'B';
-      if (average >= 70) return 'C';
-      if (average >= 60) return 'D';
-      return 'F';
-    };
-
-    const letterGrade = getLetterGrade(averageGrade);
-    
-    // Calculate grading progress percentage
-    const gradingProgress = totalHomework > 0 ? Math.round((gradedHomework / totalHomework) * 100) : 0;
 
     // Get recent activity items
     const recentActivity = [];
@@ -293,40 +270,69 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
     }
 
     // Add overdue homework notifications from BOTH tables
+    // Use start of today - anything before today is overdue
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    
+    console.log('=== OVERDUE HOMEWORK DEBUG - QUERY ===');
+    console.log('Current time:', now);
+    console.log('Start of today (cutoff):', startOfToday);
+    console.log('Course IDs:', courseIds);
+    
     const overdueTraditionalHomework = await Homework.find({
       course_id: { $in: courseIds },
-      due_date: { $lt: new Date() },
+      due_date: { $lt: startOfToday },
       is_active: true
-    }).populate('course_id', 'course_name course_code').limit(3);
+    }).populate('course_id', 'course_name course_code').sort({ due_date: -1 });
 
     const overdueStudentHomework = await StudentHomework.find({
       course_id: { $in: courseIds },
-      claimed_deadline: { $lt: new Date() },
-      completion_status: { $ne: 'completed' }
-    }).populate('course_id', 'course_name course_code').limit(3);
+      claimed_deadline: { $lt: startOfToday }
+      // Removed completion_status filter - show ALL overdue homework regardless of status
+    }).populate('course_id', 'course_name course_code').sort({ claimed_deadline: -1 });
 
     const allOverdueHomework = [
       ...overdueTraditionalHomework.map(hw => ({
         title: hw.title,
         course: hw.course_id.course_name,
         due_date: hw.due_date,
-        type: 'traditional'
+        type: 'traditional',
+        _id: hw._id
       })),
       ...overdueStudentHomework.map(hw => ({
         title: hw.title,
         course: hw.course_id.course_name,
         due_date: hw.claimed_deadline,
-        type: 'student'
+        type: 'student',
+        _id: hw._id
       }))
     ];
+
+    console.log('=== OVERDUE HOMEWORK DEBUG - RESULTS ===');
+    console.log('Traditional overdue count:', overdueTraditionalHomework.length);
+    console.log('Student overdue count:', overdueStudentHomework.length);
+    console.log('Total overdue count:', allOverdueHomework.length);
+    console.log('Traditional overdue homework:', overdueTraditionalHomework.map(hw => ({ 
+      id: hw._id.toString(),
+      title: hw.title, 
+      due_date: hw.due_date,
+      course: hw.course_id.course_name
+    })));
+    console.log('Student overdue homework:', overdueStudentHomework.map(hw => ({ 
+      id: hw._id.toString(),
+      title: hw.title, 
+      due_date: hw.claimed_deadline,
+      course: hw.course_id.course_name
+    })));
+    console.log('=== END OVERDUE HOMEWORK DEBUG ===');
 
     if (allOverdueHomework.length > 0) {
       recentActivity.push({
         type: 'overdue',
-        message: `${allOverdueHomework.length} homework assignments are overdue`,
+        message: `${allOverdueHomework.length} homework assignment${allOverdueHomework.length > 1 ? 's are' : ' is'} overdue`,
         timestamp: new Date(),
         count: allOverdueHomework.length,
-        homework: allOverdueHomework
+        homework: allOverdueHomework.slice(0, 10) // Show top 10 in details
       });
     }
 
@@ -396,11 +402,7 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
         total_classes: totalClasses,
         total_students: totalStudents,
         total_homework: totalHomework,
-        total_exams: totalExams.length,
-        average_grade: Math.round(averageGrade * 100) / 100,
-        letter_grade: letterGrade,
-        grading_progress: gradingProgress,
-        grade_distribution: gradeDistribution
+        total_exams: totalExams.length
       },
       classroom: {
         total_classes: classes.length,
@@ -604,26 +606,93 @@ router.get('/courses-info', checkJwt, extractUser, requireLecturer, async (req, 
         match: { is_active: true }
       });
     
-    const coursesInfo = courses.map(course => {
+    const courseIds = courses.map(c => c._id);
+    
+    // Get student homework for all courses
+    const studentHomework = await StudentHomework.find({
+      course_id: { $in: courseIds }
+    })
+    .populate('course_id', 'course_name course_code')
+    .populate('uploaded_by', 'name email full_name')
+    .sort({ claimed_deadline: -1 });
+    
+    const coursesInfo = await Promise.all(courses.map(async (course) => {
       const totalStudents = course.students.length;
-      const totalHomework = course.homework ? course.homework.length : 0;
+      const traditionalHomework = course.homework || [];
+      
+      // Get student homework for this specific course
+      const courseStudentHomework = studentHomework.filter(hw => 
+        hw.course_id._id.equals(course._id)
+      );
+      
+      const totalHomework = traditionalHomework.length + courseStudentHomework.length;
       const totalClasses = course.classes ? course.classes.length : 0;
       const totalExams = course.exams ? course.exams.length : 0;
       
-      // Calculate average grade for this course
-      let totalGrade = 0;
-      let gradeCount = 0;
-      if (course.homework) {
-        course.homework.forEach(hw => {
-          if (hw.grades) {
-            hw.grades.forEach(grade => {
-              totalGrade += grade.grade;
-              gradeCount++;
-            });
-          }
-        });
-      }
-      const averageGrade = gradeCount > 0 ? totalGrade / gradeCount : 0;
+      // Process traditional homework
+      const processedTraditionalHomework = traditionalHomework.map(hw => {
+        const hwGrades = hw.grades || [];
+        const gradedCount = hwGrades.length;
+        const avgGrade = gradedCount > 0 
+          ? Math.round((hwGrades.reduce((sum, g) => sum + g.grade, 0) / gradedCount) * 100) / 100
+          : null;
+        
+        return {
+          _id: hw._id,
+          title: hw.title,
+          due_date: hw.due_date,
+          graded_count: gradedCount,
+          average_grade: avgGrade,
+          type: 'traditional'
+        };
+      });
+      
+      // Process student homework - group by title and deadline to treat as single assignments
+      // then count how many students completed each
+      const studentHomeworkMap = new Map();
+      
+      courseStudentHomework.forEach(hw => {
+        const key = `${hw.title}_${new Date(hw.claimed_deadline).toISOString()}`;
+        
+        if (!studentHomeworkMap.has(key)) {
+          studentHomeworkMap.set(key, {
+            _id: hw._id,
+            title: hw.title,
+            due_date: hw.claimed_deadline,
+            completed_students: [],
+            type: 'student'
+          });
+        }
+        
+        // Add student to completed list if they graded themselves
+        if (hw.completion_status === 'completed' && hw.claimed_grade !== null && hw.claimed_grade !== undefined) {
+          studentHomeworkMap.get(key).completed_students.push({
+            student_id: hw.uploaded_by._id,
+            grade: hw.claimed_grade
+          });
+        }
+      });
+      
+      // Convert map to array with calculated stats
+      const processedStudentHomework = Array.from(studentHomeworkMap.values()).map(hw => {
+        const gradedCount = hw.completed_students.length;
+        const avgGrade = gradedCount > 0
+          ? Math.round((hw.completed_students.reduce((sum, s) => sum + s.grade, 0) / gradedCount) * 100) / 100
+          : null;
+        
+        return {
+          _id: hw._id,
+          title: hw.title,
+          due_date: hw.due_date,
+          graded_count: gradedCount,
+          average_grade: avgGrade,
+          type: 'student'
+        };
+      });
+      
+      // Combine both types of homework
+      const allHomework = [...processedTraditionalHomework, ...processedStudentHomework]
+        .sort((a, b) => new Date(b.due_date) - new Date(a.due_date));
       
       return {
         _id: course._id,
@@ -642,21 +711,11 @@ router.get('/courses-info', checkJwt, extractUser, requireLecturer, async (req, 
           student_count: totalStudents,
           homework_count: totalHomework,
           class_count: totalClasses,
-          exam_count: totalExams,
-          average_grade: Math.round(averageGrade * 100) / 100,
-          letter_grade: getLetterGrade(averageGrade)
+          exam_count: totalExams
         },
-        recent_homework: course.homework ? course.homework
-          .sort((a, b) => new Date(b.due_date) - new Date(a.due_date))
-          .slice(0, 5)
-          .map(hw => ({
-            _id: hw._id,
-            title: hw.title,
-            due_date: hw.due_date,
-            submission_count: hw.grades ? hw.grades.length : 0
-          })) : []
+        recent_homework: allHomework
       };
-    });
+    }));
     
     res.json(coursesInfo);
   } catch (error) {
@@ -772,7 +831,7 @@ router.get('/homework-checker', checkJwt, extractUser, requireLecturer, async (r
         },
         status: homeworkStatus,
         is_overdue: new Date() > hw.due_date,
-        days_until_due: Math.ceil((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
       };
     });
     
@@ -886,5 +945,143 @@ async function getWeeklyWorkload(courseIds) {
   
   return workload;
 }
+
+// GET /api/lecturer-dashboard/student-course-workload/:courseId - Get workload of students from a specific course
+router.get('/student-course-workload/:courseId', checkJwt, extractUser, requireLecturer, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const { courseId } = req.params;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const lecturerId = user._id;
+    
+    // Get the selected course and verify lecturer teaches it
+    const course = await Course.findOne({ 
+      _id: courseId, 
+      lecturer_id: lecturerId,
+      is_active: true 
+    }).populate('students', 'name email full_name');
+    
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found or you do not have access' });
+    }
+    
+    const studentIds = course.students.map(s => s._id);
+    
+    // Get all courses these students are enrolled in
+    const studentCourses = await Course.find({
+      students: { $in: studentIds },
+      is_active: true
+    }).populate('lecturer_id', 'name email full_name');
+    
+    const studentCourseIds = studentCourses.map(c => c._id);
+    
+    // Get homework from BOTH tables for all these courses
+    const traditionalHomework = await Homework.find({
+      course_id: { $in: studentCourseIds },
+      is_active: true
+    })
+    .populate('course_id', 'course_name course_code')
+    .sort({ due_date: 1 });
+    
+    const studentHomework = await StudentHomework.find({
+      course_id: { $in: studentCourseIds }
+    })
+    .populate('course_id', 'course_name course_code')
+    .populate('uploaded_by', 'name email')
+    .sort({ claimed_deadline: 1 });
+    
+    // Convert to common format
+    const convertedTraditionalHomework = traditionalHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      due_date: hw.due_date,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      type: 'traditional'
+    }));
+    
+    const convertedStudentHomework = studentHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      due_date: hw.claimed_deadline,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      type: 'student'
+    }));
+    
+    const allHomework = [...convertedTraditionalHomework, ...convertedStudentHomework];
+    
+    // Group homework by course
+    const courseWorkloadMap = new Map();
+    
+    studentCourses.forEach(c => {
+      courseWorkloadMap.set(c._id.toString(), {
+        course_id: c._id,
+        course_name: c.course_name,
+        course_code: c.course_code,
+        lecturer: c.lecturer_id ? {
+          name: c.lecturer_id.name || c.lecturer_id.full_name,
+          email: c.lecturer_id.email
+        } : null,
+        homework: [],
+        total_assignments: 0,
+        upcoming_week: 0,
+        upcoming_month: 0
+      });
+    });
+    
+    // Get date ranges
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const monthFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    // Categorize homework by course
+    allHomework.forEach(hw => {
+      const courseKey = hw.course._id.toString();
+      const courseData = courseWorkloadMap.get(courseKey);
+      
+      if (courseData) {
+        courseData.homework.push(hw);
+        courseData.total_assignments++;
+        
+        const dueDate = new Date(hw.due_date);
+        if (dueDate >= now && dueDate <= weekFromNow) {
+          courseData.upcoming_week++;
+        }
+        if (dueDate >= now && dueDate <= monthFromNow) {
+          courseData.upcoming_month++;
+        }
+      }
+    });
+    
+    const courseWorkloads = Array.from(courseWorkloadMap.values())
+      .sort((a, b) => b.upcoming_week - a.upcoming_week); // Sort by most busy first
+    
+    res.json({
+      course: {
+        _id: course._id,
+        name: course.course_name,
+        code: course.course_code,
+        student_count: studentIds.length
+      },
+      student_workload: courseWorkloads
+    });
+  } catch (error) {
+    console.error('Error fetching student course workload:', error);
+    res.status(500).json({ error: 'Failed to fetch student course workload' });
+  }
+});
 
 module.exports = router;

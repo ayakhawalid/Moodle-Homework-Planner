@@ -14,7 +14,8 @@ import {
   Quiz as QuizIcon,
   School as SchoolIcon,
   Timer as TimerIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  Event as EventIcon
 } from '@mui/icons-material';
 import '../../styles/DashboardLayout.css';
 
@@ -175,32 +176,74 @@ function StudentDashboard() {
               </div>
             </Grid>
             
-            {/* Courses Info Card */}
+            {/* Today's Classes Card */}
             <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
               <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
                 <div className="card-header">
-                  <div className="card-icon primary">
-                    <SchoolIcon />
+                  <div className="card-icon study-activity">
+                    <EventIcon />
                   </div>
                   <div>
-                    <h3 className="card-title">Courses Info</h3>
-                    <p className="card-subtitle">Your enrolled courses</p>
+                    <h3 className="card-title">Today's Classes</h3>
+                    <p className="card-subtitle">Your schedule for today</p>
                   </div>
                 </div>
                 <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{marginTop: '15px', height: '100%', overflowY: 'auto', paddingRight: '8px'}}>
-                    {dashboardData?.courses?.list?.length > 0 ? (
-                      dashboardData.courses.list.map((course, index) => (
-                        <div key={course._id} style={{marginBottom: '15px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
-                          <strong style={{fontSize: '1.1em'}}>{course.course_name}</strong><br />
-                          <small style={{color: '#666', fontSize: '0.95em'}}>
-                            {course.lecturer?.name || 'TBA'} - {course.course_code}
-                          </small>
-                        </div>
-                      ))
+                    {dashboardData.todays_classes?.length > 0 ? (
+                      dashboardData.todays_classes.map((classItem) => {
+                        // Get class type color
+                        let borderColor = '#2196f3';
+                        
+                        switch(classItem.class_type) {
+                          case 'lecture':
+                            borderColor = '#2196f3';
+                            break;
+                          case 'lab':
+                            borderColor = '#9c27b0';
+                            break;
+                          case 'seminar':
+                            borderColor = '#4caf50';
+                            break;
+                          case 'workshop':
+                            borderColor = '#ff9800';
+                            break;
+                          default:
+                            borderColor = '#9e9e9e';
+                        }
+                        
+                        return (
+                          <div 
+                            key={classItem._id} 
+                            style={{
+                              marginBottom: '15px',
+                              padding: '12px', 
+                              background: '#f8f9fa', 
+                              borderRadius: '8px',
+                              borderLeft: `4px solid ${borderColor}`
+                            }}
+                          >
+                            <strong style={{fontSize: '1em', color: '#333', display: 'block', marginBottom: '4px'}}>
+                              {classItem.class_title || classItem.course.name}
+                            </strong>
+                            
+                            <small style={{color: '#666', fontSize: '0.85em', display: 'block', marginBottom: '6px'}}>
+                              {classItem.course.code}
+                            </small>
+                            
+                            <small style={{color: '#333', fontSize: '0.9em', fontWeight: '600', display: 'block'}}>
+                              {classItem.start_time} - {classItem.end_time}
+                            </small>
+                            
+                            <small style={{color: '#666', fontSize: '0.85em'}}>
+                              {classItem.is_online ? '🌐 Online' : `📍 ${classItem.room}`}
+                            </small>
+                          </div>
+                        );
+                      })
                     ) : (
                       <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666', fontSize: '1.1em'}}>
-                        No courses enrolled yet
+                        No classes today
                       </div>
                     )}
                   </div>
@@ -307,6 +350,52 @@ function StudentDashboard() {
                     ) : (
                       <div style={{padding: '20px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center', color: '#666', fontSize: '1.1em'}}>
                         No upcoming exams
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Grid>
+          </Grid>
+        )}
+
+        {/* Courses Info Section */}
+        {!loading && !error && dashboardData && (
+          <Grid container spacing={0} mb={4}>
+            <Grid item xs={12}>
+              <div className="dashboard-card" style={{ minHeight: '250px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card-header">
+                  <div className="card-icon primary">
+                    <SchoolIcon />
+                  </div>
+                  <div>
+                    <h3 className="card-title">Courses Info</h3>
+                    <p className="card-subtitle">Your enrolled courses</p>
+                  </div>
+                </div>
+                <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{marginTop: '15px', height: '100%', overflowY: 'auto', paddingRight: '8px'}}>
+                    {dashboardData?.courses?.list?.length > 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px' }}>
+                        {dashboardData.courses.list.map((course, index) => (
+                          <div key={course._id} style={{marginBottom: '10px', padding: '15px', background: '#f8f9fa', borderRadius: '8px'}}>
+                            <strong style={{fontSize: '1.1em'}}>{course.course_name}</strong><br />
+                            <small style={{color: '#666', fontSize: '0.95em'}}>
+                              {course.lecturer?.name || 'TBA'} - {course.course_code}
+                            </small>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: '40px 20px', 
+                        background: '#f8f9fa', 
+                        borderRadius: '8px', 
+                        textAlign: 'center', 
+                        color: '#666', 
+                        fontSize: '1.1em'
+                      }}>
+                        No courses enrolled yet
                       </div>
                     )}
                   </div>

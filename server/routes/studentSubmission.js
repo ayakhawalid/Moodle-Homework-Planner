@@ -185,7 +185,7 @@ router.get('/homework/:homeworkId', checkJwt, extractUser, requireStudent, async
       } : null,
       is_submitted: !!existingGrade,
       is_overdue: new Date() > homework.due_date,
-      days_until_due: Math.ceil((new Date(homework.due_date) - new Date()) / (1000 * 60 * 60 * 24)),
+      days_until_due: Math.floor((new Date(homework.due_date) - new Date()) / (1000 * 60 * 60 * 24)),
       potential_partners: potentialPartners,
       existing_partner: existingPartner ? {
         partner_id: existingPartner._id,

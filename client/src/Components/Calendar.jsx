@@ -140,7 +140,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     today.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
     
-    const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+    const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
 
     let backgroundColor = '#95E1D3'; // Default light teal
 
@@ -211,7 +211,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     today.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
     
-    const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+    const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
 
     // Determine color based on event type and status
     let backgroundColor = '#95E1D3'; // Default light teal
