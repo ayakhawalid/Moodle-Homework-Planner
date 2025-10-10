@@ -92,7 +92,8 @@ homeworkSchema.methods.daysUntilDue = function() {
   const now = new Date();
   const due = new Date(this.due_date);
   const diffTime = due - now;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Use Math.floor for proper handling of overdue homework
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 };
 

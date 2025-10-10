@@ -185,13 +185,26 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     const overdueExams = exams.filter(exam => new Date(exam.due_date) < new Date() && 
       !grades.some(grade => grade.exam_id && grade.exam_id.equals(exam._id)));
     
-    // Calculate average grade
+    // Calculate average grade (null if no grades to avoid showing 0% trend)
     const averageGrade = grades.length > 0 
       ? grades.reduce((sum, grade) => sum + grade.grade, 0) / grades.length 
-      : 0;
+      : null;
     
     // Calculate study hours for the week
     const weeklyStudyHours = studyProgress.reduce((sum, progress) => sum + progress.hours_studied, 0);
+    
+    // Get today's classes
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    
+    const allClasses = await Class.find({
+      course_id: { $in: courseIds },
+      class_date: { $gte: startOfDay, $lte: endOfDay },
+      is_cancelled: false
+    })
+    .populate('course_id', 'course_name course_code')
+    .sort({ start_time: 1 });
     
     const overview = {
       courses: {
@@ -212,12 +225,13 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
         completed: completedHomework,
         upcoming: upcomingHomework,
         overdue: overdueHomework,
-        average_grade: Math.round(averageGrade * 100) / 100,
+        average_grade: averageGrade !== null ? Math.round(averageGrade * 100) / 100 : null,
         upcoming_list: allHomework
           .filter(hw => {
             const dueDate = new Date(hw.due_date);
             const today = new Date();
-            const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            // Use Math.floor for proper negative number handling
+            const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
             return daysUntilDue >= 0 && 
                    !grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id));
           })
@@ -231,7 +245,7 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
               name: hw.course_id.course_name,
               code: hw.course_id.course_code
             },
-            days_until_due: Math.ceil((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+            days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
           }))
       },
       exams: {
@@ -247,12 +261,12 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
             name: exam.course_id.course_name,
             code: exam.course_id.course_code
           },
-          days_until_due: Math.ceil((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+          days_until_due: Math.floor((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
         }))
       },
       study_progress: {
         weekly_hours: weeklyStudyHours,
-        daily_average: studyProgress.length > 0 ? Math.round((weeklyStudyHours / studyProgress.length) * 10) / 10 : 0,
+        daily_average: studyProgress.length > 0 ? Math.round((weeklyStudyHours / studyProgress.length) * 10) / 10 : null,
         goal_achieved_days: studyProgress.filter(progress => progress.goal_achieved).length,
         weekly_breakdown: (() => {
           // Create array for the current week (Monday to Sunday) with study hours
@@ -285,6 +299,20 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
           return weeklyData;
         })()
       },
+      todays_classes: allClasses.map(cls => ({
+        _id: cls._id,
+        class_title: cls.class_title,
+        course: {
+          name: cls.course_id.course_name,
+          code: cls.course_id.course_code
+        },
+        start_time: cls.start_time,
+        end_time: cls.end_time,
+        room: cls.room,
+        class_type: cls.class_type,
+        is_online: cls.is_online,
+        meeting_link: cls.meeting_link
+      })),
       recent_activity: {
         recent_grades: grades.slice(0, 5).map(grade => ({
           _id: grade._id,
@@ -472,7 +500,7 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
         is_graded: isGraded,
         is_overdue: isOverdue,
         grade: isGraded ? grade.grade : null,
-        days_until_due: Math.ceil((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
       };
     });
     
@@ -486,8 +514,11 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
       const days = parseInt(upcoming_days);
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + days);
+      const now = new Date();
       filteredHomework = processedHomework.filter(hw => 
-        new Date(hw.due_date) <= futureDate && hw.status !== 'graded'
+        new Date(hw.due_date) <= futureDate && 
+        new Date(hw.due_date) >= now && 
+        hw.status !== 'graded'
       );
     }
     
@@ -1167,7 +1198,7 @@ router.get('/exams', checkJwt, extractUser, requireStudent, async (req, res) => 
         is_graded: isGraded,
         is_overdue: isOverdue,
         grade: isGraded ? grade.grade : null,
-        days_until_due: Math.ceil((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        days_until_due: Math.floor((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
       };
     });
     

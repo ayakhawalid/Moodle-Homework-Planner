@@ -371,7 +371,7 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
   }
 });
 
-// GET /api/student-homework/lecturer/all - Get all homework for lecturer's courses
+// GET /api/student-homework/lecturer/all - Get all homework for ALL courses (system-wide)
 router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, res) => {
   try {
     const auth0Id = req.userInfo.auth0_id;
@@ -380,16 +380,15 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
       return res.status(404).json({ error: 'User not found in database' });
     }
 
-    // Get courses taught by lecturer
+    // Get ALL active courses (not just lecturer's courses)
     const courses = await Course.find({
-      lecturer_id: user._id,
       is_active: true
     }).select('_id course_name course_code');
 
     const courseIds = courses.map(course => course._id);
 
-    // Get all homework for these courses from BOTH tables
-    console.log(`Lecturer ${user._id} teaching courses:`, courseIds);
+    // Get all homework for ALL courses from BOTH tables
+    console.log(`Fetching homework for all ${courses.length} active courses:`, courseIds);
     
     // Query StudentHomework table
     const studentHomework = await StudentHomework.find({

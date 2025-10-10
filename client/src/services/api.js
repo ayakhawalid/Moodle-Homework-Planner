@@ -196,6 +196,7 @@ export const apiService = {
     getOverview: () => api.get('/lecturer-dashboard/overview'),
     getWorkloadStats: () => api.get('/lecturer-dashboard/workload-stats'),
     getCoursesInfo: () => api.get('/lecturer-dashboard/courses-info'),
+    getStudentCourseWorkload: (courseId) => api.get(`/lecturer-dashboard/student-course-workload/${courseId}`),
     getHomeworkChecker: (status = 'pending', courseId = null) => {
       const params = new URLSearchParams();
       if (status) params.append('status', status);

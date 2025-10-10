@@ -55,6 +55,9 @@ const CourseWorkloadOverview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('30'); // days
+  const [selectedCourseForWorkload, setSelectedCourseForWorkload] = useState('');
+  const [studentWorkloadData, setStudentWorkloadData] = useState(null);
+  const [lecturerCourses, setLecturerCourses] = useState([]);
 
   // Helper function to get status color
   const getStatusColor = (status) => {
@@ -110,52 +113,51 @@ const CourseWorkloadOverview = () => {
       const lecturerId = userResponse._id;
       console.log('Lecturer ID:', lecturerId);
       
-      // Fetch courses taught by this lecturer
-      console.log('Fetching courses for lecturer...');
-      let lecturerCourses = [];
+      // Fetch ALL courses (not just lecturer's courses)
+      console.log('Fetching all courses...');
+      let allCourses = [];
       
       try {
-        const coursesResponse = await apiService.courses.getByLecturer(lecturerId);
-        console.log('Courses response:', coursesResponse);
-        
-        if (coursesResponse && coursesResponse.data) {
-          lecturerCourses = coursesResponse.data.filter(course => course.is_active);
-        } else if (Array.isArray(coursesResponse)) {
-          // Handle case where response is directly an array
-          lecturerCourses = coursesResponse.filter(course => course.is_active);
-        } else {
-          throw new Error('Invalid courses response format');
-        }
-      } catch (coursesError) {
-        console.warn('Error with getByLecturer, trying getAll approach:', coursesError);
-        // Fallback: get all courses and filter by lecturer
         const allCoursesResponse = await apiService.courses.getAll();
         console.log('All courses response:', allCoursesResponse);
         
         if (allCoursesResponse && allCoursesResponse.data) {
-          lecturerCourses = allCoursesResponse.data.filter(course => 
-            course.is_active && course.lecturer_id === lecturerId
-          );
+          allCourses = allCoursesResponse.data.filter(course => course.is_active);
+        } else if (Array.isArray(allCoursesResponse)) {
+          // Handle case where response is directly an array
+          allCourses = allCoursesResponse.filter(course => course.is_active);
+        } else {
+          throw new Error('Invalid courses response format');
         }
+      } catch (coursesError) {
+        console.error('Error fetching all courses:', coursesError);
+        throw coursesError;
       }
-        console.log('Active courses:', lecturerCourses);
-        console.log('Course details:', lecturerCourses.map(c => ({
+        console.log('Active courses:', allCourses);
+        console.log('Course details:', allCourses.map(c => ({
           id: c._id,
           name: c.course_name,
           code: c.course_code,
           lecturer_id: c.lecturer_id
         })));
-        setCourses(lecturerCourses);
+        setCourses(allCourses);
+        
+        // Also get lecturer's own courses for the student workload dropdown
+        const myCoursesOnly = allCourses.filter(course => 
+          course.lecturer_id && course.lecturer_id._id === lecturerId
+        );
+        setLecturerCourses(myCoursesOnly);
+        console.log('Lecturer courses:', myCoursesOnly);
 
-      if (lecturerCourses.length === 0) {
-        console.log('No active courses found for lecturer');
+      if (allCourses.length === 0) {
+        console.log('No active courses found');
         setAllHomework([]);
         return;
       }
 
         // Fetch all homework for these courses
         console.log('Fetching homework data...');
-        console.log('About to fetch homework for courses:', lecturerCourses.map(c => ({ id: c._id, name: c.course_name })));
+        console.log('About to fetch homework for courses:', allCourses.map(c => ({ id: c._id, name: c.course_name })));
         
         // Use the new lecturer-specific endpoint
         console.log('Fetching homework for lecturer...');
@@ -219,6 +221,25 @@ const CourseWorkloadOverview = () => {
       setLoading(false);
     }
   };
+
+  // Fetch student workload when a course is selected
+  useEffect(() => {
+    const fetchStudentWorkload = async () => {
+      if (!selectedCourseForWorkload) {
+        setStudentWorkloadData(null);
+        return;
+      }
+
+      try {
+        const response = await apiService.lecturerDashboard.getStudentCourseWorkload(selectedCourseForWorkload);
+        setStudentWorkloadData(response.data);
+      } catch (err) {
+        console.error('Error fetching student workload:', err);
+      }
+    };
+
+    fetchStudentWorkload();
+  }, [selectedCourseForWorkload]);
 
   const getWorkloadData = () => {
     try {
@@ -293,13 +314,15 @@ const CourseWorkloadOverview = () => {
           return deadline >= now && deadline <= endDate;
         }).length;
 
-        // Count overdue assignments
+        // Count overdue assignments (ALL assignments past due date, regardless of completion)
+        // Use start of today for proper comparison
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
         const overdue = courseHomework.filter(hw => {
           if (!hw) return false;
           const deadlineDate = hw.claimed_deadline || hw.due_date;
           if (!deadlineDate) return false;
           const deadline = new Date(deadlineDate);
-          return deadline < now && hw.completion_status !== 'completed';
+          return deadline < startOfToday; // Show ALL overdue, regardless of completion status
         }).length;
 
         // Create abbreviated course code for better chart readability
@@ -421,7 +444,7 @@ const CourseWorkloadOverview = () => {
         lineHeight: '1.6',
         letterSpacing: '0.3px'
       }}>
-        Visualize student workload across all your courses
+        Visualize student workload across all courses in the system
       </Typography>
 
       {error && (
@@ -609,6 +632,197 @@ const CourseWorkloadOverview = () => {
           </div>
         </Grid>
       </Grid>
+
+      {/* Student Course Workload Analysis */}
+      <Box sx={{ mb: 4 }}>
+        <div className="dashboard-card">
+          <div className="card-header">
+            <div className="card-icon primary">
+              <PersonIcon />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 className="card-title">Student Workload Analysis</h3>
+              <p className="card-subtitle">See what other courses your students are taking</p>
+            </div>
+            <FormControl sx={{ minWidth: 300 }} size="small">
+              <InputLabel>Select Your Course</InputLabel>
+              <Select
+                value={selectedCourseForWorkload}
+                label="Select Your Course"
+                onChange={(e) => setSelectedCourseForWorkload(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Select a course</em>
+                </MenuItem>
+                {lecturerCourses.map((course) => (
+                  <MenuItem key={course._id} value={course._id}>
+                    {course.course_name} ({course.course_code})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </div>
+          
+          {studentWorkloadData ? (
+            <div className="card-content">
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body1" gutterBottom>
+                  <strong>Course:</strong> {studentWorkloadData.course.name} ({studentWorkloadData.course.code})
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Analyzing workload for {studentWorkloadData.course.student_count} students
+                </Typography>
+              </Box>
+
+              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                Courses Your Students Are Taking
+              </Typography>
+              
+              {studentWorkloadData.student_workload.length > 0 ? (
+                <>
+                  {/* Bar Chart */}
+                  <Box sx={{ overflowX: 'auto', mb: 3 }}>
+                    <ResponsiveContainer 
+                      width={studentWorkloadData.student_workload.length > 6 ? studentWorkloadData.student_workload.length * 100 : '100%'} 
+                      height={400}
+                    >
+                      <BarChart 
+                        data={studentWorkloadData.student_workload}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="course_code" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                          interval={0}
+                          fontSize={11}
+                        />
+                        <YAxis />
+                        <Tooltip 
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <Paper sx={{ p: 2 }}>
+                                  <Typography variant="subtitle2">{data.course_name}</Typography>
+                                  <Typography variant="caption" display="block">
+                                    Code: {data.course_code}
+                                  </Typography>
+                                  {data.lecturer && (
+                                    <Typography variant="caption" display="block">
+                                      Lecturer: {data.lecturer.name}
+                                    </Typography>
+                                  )}
+                                  <Divider sx={{ my: 1 }} />
+                                  <Typography variant="body2">
+                                    Next Week: {payload.find(p => p.dataKey === 'upcoming_week')?.value || 0} assignments
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Next Month: {payload.find(p => p.dataKey === 'upcoming_month')?.value || 0} assignments
+                                  </Typography>
+                                </Paper>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend />
+                        <Bar dataKey="upcoming_week" fill="#7DD3C0" name="Due This Week" />
+                        <Bar dataKey="upcoming_month" fill="#C8F299" name="Due This Month" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+
+                  {/* Detailed List */}
+                  <Typography variant="h6" gutterBottom>
+                    Course Details
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {studentWorkloadData.student_workload.map((courseData) => (
+                      <Grid item xs={12} md={6} key={courseData.course_id}>
+                        <Paper sx={{ p: 2, borderLeft: `4px solid ${courseData.upcoming_week > 3 ? '#F38181' : '#95E1D3'}` }}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {courseData.course_name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {courseData.course_code}
+                          </Typography>
+                          {courseData.lecturer && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Lecturer: {courseData.lecturer.name}
+                            </Typography>
+                          )}
+                          
+                          <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Chip
+                              label={`${courseData.upcoming_week} due this week`}
+                              size="small"
+                              color={courseData.upcoming_week > 3 ? 'error' : 'success'}
+                              variant="outlined"
+                            />
+                            <Chip
+                              label={`${courseData.upcoming_month} due this month`}
+                              size="small"
+                              color="default"
+                              variant="outlined"
+                            />
+                          </Box>
+                          
+                          {courseData.homework.length > 0 && (
+                            <Accordion sx={{ mt: 2 }}>
+                              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="body2">
+                                  View Upcoming Assignments ({courseData.homework.filter(hw => new Date(hw.due_date) >= new Date()).length})
+                                </Typography>
+                              </AccordionSummary>
+                              <AccordionDetails>
+                                <List dense>
+                                  {courseData.homework
+                                    .filter(hw => new Date(hw.due_date) >= new Date())
+                                    .slice(0, 5)
+                                    .map((hw) => (
+                                      <ListItem key={hw._id} sx={{ px: 0 }}>
+                                        <ListItemIcon>
+                                          <AssignmentIcon fontSize="small" />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                          primary={hw.title}
+                                          secondary={`Due: ${new Date(hw.due_date).toLocaleDateString()}`}
+                                        />
+                                      </ListItem>
+                                    ))}
+                                </List>
+                              </AccordionDetails>
+                            </Accordion>
+                          )}
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </>
+              ) : (
+                <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                  No other courses found for students in this course
+                </Typography>
+              )}
+            </div>
+          ) : selectedCourseForWorkload ? (
+            <div className="card-content">
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                <CircularProgress />
+              </Box>
+            </div>
+          ) : (
+            <div className="card-content">
+              <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                Select a course from the dropdown to analyze student workload
+              </Typography>
+            </div>
+          )}
+        </div>
+      </Box>
 
       {/* Detailed Course Breakdown */}
       <Typography variant="h5" gutterBottom>

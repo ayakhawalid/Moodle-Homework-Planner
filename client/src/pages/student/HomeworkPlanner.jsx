@@ -116,7 +116,7 @@ function HomeworkPlanner() {
                   const upcomingHomework = homeworkData.homework?.filter(hw => {
                     const dueDate = new Date(hw.due_date);
                     const today = new Date();
-                    const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                    const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
                     
                     // Show all upcoming homework (not overdue, not completed)
                     return daysUntilDue >= 0 && hw.status !== 'graded';
@@ -126,7 +126,7 @@ function HomeworkPlanner() {
                     upcomingHomework.slice(0, 3).map((hw, index) => {
                       const dueDate = new Date(hw.due_date);
                       const today = new Date();
-                      const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                      const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
                       
                       // Determine background color based on urgency
                       let bgColor = 'rgba(149, 225, 211, 0.3)'; // Default teal

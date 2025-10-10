@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { apiService } from '../../services/api';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import {
   BarChart as BarChartIcon,
-  TrendingUp as TrendingUpIcon,
-  People as PeopleIcon,
   Assignment as AssignmentIcon,
   School as SchoolIcon
 } from '@mui/icons-material';
@@ -15,6 +13,8 @@ function WorkloadStats() {
   const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState('all');
+  const [courseDetails, setCourseDetails] = useState(null);
 
   useEffect(() => {
     const fetchWorkloadStats = async () => {
@@ -33,6 +33,27 @@ function WorkloadStats() {
 
     fetchWorkloadStats();
   }, []);
+
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      if (selectedCourse === 'all') {
+        setCourseDetails(null);
+        return;
+      }
+
+      try {
+        const response = await apiService.lecturerDashboard.getCoursesInfo();
+        const course = response.data.find(c => c._id === selectedCourse);
+        setCourseDetails(course);
+      } catch (err) {
+        console.error('Error fetching course details:', err);
+      }
+    };
+
+    if (selectedCourse !== 'all') {
+      fetchCourseDetails();
+    }
+  }, [selectedCourse]);
 
   if (loading) {
     return (
@@ -78,7 +99,7 @@ function WorkloadStats() {
           lineHeight: '1.6',
           letterSpacing: '0.3px'
         }}>
-          Analyze your teaching workload and student performance
+          Analyze your teaching workload and course overview
         </Typography>
       </Box>
 
@@ -110,88 +131,139 @@ function WorkloadStats() {
                     <span className="stat-value">{statsData.overview.total_homework}</span>
                     <span className="stat-label">Total Homework</span>
                   </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{statsData.overview.total_graded}</span>
-                    <span className="stat-label">Graded</span>
-                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="dashboard-card">
-              <div className="card-header">
-                <div className="card-icon accent">
-                  <TrendingUpIcon />
-                </div>
-                <div>
-                  <h3 className="card-title">Performance Metrics</h3>
-                  <p className="card-subtitle">Student performance overview</p>
-                </div>
-              </div>
-              <div className="card-content">
-                <div className="stat-grid">
-                  <div className="stat-item">
-                    <span className="stat-value">{statsData.overview.average_grade}%</span>
-                    <span className="stat-label">Average Grade</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{statsData.overview.pass_rate}%</span>
-                    <span className="stat-label">Pass Rate</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{statsData.overview.letter_grade}</span>
-                    <span className="stat-label">Letter Grade</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{statsData.grading_progress.completion_rate}%</span>
-                    <span className="stat-label">Completion Rate</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Course Statistics */}
+          {/* Course Details with Dropdown */}
           <div className="dashboard-card" style={{ marginTop: '20px' }}>
             <div className="card-header">
               <div className="card-icon secondary">
                 <BarChartIcon />
               </div>
-              <div>
-                <h3 className="card-title">Course Performance</h3>
-                <p className="card-subtitle">Detailed course statistics</p>
+              <div style={{ flex: 1 }}>
+                <h3 className="card-title">Course Details</h3>
+                <p className="card-subtitle">Student grades and homework completion</p>
               </div>
+              <FormControl sx={{ minWidth: 250 }} size="small">
+                <InputLabel>Select Course</InputLabel>
+                <Select
+                  value={selectedCourse}
+                  label="Select Course"
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                >
+                  <MenuItem value="all">All Courses</MenuItem>
+                  {statsData.course_statistics.map((course) => (
+                    <MenuItem key={course.course_id} value={course.course_id}>
+                      {course.course_name} ({course.course_code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </div>
             <div className="card-content">
-              <div className="course-stats-grid">
-                {statsData.course_statistics.map((course) => (
-                  <div key={course.course_id} className="course-stat-item">
-                    <h4>{course.course_name} ({course.course_code})</h4>
-                    <div className="course-metrics">
-                      <div className="metric">
-                        <span className="metric-value">{course.student_count}</span>
-                        <span className="metric-label">Students</span>
-                      </div>
-                      <div className="metric">
-                        <span className="metric-value">{course.homework_count}</span>
-                        <span className="metric-label">Homework</span>
-                      </div>
-                      <div className="metric">
-                        <span className="metric-value">{course.average_grade}%</span>
-                        <span className="metric-label">Avg Grade</span>
-                      </div>
-                      <div className="metric">
-                        <span className="metric-value">{course.pass_rate}%</span>
-                        <span className="metric-label">Pass Rate</span>
-                      </div>
-                      <div className="metric">
-                        <span className="metric-value">{course.letter_grade}</span>
-                        <span className="metric-label">Letter</span>
+              {selectedCourse === 'all' ? (
+                <div className="course-stats-grid">
+                  {statsData.course_statistics.map((course) => (
+                    <div key={course.course_id} className="course-stat-item">
+                      <h4>{course.course_name} ({course.course_code})</h4>
+                      <div className="course-metrics">
+                        <div className="metric">
+                          <span className="metric-value">{course.student_count}</span>
+                          <span className="metric-label">Students</span>
+                        </div>
+                        <div className="metric">
+                          <span className="metric-value">{course.homework_count}</span>
+                          <span className="metric-label">Homework</span>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              ) : courseDetails ? (
+                <div>
+                  <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+                    <h4 style={{ marginBottom: '10px' }}>{courseDetails.course_name} ({courseDetails.course_code})</h4>
+                    <p style={{ color: '#666', marginBottom: '5px' }}>
+                      <strong>Students Enrolled:</strong> {courseDetails.statistics?.student_count || 0}
+                    </p>
+                    <p style={{ color: '#666', marginBottom: '0' }}>
+                      <strong>Total Homework:</strong> {courseDetails.statistics?.homework_count || 0}
+                    </p>
                   </div>
-                ))}
-              </div>
+
+                  <div style={{ marginTop: '20px' }}>
+                    <h4 style={{ marginBottom: '15px' }}>Homework Details</h4>
+                    {courseDetails.recent_homework && courseDetails.recent_homework.length > 0 ? (
+                      <div style={{ display: 'grid', gap: '15px' }}>
+                        {courseDetails.recent_homework.map((hw) => {
+                          const totalStudents = courseDetails.statistics?.student_count || 0;
+                          const gradedCount = hw.graded_count || 0;
+                          const notGradedCount = totalStudents - gradedCount;
+                          
+                          return (
+                            <div 
+                              key={hw._id} 
+                              style={{ 
+                                padding: '15px', 
+                                background: 'white', 
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '8px' 
+                              }}
+                            >
+                              <h5 style={{ marginBottom: '10px', color: '#2c3e50' }}>{hw.title}</h5>
+                              <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                                gap: '10px',
+                                marginTop: '10px'
+                              }}>
+                                <div style={{ padding: '10px', background: '#e8f5e9', borderRadius: '6px' }}>
+                                  <div style={{ fontSize: '0.85em', color: '#666' }}>Students Graded</div>
+                                  <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#4caf50' }}>
+                                    {gradedCount}
+                                  </div>
+                                </div>
+                                <div style={{ padding: '10px', background: '#fff3e0', borderRadius: '6px' }}>
+                                  <div style={{ fontSize: '0.85em', color: '#666' }}>Not Graded</div>
+                                  <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#ff9800' }}>
+                                    {notGradedCount}
+                                  </div>
+                                </div>
+                                <div style={{ padding: '10px', background: '#e3f2fd', borderRadius: '6px' }}>
+                                  <div style={{ fontSize: '0.85em', color: '#666' }}>Average Grade</div>
+                                  <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#2196f3' }}>
+                                    {hw.average_grade ? `${hw.average_grade}%` : 'N/A'}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ marginTop: '10px', fontSize: '0.9em', color: '#666' }}>
+                                <strong>Due Date:</strong> {new Date(hw.due_date).toLocaleDateString()}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        padding: '30px', 
+                        background: '#f8f9fa', 
+                        borderRadius: '8px', 
+                        textAlign: 'center',
+                        color: '#666'
+                      }}>
+                        No homework assignments found for this course
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                  Loading course details...
+                </div>
+              )}
             </div>
           </div>
 

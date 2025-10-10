@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useAuth } from '../../hooks/useAuth';
 import { apiService } from '../../services/api';
 import {
-  Grade as GradingIcon,
-  Class as ClassIcon,
   BarChart as BarChartIcon,
-  People as PeopleIcon,
-  Assignment as AssignmentIcon,
-  TrendingUp as TrendingUpIcon,
   CalendarToday as CalendarTodayIcon,
   Notifications as NotificationsIcon
 } from '@mui/icons-material';
@@ -87,45 +81,10 @@ function LecturerDashboard() {
       {/* Dashboard Grid */}
       <div className="dashboard-grid">
 
-        {/* Classroom Management Card */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <div className="card-icon secondary">
-              <ClassIcon />
-            </div>
-            <div>
-              <h3 className="card-title">Classroom Management</h3>
-              <p className="card-subtitle">Manage your classes</p>
-            </div>
-          </div>
-          <div className="card-content">
-            <p>Organize your classes, track attendance, and manage course materials.</p>
-            <div className="progress-container">
-              <div className="progress-label">
-                <span>Average Attendance</span>
-                <span>{dashboardData?.classroom?.attendance_rate || 0}%</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{width: `${dashboardData?.classroom?.attendance_rate || 0}%`}}></div>
-              </div>
-            </div>
-          </div>
-          <div className="card-stats">
-            <div className="stat-item">
-              <span className="stat-value">{dashboardData?.classroom?.total_classes || 0}</span>
-              <span className="stat-label">Classes</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{dashboardData?.classroom?.total_students || 0}</span>
-              <span className="stat-label">Students</span>
-            </div>
-          </div>
-        </div>
-
         {/* Statistics Card */}
         <div className="dashboard-card">
           <div className="card-header">
-            <div className="card-icon accent">
+            <div className="card-icon primary">
               <BarChartIcon />
             </div>
             <div>
@@ -134,22 +93,9 @@ function LecturerDashboard() {
             </div>
           </div>
           <div className="card-content">
-            <p>View detailed statistics about your teaching workload and student performance.</p>
-            <div className="progress-container">
-              <div className="progress-label">
-                <span>Grading Progress</span>
-                <span>{dashboardData?.workload?.grading_progress || 0}%</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{width: `${dashboardData?.workload?.grading_progress || 0}%`}}></div>
-              </div>
-            </div>
+            <p>View detailed statistics about your teaching workload.</p>
           </div>
           <div className="card-stats">
-            <div className="stat-item">
-              <span className="stat-value">{dashboardData?.workload?.letter_grade || 'N/A'}</span>
-              <span className="stat-label">Avg Grade</span>
-            </div>
             <div className="stat-item">
               <span className="stat-value">{dashboardData?.workload?.total_courses || 0}</span>
               <span className="stat-label">Courses</span>
@@ -158,47 +104,9 @@ function LecturerDashboard() {
               <span className="stat-value">{dashboardData?.workload?.total_exams || 0}</span>
               <span className="stat-label">Exams</span>
             </div>
-          </div>
-        </div>
-
-        {/* Student Performance Card */}
-        <div className="dashboard-card">
-          <div className="card-header">
-            <div className="card-icon primary">
-              <PeopleIcon />
-            </div>
-            <div>
-              <h3 className="card-title">Student Performance</h3>
-              <p className="card-subtitle">Track student progress</p>
-            </div>
-          </div>
-          <div className="card-content">
-            <p>Monitor individual student performance and identify those who need help.</p>
-            <div style={{marginTop: '15px'}}>
-              <div style={{marginBottom: '10px', padding: '10px', background: 'rgba(149, 225, 211, 0.3)', borderRadius: '8px'}}>
-                <strong>High Performers</strong><br />
-                <small style={{color: '#333'}}>
-                  {dashboardData?.student_performance?.total_high_performers || 0} students with 60%+ A grades
-                </small>
-              </div>
-              <div style={{padding: '10px', background: 'rgba(252, 227, 138, 0.3)', borderRadius: '8px'}}>
-                <strong>Need Attention</strong><br />
-                <small style={{color: '#333'}}>
-                  {dashboardData?.student_performance?.total_struggling_students || 0} students with 40%+ failing grades
-                </small>
-              </div>
-              {dashboardData?.student_performance?.performance_summary && (
-                <div style={{marginTop: '10px', padding: '10px', background: 'rgba(214, 247, 173, 0.3)', borderRadius: '8px'}}>
-                  <strong>Grade Distribution</strong><br />
-                  <small style={{color: '#333'}}>
-                    A: {dashboardData.student_performance.performance_summary.grade_distribution.a_grades} | 
-                    B: {dashboardData.student_performance.performance_summary.grade_distribution.b_grades} | 
-                    C: {dashboardData.student_performance.performance_summary.grade_distribution.c_grades} | 
-                    D: {dashboardData.student_performance.performance_summary.grade_distribution.d_grades} | 
-                    F: {dashboardData.student_performance.performance_summary.grade_distribution.f_grades}
-                  </small>
-                </div>
-              )}
+            <div className="stat-item">
+              <span className="stat-value">{dashboardData?.workload?.total_homework || 0}</span>
+              <span className="stat-label">Homework</span>
             </div>
           </div>
         </div>
