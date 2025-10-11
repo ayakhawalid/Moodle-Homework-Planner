@@ -144,6 +144,11 @@ const UserManagement = () => {
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
       const url = `${base.replace(/\/$/, '')}/users/${selectedUser._id}/role`;
 
+      console.log('Updating role for user:', selectedUser);
+      console.log('Current logged-in user:', user);
+      console.log('Requesting URL:', url);
+      console.log('New role:', newRole);
+
       const resp = await fetchWithToken(url, {
         method: 'PUT',
         body: JSON.stringify({ role: newRole }),
@@ -152,14 +157,25 @@ const UserManagement = () => {
 
       if (!resp.ok) {
         const text = await resp.text();
+        console.error('Server response:', resp.status, text);
+        
+        if (resp.status === 403) {
+          throw new Error(`Access Denied: You don't have admin privileges.\n\nYour current role in MongoDB: ${user?.role}\n\nPlease make sure your user account has role='admin' in the MongoDB database.`);
+        }
+        
         throw new Error(`Failed to update role: ${resp.status} ${text}`);
       }
 
+      const result = await resp.json();
+      console.log('Role update successful:', result);
+      alert(`✅ Role updated successfully!\n\nUser: ${selectedUser.email}\nNew Role: ${newRole}\n\nUpdated in:\n- MongoDB: ✅\n- Auth0: ${result.auth0_updated ? '✅' : '⚠️ Not updated'}\n\nThe user needs to log out and log back in to see the new role.`);
+      
       await fetchUsers(page);
       setRoleDialogOpen(false);
       setSelectedUser(null);
     } catch (err) {
       console.error('Failed to update role:', err);
+      alert(err.message);
       setError(err);
     } finally {
       setLoading(false);
@@ -334,22 +350,45 @@ const UserManagement = () => {
 
   return (
     <DashboardLayout userRole="admin">
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">User Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={refreshingRoles ? <CircularProgress size={20} /> : <RefreshIcon />}
-          onClick={handleRefreshRoles}
-          disabled={refreshingRoles}
-          sx={{
-            backgroundColor: '#95E1D3',
-            color: '#333',
-            '&:hover': { backgroundColor: '#7dd3c0' }
-          }}
-        >
-          {refreshingRoles ? 'Refreshing...' : 'Refresh Roles from Auth0'}
-        </Button>
-      </Box>
+      <Box>
+        <Typography variant="h3" component="h1" sx={{ 
+          fontWeight: '600',
+          fontSize: '2.5rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          letterSpacing: '-0.01em',
+          lineHeight: '1.2',
+          color: '#2c3e50',
+          mb: 1
+        }}>
+          User Management
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ 
+          mb: 4,
+          fontWeight: '300',
+          fontSize: '1.1rem',
+          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+          color: '#7f8c8d',
+          lineHeight: '1.6',
+          letterSpacing: '0.3px'
+        }}>
+          Manage user accounts, roles, and permissions
+        </Typography>
+
+        <Box display="flex" justifyContent="flex-end" mb={3}>
+          <Button
+            variant="contained"
+            startIcon={refreshingRoles ? <CircularProgress size={20} /> : <RefreshIcon />}
+            onClick={handleRefreshRoles}
+            disabled={refreshingRoles}
+            sx={{
+              backgroundColor: '#95E1D3',
+              color: '#333',
+              '&:hover': { backgroundColor: '#7dd3c0' }
+            }}
+          >
+            {refreshingRoles ? 'Refreshing...' : 'Refresh Roles from Auth0'}
+          </Button>
+        </Box>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {typeof error === 'string' ? error : error.message}
@@ -447,13 +486,14 @@ const UserManagement = () => {
         </Table>
         </TableContainer>
       </div>
-      <Box display="flex" justifyContent="center" mt={3}>
-        <Pagination 
-          count={totalPages}
-          page={page}
-          onChange={(e, value) => setPage(value)}
-          color="primary"
-        />
+        <Box display="flex" justifyContent="center" mt={3}>
+          <Pagination 
+            count={totalPages}
+            page={page}
+            onChange={(e, value) => setPage(value)}
+            color="primary"
+          />
+        </Box>
       </Box>
       {/* Role Change Dialog */}
       <Dialog open={roleDialogOpen} onClose={() => setRoleDialogOpen(false)}>

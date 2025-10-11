@@ -51,12 +51,16 @@ const UserManagement = () => {
 
   const handleRoleUpdate = async (userId, newRole) => {
     try {
-      await mutate((api) => api.user.updateRole(userId, newRole));
+      const result = await mutate((api) => api.user.updateRole(userId, newRole));
+      console.log('Role update result:', result);
+      alert(`✅ Role updated successfully!\n\nThe user needs to log out and log back in to see the new role in Auth0.`);
       await refetchUsers();
       await refetchStats();
       setEditDialog({ open: false, user: null });
     } catch (error) {
       console.error('Failed to update user role:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+      alert(`❌ Failed to update role:\n\n${errorMessage}\n\nPlease make sure:\n1. You are logged in as an admin\n2. The user exists in the database\n3. The backend server is running`);
     }
   };
 

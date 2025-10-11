@@ -149,26 +149,49 @@ const requireRoleOrPermission = (roles, permissions) => {
   };
 };
 
-// Specific role middlewares
-const requireAdmin = (req, res, next) => {
+// Specific role middlewares - check database role
+const requireAdmin = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'Missing token' });
+    console.log('[requireAdmin] Checking admin access...');
+    console.log('[requireAdmin] req.userInfo:', req.userInfo);
+    
+    if (!req.userInfo) {
+      console.log('[requireAdmin] No userInfo found');
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Decode the token to check permissions
-    const decoded = jwtDecode(token);
-    const permissions = decoded.scope?.split(' ') || [];
-
-    // Check if the required permission is present
-    if (!permissions.includes('delete:users')) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
+    // Check if user has admin role in database
+    const User = require('../models/User');
+    const user = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+    
+    console.log('[requireAdmin] User found in DB:', user ? {
+      email: user.email,
+      role: user.role,
+      auth0_id: user.auth0_id
+    } : 'null');
+    
+    if (!user) {
+      console.log('[requireAdmin] User not found in database');
+      return res.status(404).json({ 
+        error: 'User not found in database',
+        auth0_id: req.userInfo.auth0_id 
+      });
     }
 
+    if (user.role !== 'admin') {
+      console.log(`[requireAdmin] Access denied - User ${user.email} has role '${user.role}', requires 'admin'`);
+      return res.status(403).json({ 
+        error: 'Insufficient permissions - Admin role required',
+        current_role: user.role,
+        required_role: 'admin',
+        email: user.email
+      });
+    }
+
+    console.log(`[requireAdmin] ✅ Admin access granted for ${user.email}`);
     next();
   } catch (error) {
-    console.error('Error in requireAdmin middleware:', error);
+    console.error('[requireAdmin] Error in middleware:', error);
     res.status(500).json({ error: 'Failed to validate permissions' });
   }
 };
