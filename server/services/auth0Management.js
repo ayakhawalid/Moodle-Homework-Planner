@@ -153,20 +153,52 @@ async function updateUserRoleInAuth0(auth0UserId, newRoleName) {
       throw new Error(`Role '${newRoleName}' not found in Auth0.`);
     }
 
+    // Get current roles
     const currentRoles = await management.users.getRoles({ id: auth0UserId });
     const currentRoleIds = currentRoles.data.map(role => role.id);
 
+    // Remove user from all current roles using the correct method
     if (currentRoleIds.length > 0) {
-      console.log(`Removing existing roles: ${currentRoleIds.join(', ')}`);
-      await management.users.removeRoles({ id: auth0UserId }, { roles: currentRoleIds });
+      console.log(`Removing existing roles from user: ${currentRoleIds.join(', ')}`);
+      
+      try {
+        // Correct method: management.users.deleteRoles(params, data)
+        await management.users.deleteRoles(
+          { id: auth0UserId },
+          { roles: currentRoleIds }
+        );
+        console.log(`  ✓ Removed all existing roles`);
+      } catch (removeError) {
+        console.error(`  ✗ Failed to remove existing roles:`, removeError.message);
+        // Continue anyway - try to assign the new role
+      }
     }
 
-    console.log(`Assigning new role ID: ${newRoleId}`);
-    await management.users.assignRoles({ id: auth0UserId }, { roles: [newRoleId] });
+    // Assign user to new role
+    console.log(`Assigning new role to user: ${newRoleId}`);
+    try {
+      // Correct method: management.users.assignRoles(params, data)
+      await management.users.assignRoles(
+        { id: auth0UserId },
+        { roles: [newRoleId] }
+      );
+      console.log(`  ✓ Assigned role ${newRoleId} (${newRoleName})`);
+    } catch (assignError) {
+      console.error(`  ✗ Failed to assign role ${newRoleId}:`, assignError.message);
+      throw assignError;
+    }
 
     console.log(`✅ Successfully updated role for ${auth0UserId} to '${newRoleName}' in Auth0.`);
+    return true;
   } catch (error) {
-    console.error(`Error updating user role in Auth0 for ${auth0UserId}:`, error.message);
+    console.error(`❌ Error updating user role in Auth0 for ${auth0UserId}:`, error.message);
+    console.error('Full error details:', error);
+    
+    // Check if it's an Auth0 configuration issue
+    if (error.message && error.message.includes('not a function')) {
+      console.error('⚠️ SDK method error - Auth0 SDK version may be incompatible');
+    }
+    
     throw error;
   }
 }

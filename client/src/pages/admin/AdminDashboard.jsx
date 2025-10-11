@@ -408,12 +408,14 @@ const AdminDashboard = () => {
                           variant="contained" 
                           onClick={async () => {
                             try {
-                              await apiService.roleRequests.approve(rr._id);
+                              const result = await apiService.roleRequests.approve(rr._id);
+                              console.log('Role request approved:', result);
+                              alert(`✅ Role updated successfully!\n\nUser: ${rr.user?.email}\nOld Role: ${result.data?.oldRole}\nNew Role: ${result.data?.newRole}\n\nThe user needs to log out and log back in to see the new role.`);
                               loadRoleRequests();
                               fetchStats();
                             } catch (error) {
                               console.error('Failed to approve role request:', error);
-                              alert('Failed to approve role request. Please try again.');
+                              alert(`❌ Failed to approve role request:\n${error.response?.data?.error || error.message}`);
                             }
                           }}
                           sx={{ 
