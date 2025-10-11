@@ -1,6 +1,6 @@
 # Moodle Homework Planner
 
-A comprehensive web application for managing homework, tracking progress, and organizing academic schedules. Built with React, Node.js, Express, and MongoDB.
+A comprehensive community web application for managing homework, tracking progress, and organizing academic schedules. Built with React, Node.js, Express, and MongoDB.
 
 ## 📁 Project Structure
 
@@ -160,8 +160,8 @@ Located in `server/scripts/utilities/`:
 
 ## 👥 User Roles
 
-- **Student**: Manage homework, track progress, view schedules
-- **Lecturer**: Create assignments, manage courses, grade submissions
+- **Student**: Create homework, track progress, view schedules
+- **Lecturer**: Create homework, tracke students progress, view schedules, manage courses
 - **Admin**: User management, system configuration
 
 ## 🔐 Authentication
