@@ -301,7 +301,11 @@ export const apiService = {
       }
     }),
     deleteSubmission: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/submission`),
-    selectPartner: (homeworkId, partnerId, notes) => api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId, notes: notes || '' }),
+    selectPartner: (homeworkId, partnerId, notes) => {
+      console.log('API selectPartner called with:', { homeworkId, partnerId, notes });
+      console.log('URL will be:', `/student-submission/homework/${homeworkId}/partner`);
+      return api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId, notes: notes || '' });
+    },
     removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`),
     verifyGrade: (homeworkId, claimedGrade, screenshotFile) => {
       const formData = new FormData();

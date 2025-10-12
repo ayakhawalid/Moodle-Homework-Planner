@@ -140,9 +140,9 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
       student_homework_count: studentHomework.length,
       traditional_homework_count: traditionalHomework.length,
       total_homework_count: homework.length,
-      own_homework: homework.filter(hw => hw.uploaded_by._id.toString() === studentId.toString()).length,
+      own_homework: homework.filter(hw => hw.uploaded_by && hw.uploaded_by._id.toString() === studentId.toString()).length,
       lecturer_homework: homework.filter(hw => hw.uploader_role === 'lecturer').length,
-      verified_student_homework: homework.filter(hw => hw.uploader_role === 'student' && hw.uploaded_by._id.toString() !== studentId.toString() && hw.deadline_verification_status === 'verified').length
+      verified_student_homework: homework.filter(hw => hw.uploader_role === 'student' && hw.uploaded_by && hw.uploaded_by._id.toString() !== studentId.toString() && hw.deadline_verification_status === 'verified').length
     });
 
     res.json({
@@ -155,12 +155,12 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
           name: hw.course_id.course_name || hw.course?.name || 'Unknown Course',
           code: hw.course_id.course_code || hw.course?.code || 'UNKNOWN'
         },
-        uploaded_by: {
+        uploaded_by: hw.uploaded_by ? {
           _id: hw.uploaded_by._id,
           name: hw.uploaded_by.name,
           email: hw.uploaded_by.email,
           role: hw.uploader_role
-        },
+        } : null,
         uploader_role: hw.uploader_role,
         claimed_deadline: hw.claimed_deadline,
         verified_deadline: hw.verified_deadline,
@@ -203,7 +203,9 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       priority,
       tags,
       moodle_assignment_id,
-      moodle_url
+      moodle_url,
+      allow_partners,
+      max_partners
     } = req.body;
 
     // Determine user role
@@ -236,6 +238,8 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       tags: tags || [],
       moodle_assignment_id,
       moodle_url,
+      allow_partners: allow_partners || false,
+      max_partners: max_partners || 1,
       deadline_verification_status: 'pending_review' // Set to pending review for lecturer verification
     });
 
@@ -254,15 +258,17 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
           name: homework.course_id.course_name,
           code: homework.course_id.course_code
         },
-        uploaded_by: {
+        uploaded_by: homework.uploaded_by ? {
           _id: homework.uploaded_by._id,
           name: homework.uploaded_by.name,
           email: homework.uploaded_by.email,
           role: homework.uploader_role
-        },
+        } : null,
         claimed_deadline: homework.claimed_deadline,
         priority: homework.priority,
         tags: homework.tags,
+        allow_partners: homework.allow_partners,
+        max_partners: homework.max_partners,
         deadline_verification_status: homework.deadline_verification_status,
         createdAt: homework.createdAt
       }
@@ -447,45 +453,95 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
     // Combine both types of homework
     const allHomework = [...studentHomework, ...convertedTraditionalHomework];
     
-    console.log(`Total combined homework: ${allHomework.length} items`);
+    // For lecturer view, calculate completion status based on all students in the course
+    const Grade = require('../models/Grade');
+    const homeworkWithStatus = await Promise.all(allHomework.map(async (hw) => {
+      // Get course details with student count
+      const course = await Course.findById(hw.course_id).select('students');
+      if (!course || !course.students || course.students.length === 0) {
+        return { ...hw, completion_status: 'not_started' };
+      }
+      
+      const totalStudents = course.students.length;
+      
+      // Check how many students have been graded for this homework
+      let gradedCount = 0;
+      
+      // For traditional homework, check Grade records
+      if (hw.uploader_role === 'lecturer') {
+        const grades = await Grade.find({ 
+          homework_id: hw._id,
+          grade: { $exists: true, $ne: null }
+        });
+        gradedCount = grades.length;
+      } else {
+        // For student-created homework, check verified_grade
+        const studentSubmissions = await StudentHomework.find({
+          title: hw.title,
+          course_id: hw.course_id,
+          verified_grade: { $exists: true, $ne: null }
+        });
+        gradedCount = studentSubmissions.length;
+      }
+      
+      // If all students have been graded, mark as completed
+      const overallStatus = gradedCount >= totalStudents ? 'completed' : 'not_started';
+      
+      return {
+        ...hw,
+        completion_status: overallStatus,
+        students_graded_count: gradedCount,
+        total_students: totalStudents
+      };
+    }));
+    
+    console.log(`Total combined homework: ${homeworkWithStatus.length} items`);
     console.log('Homework breakdown:', {
-      lecturer_created: allHomework.filter(hw => hw.uploader_role === 'lecturer').length,
-      student_created: allHomework.filter(hw => hw.uploader_role === 'student').length,
-      verified: allHomework.filter(hw => hw.deadline_verification_status === 'verified').length,
-      unverified: allHomework.filter(hw => hw.deadline_verification_status !== 'verified').length
+      lecturer_created: homeworkWithStatus.filter(hw => hw.uploader_role === 'lecturer').length,
+      student_created: homeworkWithStatus.filter(hw => hw.uploader_role === 'student').length,
+      verified: homeworkWithStatus.filter(hw => hw.deadline_verification_status === 'verified').length,
+      unverified: homeworkWithStatus.filter(hw => hw.deadline_verification_status !== 'verified').length,
+      completed: homeworkWithStatus.filter(hw => hw.completion_status === 'completed').length,
+      not_started: homeworkWithStatus.filter(hw => hw.completion_status === 'not_started').length
     });
     
-    allHomework.forEach((hw, index) => {
+    // Log completion details for each homework
+    console.log('\n=== Homework Completion Status ===');
+    homeworkWithStatus.forEach((hw, index) => {
+      console.log(`${index + 1}. ${hw.title}:`, {
+        completion_status: hw.completion_status,
+        students_graded: `${hw.students_graded_count}/${hw.total_students}`,
+        uploader_role: hw.uploader_role
+      });
+    });
+    
+    homeworkWithStatus.forEach((hw, index) => {
       console.log(`Homework ${index + 1}:`, {
         id: hw._id,
         title: hw.title,
         uploader_role: hw.uploader_role,
-        uploaded_by: hw.uploaded_by.name,
-        course_id: hw.course_id._id,
-        course: hw.course_id.course_name,
+        uploaded_by: hw.uploaded_by?.name || 'Unknown',
+        course_id: hw.course_id?._id || hw.course_id,
+        course: hw.course_id?.course_name || 'Unknown',
         deadline_status: hw.deadline_verification_status,
         completion_status: hw.completion_status,
-        course_match: courseIds.includes(hw.course_id._id.toString())
+        course_match: hw.course_id?._id ? courseIds.includes(hw.course_id._id.toString()) : false
       });
     });
 
     res.json({
-      homework: allHomework.map(hw => ({
+      homework: homeworkWithStatus.map(hw => ({
         _id: hw._id,
         title: hw.title,
         description: hw.description,
-        course_id: hw.course_id._id,
-        course: {
-          _id: hw.course_id._id,
-          name: hw.course_id.course_name,
-          code: hw.course_id.course_code
-        },
-        uploaded_by: {
+        course_id: hw.course_id,
+        course: hw.course,
+        uploaded_by: hw.uploaded_by ? {
           _id: hw.uploaded_by._id,
           name: hw.uploaded_by.name,
           email: hw.uploaded_by.email,
           role: hw.uploader_role
-        },
+        } : null,
         uploader_role: hw.uploader_role,
         claimed_deadline: hw.claimed_deadline,
         verified_deadline: hw.verified_deadline,
@@ -573,12 +629,12 @@ router.get('/lecturer/verifications', checkJwt, extractUser, requireLecturer, as
           name: verification.course_id.course_name,
           code: verification.course_id.course_code
         },
-        uploaded_by: {
+        uploaded_by: verification.uploaded_by ? {
           _id: verification.uploaded_by._id,
           name: verification.uploaded_by.name,
           email: verification.uploaded_by.email,
           role: verification.uploader_role
-        },
+        } : null,
         claimed_deadline: verification.claimed_deadline,
         deadline_verification_status: verification.deadline_verification_status,
         claimed_grade: verification.claimed_grade,

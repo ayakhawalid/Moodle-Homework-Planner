@@ -45,8 +45,8 @@ function AddHomework() {
     description: '',
     instructions: '',
     due_date: '',
-    points_possible: 100,
-    allow_late_submission: false
+    allow_partners: false,
+    max_partners: 1
   });
 
   // Fetch lecturer's courses
@@ -90,8 +90,7 @@ function AddHomework() {
       // Convert due_date to proper format
       const homeworkData = {
         ...formData,
-        due_date: new Date(formData.due_date).toISOString(),
-        points_possible: parseInt(formData.points_possible)
+        due_date: new Date(formData.due_date).toISOString()
       };
 
       await apiService.homework.create(homeworkData);
@@ -226,8 +225,8 @@ function AddHomework() {
                   />
                 </Grid>
 
-                {/* Due Date and Points */}
-                <Grid item xs={12} md={6}>
+                {/* Due Date */}
+                <Grid item xs={12}>
                   <TextField
                     fullWidth
                     required
@@ -243,35 +242,51 @@ function AddHomework() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    name="points_possible"
-                    label="Points Possible"
-                    type="number"
-                    value={formData.points_possible}
-                    onChange={handleInputChange}
-                    inputProps={{ min: 0, max: 1000 }}
-                    helperText="Maximum points for this homework"
-                  />
-                </Grid>
-
-                {/* Allow Late Submission */}
-                <Grid item xs={12} md={6}>
-                  <Box display="flex" alignItems="center" height="100%">
+                
+                <Grid item xs={12}>
+                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Allow Study Partners
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Enable students to form partnerships for this homework
+                      </Typography>
+                    </Box>
                     <FormControlLabel
                       control={
                         <Switch
-                          name="allow_late_submission"
-                          checked={formData.allow_late_submission}
-                          onChange={handleInputChange}
+                          checked={formData.allow_partners}
+                          onChange={(e) => setFormData({ ...formData, allow_partners: e.target.checked })}
                           color="primary"
                         />
                       }
-                      label="Allow Late Submissions"
+                      label=""
                     />
                   </Box>
                 </Grid>
+                
+                {formData.allow_partners && (
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Maximum Partners</InputLabel>
+                      <Select
+                        value={formData.max_partners}
+                        onChange={(e) => setFormData({ ...formData, max_partners: e.target.value })}
+                        label="Maximum Partners"
+                      >
+                        <MenuItem value={1}>1 Partner</MenuItem>
+                        <MenuItem value={2}>2 Partners</MenuItem>
+                        <MenuItem value={3}>3 Partners</MenuItem>
+                        <MenuItem value={4}>4 Partners</MenuItem>
+                        <MenuItem value={5}>5 Partners</MenuItem>
+                      </Select>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                        Maximum number of partners allowed for this homework
+                      </Typography>
+                    </FormControl>
+                  </Grid>
+                )}
               </Grid>
 
               <Divider sx={{ my: 3 }} />

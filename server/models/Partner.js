@@ -3,8 +3,14 @@ const mongoose = require('mongoose');
 const partnerSchema = new mongoose.Schema({
   homework_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Homework',
     required: true
+    // Note: No ref specified - can reference either Homework or StudentHomework
+    // Populate manually in queries to support both types
+  },
+  homework_type: {
+    type: String,
+    enum: ['traditional', 'student'],
+    default: 'traditional'
   },
   student1_id: {
     type: mongoose.Schema.Types.ObjectId,

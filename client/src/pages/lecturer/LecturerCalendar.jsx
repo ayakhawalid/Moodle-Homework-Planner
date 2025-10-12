@@ -39,13 +39,13 @@ const LecturerCalendar = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch homework
+      // Fetch ALL homework (both student-created AND traditional) from single endpoint
+      // The /student-homework/lecturer/all endpoint already returns both types with course data properly formatted
       const homeworkResponse = await apiService.studentHomework.getLecturerHomework();
       
       console.log('Lecturer homework response:', homeworkResponse);
-      console.log('Response data:', homeworkResponse.data);
       
-      // Handle different response structures
+      // Handle the response (can be in different formats)
       let homeworkData = [];
       if (Array.isArray(homeworkResponse.data)) {
         homeworkData = homeworkResponse.data;
@@ -55,29 +55,42 @@ const LecturerCalendar = () => {
         homeworkData = homeworkResponse.data.data;
       }
       
-      console.log('Processed homework data:', homeworkData);
-      console.log('Homework data length:', homeworkData.length);
+      console.log('Total homework count:', homeworkData.length);
       
-      // Convert to calendar format (same as student calendar)
-      const calendarHomework = Array.isArray(homeworkData) ? homeworkData.map(hw => ({
-        _id: hw._id,
-        title: hw.title,
-        description: hw.description,
-        due_date: hw.claimed_deadline || hw.verified_deadline,
-        course: {
-          _id: hw.course_id?._id || hw.course?._id,
-          name: hw.course_id?.course_name || hw.course?.name,
-          code: hw.course_id?.course_code || hw.course?.code
-        },
-        completion_status: hw.completion_status,
-        deadline_verification_status: hw.deadline_verification_status,
-        claimed_grade: hw.claimed_grade,
-        uploader_role: hw.uploader_role,
-        status: hw.completion_status === 'completed' ? 'graded' : 'pending',
-        type: 'homework'
-      })) : [];
+      // Convert ALL homework to calendar format
+      // The backend already provides course data in the correct format with name and code
+      const allCalendarHomework = Array.isArray(homeworkData) ? homeworkData.map(hw => {
+        console.log('Processing homework:', {
+          title: hw.title,
+          has_course: !!hw.course,
+          course_name: hw.course?.name,
+          course_code: hw.course?.code,
+          uploader_role: hw.uploader_role
+        });
+        
+        return {
+          _id: hw._id,
+          title: hw.title,
+          description: hw.description,
+          due_date: hw.claimed_deadline || hw.verified_deadline || hw.due_date,
+          course: hw.course || {
+            _id: hw.course_id?._id,
+            name: hw.course_id?.course_name || hw.course_id?.name,
+            code: hw.course_id?.course_code || hw.course_id?.code
+          },
+          completion_status: hw.completion_status,
+          deadline_verification_status: hw.deadline_verification_status,
+          claimed_grade: hw.claimed_grade,
+          points_possible: hw.points_possible,
+          uploader_role: hw.uploader_role || 'student',
+          status: hw.completion_status === 'completed' ? 'graded' : 'pending',
+          type: 'homework'
+        };
+      }) : [];
+      
+      console.log('Total calendar homework:', allCalendarHomework.length);
 
-      setHomework(calendarHomework);
+      setHomework(allCalendarHomework);
 
       // Fetch classes
       try {
@@ -134,9 +147,21 @@ const LecturerCalendar = () => {
         console.error('Error fetching exams:', err);
       }
 
-      console.log('Lecturer calendar - Total homework:', calendarHomework.length);
-      console.log('Lecturer-created homework:', calendarHomework.filter(hw => hw.uploader_role === 'lecturer').length);
-      console.log('Student-created homework:', calendarHomework.filter(hw => hw.uploader_role === 'student').length);
+      console.log('Lecturer calendar - Total homework:', allCalendarHomework.length);
+      console.log('Lecturer-created homework:', allCalendarHomework.filter(hw => hw.uploader_role === 'lecturer').length);
+      console.log('Student-created homework:', allCalendarHomework.filter(hw => hw.uploader_role === 'student').length);
+      console.log('Completed homework (all students graded):', allCalendarHomework.filter(hw => hw.completion_status === 'completed').length);
+      console.log('Pending homework (not all students graded):', allCalendarHomework.filter(hw => hw.completion_status !== 'completed').length);
+      
+      // Log each homework with its completion status
+      console.log('\n=== Homework Status in Calendar ===');
+      allCalendarHomework.forEach((hw, index) => {
+        console.log(`${index + 1}. ${hw.title}:`, {
+          completion_status: hw.completion_status,
+          status: hw.status,
+          uploader_role: hw.uploader_role
+        });
+      });
 
     } catch (err) {
       console.error('Error fetching lecturer calendar data:', err);

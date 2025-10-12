@@ -535,27 +535,59 @@ router.delete('/files/:fileId', checkJwt, extractUser, requireStudent, async (re
 // POST /api/student-submission/homework/:homeworkId/partner - Select partner for homework
 router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {
+    console.log('=== PARTNER REQUEST RECEIVED ===');
+    console.log('Route params:', req.params);
+    console.log('Request body:', req.body);
+    console.log('Auth user:', req.userInfo?.auth0_id);
+    
     const auth0Id = req.userInfo.auth0_id;
     const homeworkId = req.params.homeworkId;
     const { partner_id, notes } = req.body;
     
+    console.log('Extracted data:', { auth0Id, homeworkId, partner_id, notes });
+    
     // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
+    console.log('User found:', user ? { id: user._id, email: user.email } : 'NOT FOUND');
+    
     if (!user) {
       return res.status(404).json({ error: 'User not found in database' });
     }
     
     const studentId = user._id;
     
-    // Get homework details
-    const homework = await Homework.findById(homeworkId);
-    if (!homework || !homework.is_active) {
+    // Get homework details - check both Homework and StudentHomework models
+    console.log('Looking for homework with ID:', homeworkId);
+    let homework = await Homework.findById(homeworkId);
+    let homeworkType = 'traditional';
+    
+    if (!homework) {
+      // Try StudentHomework model
+      const StudentHomework = require('../models/StudentHomework');
+      homework = await StudentHomework.findById(homeworkId);
+      homeworkType = 'student';
+      console.log('Checking StudentHomework model:', homework ? 'FOUND' : 'NOT FOUND');
+    }
+    
+    console.log('Homework found:', homework ? { id: homework._id, title: homework.title, type: homeworkType, is_active: homework.is_active } : 'NOT FOUND');
+    
+    if (!homework) {
+      console.error('Homework not found in either collection:', { homeworkId });
       return res.status(404).json({ error: 'Homework not found or inactive' });
     }
     
+    // Check if homework is active
+    if (homeworkType === 'traditional' && !homework.is_active) {
+      console.error('Traditional homework is inactive');
+      return res.status(404).json({ error: 'Homework not found or inactive' });
+    }
+    
+    // Get course ID based on homework type
+    const courseId = homeworkType === 'traditional' ? homework.course_id : homework.course_id._id || homework.course_id;
+    
     // Check if student is enrolled in the course
     const course = await Course.findOne({
-      _id: homework.course_id,
+      _id: courseId,
       students: studentId,
       is_active: true
     });
@@ -565,7 +597,8 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
     }
     
     // Check if homework is still open
-    if (new Date() > homework.due_date) {
+    const deadline = homeworkType === 'traditional' ? homework.due_date : homework.claimed_deadline;
+    if (new Date() > deadline) {
       return res.status(400).json({ error: 'Cannot select partner after homework deadline' });
     }
     
@@ -581,7 +614,7 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
     
     // Check if partner is enrolled in the same course
     const partnerEnrolled = await Course.findOne({
-      _id: homework.course_id,
+      _id: courseId,
       students: partner_id,
       is_active: true
     });
@@ -590,20 +623,85 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
       return res.status(400).json({ error: 'Selected partner is not enrolled in this course' });
     }
     
-    // Check if either student is already partnered (only active partnerships)
-    const existingActivePartner = await Partner.findOne({
+    // Check if partnerships are allowed for this homework
+    const allowPartners = homework.allow_partners !== undefined ? homework.allow_partners : false;
+    const maxPartners = homework.max_partners || 1;
+    
+    if (!allowPartners) {
+      return res.status(400).json({ 
+        error: 'Partnerships are not allowed for this homework assignment',
+        details: 'This homework must be completed individually'
+      });
+    }
+    
+    // Check if student has already reached max partners for this homework
+    const studentExistingPartnerships = await Partner.find({
       homework_id: homeworkId,
-      partnership_status: { $in: ['pending', 'accepted', 'active', 'completed'] },
+      partnership_status: { $in: ['pending', 'accepted', 'active'] },
       $or: [
         { student1_id: studentId },
-        { student2_id: studentId },
+        { student2_id: studentId }
+      ]
+    });
+    
+    if (studentExistingPartnerships.length >= maxPartners) {
+      return res.status(400).json({ 
+        error: `You have reached the maximum number of partners (${maxPartners}) for this homework`,
+        current_partners: studentExistingPartnerships.length,
+        max_allowed: maxPartners
+      });
+    }
+    
+    // Check if partner has already reached max partners for this homework
+    const partnerExistingPartnerships = await Partner.find({
+      homework_id: homeworkId,
+      partnership_status: { $in: ['pending', 'accepted', 'active'] },
+      $or: [
         { student1_id: partner_id },
         { student2_id: partner_id }
       ]
     });
     
-    if (existingActivePartner) {
-      return res.status(400).json({ error: 'One or both students are already partnered for this homework' });
+    if (partnerExistingPartnerships.length >= maxPartners) {
+      return res.status(400).json({ 
+        error: `The selected student has reached the maximum number of partners (${maxPartners}) for this homework`,
+        details: 'Please choose a different partner'
+      });
+    }
+    
+    // Check if these specific students already have a partnership together
+    console.log('Checking for existing partnership between these specific students:', {
+      homework_id: homeworkId,
+      student1: studentId.toString(),
+      student2: partner_id
+    });
+    
+    const existingPartnershipTogether = await Partner.findOne({
+      homework_id: homeworkId,
+      partnership_status: { $in: ['pending', 'accepted', 'active'] },
+      $or: [
+        { student1_id: studentId, student2_id: partner_id },
+        { student1_id: partner_id, student2_id: studentId }
+      ]
+    })
+    .populate('student1_id', 'name email')
+    .populate('student2_id', 'name email')
+    .populate('homework_id', 'title');
+    
+    if (existingPartnershipTogether) {
+      console.log('Found existing partnership between these students:', {
+        partnership_id: existingPartnershipTogether._id,
+        status: existingPartnershipTogether.partnership_status,
+        student1: existingPartnershipTogether.student1_id?.email,
+        student2: existingPartnershipTogether.student2_id?.email,
+        homework_title: existingPartnershipTogether.homework_id?.title
+      });
+      
+      return res.status(400).json({ 
+        error: `You already have a ${existingPartnershipTogether.partnership_status} partnership with this student for this homework`,
+        partnership_status: existingPartnershipTogether.partnership_status,
+        partnership_id: existingPartnershipTogether._id
+      });
     }
     
     // Check if there's a declined partnership that we can reactivate
@@ -628,6 +726,7 @@ router.post('/homework/:homeworkId/partner', checkJwt, extractUser, requireStude
       // Create new partner relationship
       partnerRelationship = new Partner({
         homework_id: homeworkId,
+        homework_type: homeworkType, // 'traditional' or 'student'
         student1_id: studentId,
         student2_id: partner_id,
         initiated_by: studentId,
