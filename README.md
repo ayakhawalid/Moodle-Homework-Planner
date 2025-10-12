@@ -161,7 +161,7 @@ Located in `server/scripts/utilities/`:
 ## 👥 User Roles
 
 - **Student**: Create homework, track progress, view schedules
-- **Lecturer**: Create homework, tracke students progress, view schedules, manage courses
+- **Lecturer**: Create homework, track students progress, view schedules, manage courses
 - **Admin**: User management, system configuration
 
 ## 🔐 Authentication

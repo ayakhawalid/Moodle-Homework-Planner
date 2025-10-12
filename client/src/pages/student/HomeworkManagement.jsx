@@ -20,7 +20,9 @@ import {
   CircularProgress,
   IconButton,
   Paper,
-  Divider
+  Divider,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import {
@@ -53,8 +55,9 @@ const HomeworkManagement = () => {
     description: '',
     course_id: '',
     claimed_deadline: '',
-    tags: '',
-    moodle_url: ''
+    moodle_url: '',
+    allow_partners: false,
+    max_partners: 1
   });
   
   const [claimedGrade, setClaimedGrade] = useState('');
@@ -111,12 +114,7 @@ const HomeworkManagement = () => {
       setSubmitting(true);
       setError(null);
       
-      const homeworkData = {
-        ...newHomework,
-        tags: newHomework.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-      };
-      
-      await apiService.studentHomework.createHomework(homeworkData);
+      await apiService.studentHomework.createHomework(newHomework);
       setSuccess('Homework created successfully!');
       setCreateDialogOpen(false);
       setNewHomework({
@@ -124,8 +122,9 @@ const HomeworkManagement = () => {
         description: '',
         course_id: '',
         claimed_deadline: '',
-        tags: '',
-        moodle_url: ''
+        moodle_url: '',
+        allow_partners: false,
+        max_partners: 1
       });
       fetchHomework();
     } catch (err) {
@@ -431,16 +430,7 @@ const HomeworkManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Tags (comma-separated)"
-                value={newHomework.tags}
-                onChange={(e) => setNewHomework({ ...newHomework, tags: e.target.value })}
-                placeholder="e.g., math, assignment, group"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Moodle URL"
@@ -449,6 +439,53 @@ const HomeworkManagement = () => {
                 placeholder="https://moodle.example.com/mod/assign/view.php?id=123"
               />
             </Grid>
+            
+            
+            
+            <Grid item xs={12}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Allow Study Partners
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Enable students to form partnerships for this homework
+                  </Typography>
+                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={newHomework.allow_partners}
+                      onChange={(e) => setNewHomework({ ...newHomework, allow_partners: e.target.checked })}
+                      color="primary"
+                    />
+                  }
+                  label=""
+                />
+              </Box>
+            </Grid>
+            
+            {newHomework.allow_partners && (
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Maximum Partners</InputLabel>
+                  <Select
+                    value={newHomework.max_partners}
+                    onChange={(e) => setNewHomework({ ...newHomework, max_partners: e.target.value })}
+                    label="Maximum Partners"
+                  >
+                    <MenuItem value={1}>1 Partner</MenuItem>
+                    <MenuItem value={2}>2 Partners</MenuItem>
+                    <MenuItem value={3}>3 Partners</MenuItem>
+                    <MenuItem value={4}>4 Partners</MenuItem>
+                    <MenuItem value={5}>5 Partners</MenuItem>
+                  </Select>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                    Maximum number of partners allowed for this homework
+                  </Typography>
+                </FormControl>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>

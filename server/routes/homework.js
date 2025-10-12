@@ -152,7 +152,9 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       due_date,
       points_possible,
       submission_type,
-      allow_late_submission
+      allow_late_submission,
+      allow_partners,
+      max_partners
     } = req.body;
     
     // Verify course exists and lecturer has access
@@ -174,7 +176,9 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       due_date,
       points_possible,
       submission_type,
-      allow_late_submission
+      allow_late_submission,
+      allow_partners: allow_partners || false,
+      max_partners: max_partners || 1
     });
     
     await homework.save();

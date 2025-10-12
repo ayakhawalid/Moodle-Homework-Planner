@@ -1508,8 +1508,11 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           }
         });
         
-        // Filter partners for the current course
+        // Filter partners for the current course (exclude null homework_id)
         currentPartners = existingPartners.filter(partner => 
+          partner.homework_id && 
+          partner.homework_id.course_id && 
+          partner.homework_id.course_id._id && 
           partner.homework_id.course_id._id.toString() === course_id
         );
         
@@ -1542,6 +1545,9 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
             }).populate('homework_id', 'course_id');
             
             const coursePartners = studentPartners.filter(partner => 
+              partner.homework_id && 
+              partner.homework_id.course_id && 
+              partner.homework_id.course_id._id &&
               partner.homework_id.course_id._id.toString() === course_id
             );
             
@@ -1601,6 +1607,9 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           });
           
           const coursePartners = existingPartners.filter(partner => 
+            partner.homework_id && 
+            partner.homework_id.course_id && 
+            partner.homework_id.course_id._id &&
             partner.homework_id.course_id._id.toString() === course._id.toString()
           );
           
@@ -1631,6 +1640,9 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
               }).populate('homework_id', 'course_id');
               
               const studentCoursePartners = studentPartners.filter(partner => 
+                partner.homework_id && 
+                partner.homework_id.course_id && 
+                partner.homework_id.course_id._id &&
                 partner.homework_id.course_id._id.toString() === course._id.toString()
               );
               
@@ -1672,10 +1684,11 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
       const mongoose = require('mongoose');
       const courseObjectId = new mongoose.Types.ObjectId(course_id);
       
-      // Fetch traditional homework
+      // Fetch traditional homework (only those that allow partners)
       const traditionalHomework = await Homework.find({
         course_id: courseObjectId,
-        is_active: true
+        is_active: true,
+        allow_partners: true  // Only show homework that allows partnerships
       })
       .populate('course_id', 'course_name course_code')
       .sort({ due_date: 1 });
@@ -1690,10 +1703,11 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
       const completedTraditionalIds = new Set(completedTraditionalHomework.map(g => g.homework_id.toString()));
       const activeTraditionalHomework = traditionalHomework.filter(hw => !completedTraditionalIds.has(hw._id.toString()));
 
-      // Fetch student-created homework for this course
+      // Fetch student-created homework for this course (only those that allow partners)
       const studentHomework = await StudentHomework.find({
         'course_id': courseObjectId,
-        'completion_status': { $ne: 'completed' } // Only show active homework
+        'completion_status': { $ne: 'completed' }, // Only show active homework
+        'allow_partners': true  // Only show homework that allows partnerships
       })
       .populate('course_id', 'course_name course_code')
       .sort({ claimed_deadline: 1 });
@@ -1706,6 +1720,8 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           title: hw.title,
           due_date: hw.due_date,
           points_possible: hw.points_possible,
+          allow_partners: hw.allow_partners,
+          max_partners: hw.max_partners,
           course: {
             _id: hw.course_id._id,
             name: hw.course_id.course_name,
@@ -1718,6 +1734,8 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           title: hw.title,
           due_date: hw.claimed_deadline || hw.verified_deadline,
           points_possible: hw.claimed_grade || 100,
+          allow_partners: hw.allow_partners,
+          max_partners: hw.max_partners,
           course: {
             _id: hw.course_id._id,
             name: hw.course_id.course_name,
@@ -1800,38 +1818,51 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
     // Import Partner model
     const Partner = require('../models/Partner');
     
+    // Import StudentHomework model
+    const StudentHomework = require('../models/StudentHomework');
+    
+    // Helper function to manually populate homework from correct collection
+    const populateHomework = async (partnerships) => {
+      const results = [];
+      for (const partnership of partnerships) {
+        const populated = partnership.toObject();
+        
+        // Try to populate from Homework first (traditional)
+        let homework = await Homework.findById(partnership.homework_id)
+          .populate('course_id', 'course_name course_code');
+        
+        if (!homework) {
+          // Try StudentHomework (student-created)
+          homework = await StudentHomework.findById(partnership.homework_id)
+            .populate('course_id', 'course_name course_code');
+        }
+        
+        populated.homework_id = homework;
+        results.push(populated);
+      }
+      return results;
+    };
+    
     // Get partnership requests where this student is the target (student2_id) and status is pending
-    const pendingRequests = await Partner.find({
+    const pendingRequestsRaw = await Partner.find({
       student2_id: studentId,
       partnership_status: 'pending'
     })
-    .populate('student1_id', 'name email full_name picture')
-    .populate('homework_id', 'title due_date')
-    .populate({
-      path: 'homework_id',
-      populate: {
-        path: 'course_id',
-        select: 'course_name course_code'
-      }
-    });
+    .populate('student1_id', 'name email full_name picture');
+    
+    const pendingRequests = await populateHomework(pendingRequestsRaw);
     
     // Get partnerships where this student initiated (student1_id) and status is pending
-    const sentRequests = await Partner.find({
+    const sentRequestsRaw = await Partner.find({
       student1_id: studentId,
       partnership_status: 'pending'
     })
-    .populate('student2_id', 'name email full_name picture')
-    .populate('homework_id', 'title due_date')
-    .populate({
-      path: 'homework_id',
-      populate: {
-        path: 'course_id',
-        select: 'course_name course_code'
-      }
-    });
+    .populate('student2_id', 'name email full_name picture');
+    
+    const sentRequests = await populateHomework(sentRequestsRaw);
     
     // Get active partnerships
-    const activePartnerships = await Partner.find({
+    const activePartnershipsRaw = await Partner.find({
       $or: [
         { student1_id: studentId },
         { student2_id: studentId }
@@ -1839,18 +1870,12 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
       partnership_status: { $in: ['accepted', 'active'] }
     })
     .populate('student1_id', 'name email full_name picture')
-    .populate('student2_id', 'name email full_name picture')
-    .populate('homework_id', 'title due_date')
-    .populate({
-      path: 'homework_id',
-      populate: {
-        path: 'course_id',
-        select: 'course_name course_code'
-      }
-    });
+    .populate('student2_id', 'name email full_name picture');
+    
+    const activePartnerships = await populateHomework(activePartnershipsRaw);
     
     // Get completed partnerships
-    const completedPartnerships = await Partner.find({
+    const completedPartnershipsRaw = await Partner.find({
       $or: [
         { student1_id: studentId },
         { student2_id: studentId }
@@ -1858,107 +1883,128 @@ router.get('/partner-requests', checkJwt, extractUser, requireStudent, async (re
       partnership_status: 'completed'
     })
     .populate('student1_id', 'name email full_name picture')
-    .populate('student2_id', 'name email full_name picture')
-    .populate('homework_id', 'title due_date')
-    .populate({
-      path: 'homework_id',
-      populate: {
-        path: 'course_id',
-        select: 'course_name course_code'
-      }
+    .populate('student2_id', 'name email full_name picture');
+    
+    const completedPartnerships = await populateHomework(completedPartnershipsRaw);
+    
+    // Debug logging
+    console.log('Partner requests query results:', {
+      pending_found: pendingRequests.length,
+      sent_found: sentRequests.length,
+      active_found: activePartnerships.length,
+      completed_found: completedPartnerships.length
     });
     
+    // Check how many have null homework
+    const pendingWithNullHomework = pendingRequests.filter(req => !req.homework_id);
+    const sentWithNullHomework = sentRequests.filter(req => !req.homework_id);
+    
+    if (pendingWithNullHomework.length > 0) {
+      console.log(`⚠️  Found ${pendingWithNullHomework.length} pending requests with null homework_id`);
+    }
+    if (sentWithNullHomework.length > 0) {
+      console.log(`⚠️  Found ${sentWithNullHomework.length} sent requests with null homework_id`);
+    }
+    
     const partnerRequests = {
-      pending_requests: pendingRequests.map(req => ({
-        _id: req._id,
-        partner: {
-          _id: req.student1_id._id,
-          name: req.student1_id.name || req.student1_id.full_name,
-          email: req.student1_id.email,
-          picture: req.student1_id.picture
-        },
-        homework: {
-          _id: req.homework_id._id,
-          title: req.homework_id.title,
-          due_date: req.homework_id.due_date,
-          course: {
-            _id: req.homework_id.course_id._id,
-            name: req.homework_id.course_id.course_name,
-            code: req.homework_id.course_id.course_code
+      pending_requests: pendingRequests
+        .filter(req => req.homework_id && req.homework_id.course_id)
+        .map(req => ({
+          _id: req._id,
+          partner: {
+            _id: req.student1_id._id,
+            name: req.student1_id.name || req.student1_id.full_name,
+            email: req.student1_id.email,
+            picture: req.student1_id.picture
+          },
+          homework: {
+            _id: req.homework_id._id,
+            title: req.homework_id.title,
+            due_date: req.homework_id.due_date || req.homework_id.claimed_deadline, // Handle both types
+            course: {
+              _id: req.homework_id.course_id._id,
+              name: req.homework_id.course_id.course_name,
+              code: req.homework_id.course_id.course_code
           }
         },
         initiated_at: req.createdAt,
         notes: req.notes
       })),
-      sent_requests: sentRequests.map(req => ({
-        _id: req._id,
-        partner: {
-          _id: req.student2_id._id,
-          name: req.student2_id.name || req.student2_id.full_name,
-          email: req.student2_id.email,
-          picture: req.student2_id.picture
-        },
-        homework: {
-          _id: req.homework_id._id,
-          title: req.homework_id.title,
-          due_date: req.homework_id.due_date,
-          course: {
-            _id: req.homework_id.course_id._id,
-            name: req.homework_id.course_id.course_name,
-            code: req.homework_id.course_id.course_code
+      sent_requests: sentRequests
+        .filter(req => req.homework_id && req.homework_id.course_id)
+        .map(req => ({
+          _id: req._id,
+          partner: {
+            _id: req.student2_id._id,
+            name: req.student2_id.name || req.student2_id.full_name,
+            email: req.student2_id.email,
+            picture: req.student2_id.picture
+          },
+          homework: {
+            _id: req.homework_id._id,
+            title: req.homework_id.title,
+            due_date: req.homework_id.due_date || req.homework_id.claimed_deadline, // Handle both types
+            course: {
+              _id: req.homework_id.course_id._id,
+              name: req.homework_id.course_id.course_name,
+              code: req.homework_id.course_id.course_code
           }
         },
         initiated_at: req.createdAt,
         notes: req.notes
       })),
-      active_partnerships: activePartnerships.map(req => ({
-        _id: req._id,
-        partner: {
-          _id: req.student1_id._id.equals(studentId) ? req.student2_id._id : req.student1_id._id,
-          name: req.student1_id._id.equals(studentId) 
-            ? (req.student2_id.name || req.student2_id.full_name)
-            : (req.student1_id.name || req.student1_id.full_name),
-          email: req.student1_id._id.equals(studentId) 
-            ? req.student2_id.email 
-            : req.student1_id.email,
-          picture: req.student1_id._id.equals(studentId) 
-            ? req.student2_id.picture 
-            : req.student1_id.picture
-        },
-        homework: {
-          _id: req.homework_id._id,
-          title: req.homework_id.title,
-          due_date: req.homework_id.due_date,
-          course: {
-            _id: req.homework_id.course_id._id,
-            name: req.homework_id.course_id.course_name,
-            code: req.homework_id.course_id.course_code
+      active_partnerships: activePartnerships
+        .filter(req => req.homework_id && req.homework_id.course_id)
+        .map(req => ({
+          _id: req._id,
+          partner: {
+            _id: req.student1_id._id.equals(studentId) ? req.student2_id._id : req.student1_id._id,
+            name: req.student1_id._id.equals(studentId) 
+              ? (req.student2_id.name || req.student2_id.full_name)
+              : (req.student1_id.name || req.student1_id.full_name),
+            email: req.student1_id._id.equals(studentId) 
+              ? req.student2_id.email 
+              : req.student1_id.email,
+            picture: req.student1_id._id.equals(studentId) 
+              ? req.student2_id.picture 
+              : req.student1_id.picture
+          },
+          homework: {
+            _id: req.homework_id._id,
+            title: req.homework_id.title,
+            due_date: req.homework_id.due_date || req.homework_id.claimed_deadline, // Handle both types
+            course: {
+              _id: req.homework_id.course_id._id,
+              name: req.homework_id.course_id.course_name,
+              code: req.homework_id.course_id.course_code
           }
         },
         status: req.partnership_status,
         accepted_at: req.accepted_at
       })),
-      completed_partnerships: completedPartnerships.map(req => ({
-        _id: req._id,
-        partner: {
-          _id: req.student1_id._id.equals(studentId) ? req.student2_id._id : req.student1_id._id,
-          name: req.student1_id._id.equals(studentId) 
-            ? (req.student2_id.name || req.student2_id.full_name)
-            : (req.student1_id.name || req.student1_id.full_name),
-          email: req.student1_id._id.equals(studentId) 
-            ? req.student2_id.email 
-            : req.student1_id.email,
-          picture: req.student1_id._id.equals(studentId) 
-            ? req.student2_id.picture 
-            : req.student1_id.picture
-        },
-        homework: {
-          _id: req.homework_id._id,
-          title: req.homework_id.title,
-          due_date: req.homework_id.due_date,
-          course: {
-            _id: req.homework_id.course_id._id,
-            name: req.homework_id.course_id.course_name,
+      completed_partnerships: completedPartnerships
+        .filter(req => req.homework_id && req.homework_id.course_id)
+        .map(req => ({
+          _id: req._id,
+          partner: {
+            _id: req.student1_id._id.equals(studentId) ? req.student2_id._id : req.student1_id._id,
+            name: req.student1_id._id.equals(studentId) 
+              ? (req.student2_id.name || req.student2_id.full_name)
+              : (req.student1_id.name || req.student1_id.full_name),
+            email: req.student1_id._id.equals(studentId) 
+              ? req.student2_id.email 
+              : req.student1_id.email,
+            picture: req.student1_id._id.equals(studentId) 
+              ? req.student2_id.picture 
+              : req.student1_id.picture
+          },
+          homework: {
+            _id: req.homework_id._id,
+            title: req.homework_id.title,
+            due_date: req.homework_id.due_date,
+            course: {
+              _id: req.homework_id.course_id._id,
+              name: req.homework_id.course_id.course_name,
             code: req.homework_id.course_id.course_code
           }
         },

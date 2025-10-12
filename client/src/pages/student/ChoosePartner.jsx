@@ -24,7 +24,8 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   IconButton,
-  Divider
+  Divider,
+  Paper
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -56,6 +57,7 @@ function ChoosePartner() {
   const [partnerDisabled, setPartnerDisabled] = useState(false);
   const [partnerRequests, setPartnerRequests] = useState(null);
   const [showRequests, setShowRequests] = useState(false);
+  const [detailsDialog, setDetailsDialog] = useState({ open: false, partnership: null });
 
   // Fetch partner data
   const fetchPartnerData = async () => {
@@ -107,11 +109,31 @@ function ChoosePartner() {
 
   // Send partnership request
   const handleSendRequest = async () => {
-    if (!selectedPartner || !selectedHomework) return;
+    console.log('=== SENDING PARTNER REQUEST ===');
+    console.log('selectedPartner:', selectedPartner);
+    console.log('selectedHomework:', selectedHomework);
+    console.log('selectedCourse:', selectedCourse);
+    console.log('partnerMessage:', partnerMessage);
+    
+    if (!selectedPartner || !selectedHomework) {
+      console.error('Missing required fields:', { selectedPartner, selectedHomework });
+      setError('Please select both a homework assignment and a partner.');
+      return;
+    }
     
     try {
       setSendingRequest(true);
-      await apiService.studentSubmission.selectPartner(selectedHomework, selectedPartner._id, partnerMessage);
+      
+      console.log('Calling API with:', {
+        homeworkId: selectedHomework,
+        partnerId: selectedPartner._id,
+        notes: partnerMessage,
+        url: `/student-submission/homework/${selectedHomework}/partner`
+      });
+      
+      const response = await apiService.studentSubmission.selectPartner(selectedHomework, selectedPartner._id, partnerMessage);
+      
+      console.log('Partnership request response:', response);
       
       // Refresh data
       await fetchPartnerData();
@@ -120,7 +142,39 @@ function ChoosePartner() {
       setPartnerMessage('');
       setSuccess('Partnership request sent successfully! Wait for the other student to accept.');
     } catch (err) {
-      setError('Failed to send partnership request. Please try again.');
+      console.error('=== PARTNERSHIP REQUEST ERROR ===');
+      console.error('Full error:', err);
+      console.error('Error response:', err.response);
+      console.error('Error response data:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      console.error('Error config:', err.config);
+      
+      const errorData = err.response?.data;
+      let errorMsg = err.response?.data?.error || err.message || 'Failed to send partnership request. Please try again.';
+      
+      // Add suggestion if provided
+      if (errorData?.suggestion) {
+        errorMsg += `. ${errorData.suggestion}`;
+      }
+      
+      // If partnership already exists, show helpful message
+      if (errorData?.partnership_id && errorData?.partnership_status) {
+        const status = errorData.partnership_status;
+        if (status === 'pending') {
+          errorMsg = '⚠️ You already sent a partnership request to this student. Click "View Requests" → "Sent Requests" to see it. The request is waiting for their response.';
+        } else if (status === 'accepted' || status === 'active') {
+          errorMsg = '✅ You already have an active partnership with this student for this homework! Click "View Requests" to see it.';
+        }
+      }
+      
+      setError(errorMsg);
+      setOpenPartnerDialog(false); // Close dialog on error
+      
+      // Refresh data to show current partnerships
+      await fetchPartnerData();
+      if (errorData?.partnership_id) {
+        setShowRequests(true); // Automatically show requests section
+      }
     } finally {
       setSendingRequest(false);
     }
@@ -189,14 +243,38 @@ function ChoosePartner() {
     }
   };
 
-  // Get unique partners (remove duplicates)
+  // Get unique partners (remove duplicates and students you already have requests with)
   const getUniquePartners = () => {
     if (!partnerData?.potential_partners) return [];
+    
+    // Get IDs of students you already have pending/active partnerships with
+    const partneredStudentIds = new Set();
+    
+    // Add students from current partners (for selected homework)
+    partnerData?.current_partners?.forEach(partnership => {
+      if (partnership.student1_id?._id) partneredStudentIds.add(partnership.student1_id._id.toString());
+      if (partnership.student2_id?._id) partneredStudentIds.add(partnership.student2_id._id.toString());
+    });
+    
+    // Also exclude students from sent requests (if View Requests is loaded)
+    if (partnerRequests?.sent_requests) {
+      partnerRequests.sent_requests.forEach(request => {
+        if (request.partner?._id) partneredStudentIds.add(request.partner._id.toString());
+      });
+    }
+    
+    // Also exclude students from pending requests received
+    if (partnerRequests?.pending_requests) {
+      partnerRequests.pending_requests.forEach(request => {
+        if (request.partner?._id) partneredStudentIds.add(request.partner._id.toString());
+      });
+    }
     
     const seen = new Set();
     return partnerData.potential_partners.filter(partner => {
       const key = partner._id;
       if (seen.has(key)) return false;
+      if (partneredStudentIds.has(key)) return false; // Exclude students with existing partnerships
       seen.add(key);
       return true;
     });
@@ -288,7 +366,7 @@ function ChoosePartner() {
                   {/* Pending Requests (received) */}
                   {partnerRequests.pending_requests?.length > 0 && (
                     <Box mb={3}>
-                      <Typography variant="h6" color="primary" gutterBottom>
+                      <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
                         Pending Requests ({partnerRequests.pending_requests.length})
                       </Typography>
                       <Grid container spacing={2}>
@@ -366,7 +444,7 @@ function ChoosePartner() {
                                   )}
                                 </Box>
                               </div>
-                              <div className="card-actions" style={{ justifyContent: 'space-between', padding: '16px' }}>
+                              <div className="card-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', padding: '16px' }}>
                                 <Button
                                   size="small"
                                   color="success"
@@ -396,7 +474,7 @@ function ChoosePartner() {
                   {/* Sent Requests */}
                   {partnerRequests.sent_requests?.length > 0 && (
                     <Box mb={3}>
-                      <Typography variant="h6" color="secondary" gutterBottom>
+                      <Typography variant="h6" color="secondary" sx={{ mb: 1 }}>
                         Sent Requests ({partnerRequests.sent_requests.length})
                       </Typography>
                       <Grid container spacing={2}>
@@ -502,7 +580,7 @@ function ChoosePartner() {
                   {/* Active Partnerships */}
                   {partnerRequests.active_partnerships?.length > 0 && (
                     <Box mb={3}>
-                      <Typography variant="h6" color="success.main" gutterBottom>
+                      <Typography variant="h6" color="success.main" sx={{ mb: 1 }}>
                         Active Partnerships ({partnerRequests.active_partnerships.length})
                       </Typography>
                       <Grid container spacing={2}>
@@ -575,15 +653,13 @@ function ChoosePartner() {
                                   </Typography>
                                 </Box>
                               </div>
-                              <div className="card-actions" style={{ justifyContent: 'space-between', padding: '16px' }}>
+                              <div className="card-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', padding: '16px' }}>
                                 <Button
                                   size="small"
                                   color="info"
                                   variant="outlined"
                                   startIcon={<GroupIcon />}
-                                  onClick={() => {
-                                    setSuccess('Partnership is active. You can collaborate on homework together!');
-                                  }}
+                                  onClick={() => setDetailsDialog({ open: true, partnership })}
                                 >
                                   View Details
                                 </Button>
@@ -606,8 +682,8 @@ function ChoosePartner() {
 
                   {/* Completed Partnerships */}
                   {partnerRequests.completed_partnerships?.length > 0 && (
-                    <Box mb={3}>
-                      <Typography variant="h6" color="info.main" gutterBottom>
+                    <Box mb={3} mt={4}>
+                      <Typography variant="h6" color="info.main" sx={{ mb: 1 }}>
                         Completed Partnerships ({partnerRequests.completed_partnerships.length})
                       </Typography>
                       <Grid container spacing={2}>
@@ -868,12 +944,18 @@ function ChoosePartner() {
                         <CheckCircleIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
                         Current Partners ({partnerData.current_partners.length}/{partnerData.selected_course?.max_partners || 1})
                       </Typography>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ mb: 2 }}>
                         {partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1)
                           ? 'You have reached the maximum number of partners for this course.'
                           : 'You can add more partners for this course.'
                         }
                       </Typography>
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        <Typography variant="body2">
+                          <strong>Note:</strong> Partners shown here include pending, accepted, and active partnerships. 
+                          Students already listed here won't appear in "Available Study Partners" below.
+                        </Typography>
+                      </Alert>
                     </div>
                   </div>
                   
@@ -978,16 +1060,29 @@ function ChoosePartner() {
 
 
               {/* Available Partners */}
-              <Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
-                Available Study Partners
-              </Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 4, mb: 2 }}>
+                <Typography variant="h5">
+                  Available Study Partners
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={fetchPartnerData}
+                  sx={{ color: '#95E1D3', borderColor: '#95E1D3' }}
+                >
+                  Refresh
+                </Button>
+              </Box>
 
               {getUniquePartners().length === 0 ? (
                 <Alert severity="info">
                   {partnerData?.current_partners && partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1) 
                     ? 'You have reached the maximum number of partners for this course.'
-                    : 'No potential study partners found for the selected criteria.'
+                    : 'No potential study partners found. All students may already have pending requests or partnerships.'
                   }
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    💡 Tip: Click "View Requests" at the top to see your pending, sent, and active partnerships.
+                  </Typography>
                 </Alert>
               ) : (
                 <Grid container spacing={2}>
@@ -1167,6 +1262,216 @@ function ChoosePartner() {
               disabled={sendingRequest}
             >
               {sendingRequest ? 'Sending...' : 'Send Request'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Partnership Details Dialog */}
+        <Dialog 
+          open={detailsDialog.open} 
+          onClose={() => setDetailsDialog({ open: false, partnership: null })}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box display="flex" alignItems="center">
+              <GroupIcon sx={{ mr: 1 }} />
+              Partnership Details
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            {detailsDialog.partnership && (
+              <Box>
+                {/* Partner Information */}
+                <Box mb={3}>
+                  <Typography variant="h6" gutterBottom>
+                    Partner Information
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar sx={{ bgcolor: '#95E1D3', width: 56, height: 56 }}>
+                          {detailsDialog.partnership.partner?.picture ? (
+                            <img 
+                              src={detailsDialog.partnership.partner.picture} 
+                              alt="Partner" 
+                              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                            />
+                          ) : (
+                            <PersonIcon fontSize="large" />
+                          )}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h6">
+                            {detailsDialog.partnership.partner?.name || 'Unknown'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {detailsDialog.partnership.partner?.email || 'No email'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Partnership Status
+                        </Typography>
+                        <Chip 
+                          label={detailsDialog.partnership.status?.charAt(0).toUpperCase() + detailsDialog.partnership.status?.slice(1) || 'Unknown'}
+                          color={
+                            detailsDialog.partnership.status === 'pending' ? 'warning' :
+                            detailsDialog.partnership.status === 'accepted' || detailsDialog.partnership.status === 'active' ? 'success' :
+                            detailsDialog.partnership.status === 'completed' ? 'info' : 'default'
+                          }
+                          sx={{ mt: 1 }}
+                        />
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Course and Homework Information */}
+                <Box mb={3}>
+                  <Typography variant="h6" gutterBottom>
+                    Course & Homework Details
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Box mb={2}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Course
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                          {detailsDialog.partnership.homework?.course?.code} - {detailsDialog.partnership.homework?.course?.name}
+                        </Typography>
+                      </Box>
+                      <Box mb={2}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Homework Assignment
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                          {detailsDialog.partnership.homework?.title || 'Unknown'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Due Date
+                        </Typography>
+                        <Typography variant="body1">
+                          {detailsDialog.partnership.homework?.due_date 
+                            ? new Date(detailsDialog.partnership.homework.due_date).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })
+                            : 'Not specified'}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Timeline Information */}
+                <Box mb={3}>
+                  <Typography variant="h6" gutterBottom>
+                    Timeline
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Request Sent
+                      </Typography>
+                      <Typography variant="body2">
+                        {detailsDialog.partnership.initiated_at 
+                          ? new Date(detailsDialog.partnership.initiated_at).toLocaleDateString() + ' at ' + 
+                            new Date(detailsDialog.partnership.initiated_at).toLocaleTimeString()
+                          : 'Unknown'}
+                      </Typography>
+                    </Grid>
+                    {detailsDialog.partnership.accepted_at && (
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Accepted On
+                        </Typography>
+                        <Typography variant="body2">
+                          {new Date(detailsDialog.partnership.accepted_at).toLocaleDateString()} at {' '}
+                          {new Date(detailsDialog.partnership.accepted_at).toLocaleTimeString()}
+                        </Typography>
+                      </Grid>
+                    )}
+                    {detailsDialog.partnership.completed_at && (
+                      <Grid item xs={12} md={6}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Completed On
+                        </Typography>
+                        <Typography variant="body2">
+                          {new Date(detailsDialog.partnership.completed_at).toLocaleDateString()} at {' '}
+                          {new Date(detailsDialog.partnership.completed_at).toLocaleTimeString()}
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+
+                {/* Notes Section */}
+                {detailsDialog.partnership.notes && (
+                  <>
+                    <Divider sx={{ my: 2 }} />
+                    <Box>
+                      <Typography variant="h6" gutterBottom>
+                        Message
+                      </Typography>
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                        <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
+                          "{detailsDialog.partnership.notes}"
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  </>
+                )}
+
+                {/* Status Information */}
+                <Divider sx={{ my: 2 }} />
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Status Information
+                  </Typography>
+                  <Alert 
+                    severity={
+                      detailsDialog.partnership.status === 'pending' ? 'warning' :
+                      detailsDialog.partnership.status === 'accepted' || detailsDialog.partnership.status === 'active' ? 'success' :
+                      detailsDialog.partnership.status === 'completed' ? 'info' : 'default'
+                    }
+                  >
+                    <Typography variant="body2">
+                      {detailsDialog.partnership.status === 'pending' && 
+                        'This partnership request is pending. Waiting for the other student to accept.'}
+                      {(detailsDialog.partnership.status === 'accepted' || detailsDialog.partnership.status === 'active') && 
+                        'This partnership is active! You can collaborate on this homework together.'}
+                      {detailsDialog.partnership.status === 'completed' && 
+                        'This partnership has been completed. Great work!'}
+                    </Typography>
+                  </Alert>
+                </Box>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => setDetailsDialog({ open: false, partnership: null })}
+              variant="contained"
+              sx={{ 
+                backgroundColor: '#95E1D3',
+                color: '#333',
+                '&:hover': { backgroundColor: '#7dd3c0' }
+              }}
+            >
+              Close
             </Button>
           </DialogActions>
         </Dialog>

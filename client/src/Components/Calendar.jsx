@@ -102,6 +102,11 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
   });
 
   const handleSelectEvent = (event) => {
+    console.log('=== EVENT CLICKED ===');
+    console.log('Event:', event);
+    console.log('Event resource:', event.resource);
+    console.log('Event homework:', event.resource?.homework);
+    console.log('Event homework course:', event.resource?.homework?.course);
     setSelectedEvent(event);
     setEventDialogOpen(true);
   };
@@ -181,6 +186,20 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     const eventData = event.resource?.homework || event.resource?.class || event.resource?.exam;
     const eventType = event.resource?.type;
     
+    // Debug: Log homework events to see what's being rendered
+    if (eventType === 'homework') {
+      console.log('Rendering homework in EventComponent:', {
+        title: event.title,
+        hasCourse: !!eventData?.course,
+        courseName: eventData?.course?.name,
+        courseCode: eventData?.course?.code,
+        courseCourseName: eventData?.course?.course_name,
+        courseCourseCode: eventData?.course?.course_code,
+        fullCourseData: eventData?.course,
+        uploaderRole: eventData?.uploader_role
+      });
+    }
+    
     // Debug: Log exam events to see what's being rendered
     if (eventType === 'exam') {
       console.log('Rendering exam in EventComponent:', {
@@ -241,10 +260,13 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         color: textColor,
         padding: '6px 8px',
         borderRadius: '4px',
-        height: '100%',
+        minHeight: '50px',
         width: '100%',
-        overflow: 'hidden',
-        boxSizing: 'border-box'
+        overflow: 'visible',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2px'
       }}>
         <div style={{ 
           fontWeight: 'bold', 
@@ -257,20 +279,24 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         }}>
           {event.title || 'Untitled'}
         </div>
-        {eventData?.course && (
-          <div style={{ 
-            fontSize: '11px', 
-            opacity: 0.8,
-            lineHeight: '1.3',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            display: 'block',
-            color: '#333'
-          }}>
-            {eventData.course.name || eventData.course.course_name || eventData.course.code || eventData.course.course_code || ''}
-          </div>
-        )}
+        {eventData?.course && (() => {
+          const courseText = eventData.course.name || eventData.course.course_name || eventData.course.code || eventData.course.course_code || '';
+          console.log('Should display course for', event.title, ':', courseText, 'has course?', !!eventData.course);
+          return (
+            <div className="event-course-name" style={{ 
+              fontSize: '11px', 
+              opacity: 1,
+              lineHeight: '1.3',
+              overflow: 'visible',
+              display: 'block',
+              color: '#333',
+              fontWeight: '500',
+              marginTop: '2px'
+            }}>
+              {courseText}
+            </div>
+          );
+        })()}
         {eventType === 'homework' && daysUntilDue <= 1 && (
           <div style={{ 
             fontSize: '9px', 
@@ -411,14 +437,30 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                         Assignment Details
                       </Typography>
                       
-                      {selectedEvent.resource.homework.course && (
-                        <Box display="flex" alignItems="center" mb={1}>
-                          <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
-                          <Typography variant="body2">
-                            <strong>Course:</strong> {selectedEvent.resource.homework.course.name} ({selectedEvent.resource.homework.course.code})
-                          </Typography>
-                        </Box>
-                      )}
+                      {(() => {
+                        const course = selectedEvent?.resource?.homework?.course;
+                        console.log('DIALOG - Course object:', course);
+                        if (!course) return null;
+                        
+                        const courseName = course.name || course.course_name || '';
+                        const courseCode = course.code || course.course_code || '';
+                        console.log('DIALOG - courseName:', courseName, 'courseCode:', courseCode);
+                        
+                        if (!courseName && !courseCode) return null;
+                        
+                        const displayText = (courseName && courseCode) 
+                          ? `${courseName} (${courseCode})` 
+                          : courseName || courseCode;
+                        
+                        return (
+                          <Box display="flex" alignItems="center" mb={1}>
+                            <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
+                            <Typography variant="body2">
+                              <strong>Course:</strong> {displayText}
+                            </Typography>
+                          </Box>
+                        );
+                      })()}
                       
                       <Box display="flex" alignItems="center" mb={1}>
                         <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />

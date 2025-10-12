@@ -42,14 +42,17 @@
   font-size: 18px;
   font-weight: 600;
   color: #333;
-  flex-grow: 1;
+  flex: 1 1 auto;
   text-align: center;
+  min-width: 0;
+  padding: 0 8px;
 }
 
 /* View buttons styling */
 .rbc-btn-group {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .rbc-btn-group button {
@@ -85,21 +88,33 @@
   color: #333;
 }
 
-/* Ensure calendar container has proper height */
+/* Ensure calendar container has proper height and width */
 .rbc-calendar {
   height: 100% !important;
   min-height: 500px;
+  width: 100%;
+  max-width: 100%;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   border-radius: 8px;
   padding: 16px;
+  box-sizing: border-box;
+  overflow-x: auto;
 }
 
 /* Month view styling */
 .rbc-month-view {
   height: 100%;
+  width: 100%;
+  min-width: 100%;
   background: transparent;
   border-radius: 8px;
+  table-layout: fixed;
+}
+
+.rbc-month-view table {
+  width: 100%;
+  table-layout: fixed;
 }
 
 .rbc-month-row {
@@ -107,9 +122,22 @@
   border-bottom: 1px solid rgba(149, 225, 211, 0.3);
 }
 
+/* Ensure all day cells have equal width */
+.rbc-day-bg,
 .rbc-date-cell {
+  width: 14.2857%;
+  min-width: 14.2857%;
+  max-width: 14.2857%;
   padding: 8px;
   text-align: right;
+  box-sizing: border-box;
+}
+
+.rbc-header {
+  width: 14.2857%;
+  min-width: 14.2857%;
+  max-width: 14.2857%;
+  box-sizing: border-box;
 }
 
 .rbc-date-cell > a {
@@ -124,27 +152,73 @@
 
 /* Event styling */
 .rbc-event {
-  padding: 2px 4px;
+  padding: 4px 6px;
   border-radius: 3px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   border: none !important;
-  color: white !important;
   background: transparent !important;
+  min-height: 45px;
+  height: auto !important;
 }
 
 .rbc-event:hover {
   opacity: 0.8;
 }
 
-/* Remove any default event background colors */
+/* Remove any default event background colors but allow overflow */
 .rbc-event-content {
   background: transparent !important;
+  overflow: visible !important;
+  height: auto !important;
 }
 
 .rbc-event-label {
   background: transparent !important;
+}
+
+/* Month view events - ensure they have enough height */
+.rbc-month-view .rbc-event {
+  min-height: 48px !important;
+  height: auto !important;
+  padding: 6px 8px !important;
+  margin-bottom: 2px !important;
+}
+
+.rbc-month-view .rbc-event-content {
+  overflow: visible !important;
+  height: auto !important;
+  white-space: normal !important;
+  display: block !important;
+}
+
+/* Month view row segments */
+.rbc-row-segment {
+  padding: 2px 1px !important;
+}
+
+.rbc-row-content {
+  min-height: 50px !important;
+}
+
+/* Ensure event wrapper doesn't hide content */
+.rbc-event-content > div,
+.rbc-event > div {
+  display: block !important;
+  overflow: visible !important;
+}
+
+/* Specific styling for course name in events */
+.event-course-name {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #333 !important;
+  font-size: 11px !important;
+  line-height: 1.3 !important;
+  margin-top: 2px !important;
+  overflow: visible !important;
 }
 
 /* Today's date highlighting */

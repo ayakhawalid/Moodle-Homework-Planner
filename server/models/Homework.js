@@ -49,6 +49,18 @@ const homeworkSchema = new mongoose.Schema({
   allow_late_submission: {
     type: Boolean,
     default: false
+  },
+  
+  // Partner settings
+  allow_partners: {
+    type: Boolean,
+    default: false
+  },
+  max_partners: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 5
   }
 }, {
   timestamps: true,

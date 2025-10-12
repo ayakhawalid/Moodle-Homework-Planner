@@ -111,6 +111,18 @@ const studentHomeworkSchema = new mongoose.Schema({
   moodle_url: {
     type: String,
     trim: true
+  },
+  
+  // Partner settings
+  allow_partners: {
+    type: Boolean,
+    default: false
+  },
+  max_partners: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 5
   }
 }, {
   timestamps: true,
