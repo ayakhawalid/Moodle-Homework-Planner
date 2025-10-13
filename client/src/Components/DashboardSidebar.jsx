@@ -96,7 +96,7 @@ function DashboardSidebar({ userRole }) {
   const lecturerNavItems = [
     { path: '/lecturer/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/lecturer/courses', label: 'Course Management', icon: <SchoolIcon /> },
-    { path: '/lecturer/add-homework', label: 'Add Homework', icon: <AssignmentIcon /> },
+    { path: '/lecturer/homework', label: 'Homework Management', icon: <AssignmentIcon /> },
     { path: '/lecturer/verifications', label: 'Verifications', icon: <CheckCircleIcon /> },
     { path: '/lecturer/workload-overview', label: 'Workload Overview', icon: <BarChartIcon /> },
     { path: '/lecturer/stats', label: 'Workload Statistics', icon: <BarChartIcon /> },

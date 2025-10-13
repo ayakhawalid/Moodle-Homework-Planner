@@ -89,11 +89,13 @@ function HomeworkPlanner() {
           <div className="card-content">
             <h4>Key Features:</h4>
             <ul style={{paddingLeft: '20px', lineHeight: '1.8'}}>
-              <li>Add new assignments with detailed descriptions</li>
-              <li>Set due dates and track deadlines</li>
+              <li>Create and edit homework assignments</li>
+              <li>Filter homework by course</li>
+              <li>Set deadlines and track due dates</li>
+              <li>Mark homework as completed</li>
+              <li>Form study partnerships with classmates</li>
+              <li>Collaborate with course mates on homework management</li>
               <li>Track completion status and progress</li>
-              <li>View upcoming deadlines and overdue items</li>
-              <li>Organize by subject or course</li>
             </ul>
           </div>
         </div>

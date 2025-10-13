@@ -10,7 +10,6 @@ const Exam = require('./models/Exam');
 const Grade = require('./models/Grade');
 const StudyProgress = require('./models/StudyProgress');
 const Partner = require('./models/Partner');
-const File = require('./models/File');
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -372,26 +371,6 @@ async function seedStudentDashboard() {
 
     console.log('✅ Partner relationships created');
 
-    // Create files
-    const file1 = await File.findOneAndUpdate(
-      { original_name: 'calculator.py' },
-      {
-        filename: 'calculator-123456789.py',
-        original_name: 'calculator.py',
-        file_path: '/uploads/homework/calculator-123456789.py',
-        file_size: 2048,
-        mime_type: 'text/plain',
-        homework_id: homework1._id,
-        uploaded_by: student1._id,
-        description: 'Python calculator implementation',
-        file_type: 'submission',
-        is_active: true
-      },
-      { upsert: true, new: true }
-    );
-
-    console.log('✅ Files created');
-
     console.log('🎉 Student dashboard data seeding completed successfully!');
     console.log('\n📊 Sample Data Summary:');
     console.log(`- Users: ${await User.countDocuments()} (1 lecturer, 3 students)`);
@@ -402,7 +381,6 @@ async function seedStudentDashboard() {
     console.log(`- Grades: ${await Grade.countDocuments()} (3 grades)`);
     console.log(`- Study Progress: ${await StudyProgress.countDocuments()} (3 sessions)`);
     console.log(`- Partners: ${await Partner.countDocuments()} (1 partnership)`);
-    console.log(`- Files: ${await File.countDocuments()} (1 file)`);
 
   } catch (error) {
     console.error('❌ Error seeding student dashboard data:', error);

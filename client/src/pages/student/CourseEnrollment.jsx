@@ -225,7 +225,7 @@ const CourseEnrollment = () => {
                               </Typography>
                               {course.course_code && (
                                 <Chip 
-                                  label={course.course_code} 
+                                  label={String(course.course_code)} 
                                   size="small" 
                                   variant="outlined"
                                   sx={{
@@ -238,27 +238,28 @@ const CourseEnrollment = () => {
                             </Box>
                           }
                           secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
+                            <Box component="span" display="block">
+                              <Typography variant="body2" color="text.secondary" component="span" display="block">
                                 Lecturer: {course.lecturer_id?.name || 'Unknown'}
                               </Typography>
-                              <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+                              <Box component="span" display="flex" alignItems="center" gap={1} mt={0.5}>
                                 {course.semester && (
                                   <Chip 
-                                    label={course.semester.charAt(0).toUpperCase() + course.semester.slice(1)} 
+                                    label={String(course.semester).charAt(0).toUpperCase() + String(course.semester).slice(1)} 
                                     sx={getSemesterChipColor(course.semester)}
                                     size="small"
                                   />
                                 )}
-                                <Typography variant="caption">{course.year}</Typography>
+                                <Typography variant="caption" component="span">{course.year}</Typography>
                                 {course.credits && (
-                                  <Typography variant="caption">
+                                  <Typography variant="caption" component="span">
                                     • {course.credits} credits
                                   </Typography>
                                 )}
                               </Box>
                             </Box>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                         />
                         <ListItemSecondaryAction>
                           <IconButton
@@ -370,7 +371,7 @@ const CourseEnrollment = () => {
                               </Typography>
                               {course.course_code && (
                                 <Chip 
-                                  label={course.course_code} 
+                                  label={String(course.course_code)} 
                                   size="small" 
                                   variant="outlined"
                                   sx={{
@@ -383,21 +384,21 @@ const CourseEnrollment = () => {
                             </Box>
                           }
                           secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
+                            <Box component="span" display="block">
+                              <Typography variant="body2" color="text.secondary" component="span" display="block">
                                 Lecturer: {course.lecturer_id?.name || 'Unknown'}
                               </Typography>
-                              <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+                              <Box component="span" display="flex" alignItems="center" gap={1} mt={0.5}>
                                 {course.semester && (
                                   <Chip 
-                                    label={course.semester.charAt(0).toUpperCase() + course.semester.slice(1)} 
+                                    label={String(course.semester).charAt(0).toUpperCase() + String(course.semester).slice(1)} 
                                     sx={getSemesterChipColor(course.semester)}
                                     size="small"
                                   />
                                 )}
-                                <Typography variant="caption">{course.year}</Typography>
+                                <Typography variant="caption" component="span">{course.year}</Typography>
                                 {course.credits && (
-                                  <Typography variant="caption">
+                                  <Typography variant="caption" component="span">
                                     • {course.credits} credits
                                   </Typography>
                                 )}
@@ -407,6 +408,7 @@ const CourseEnrollment = () => {
                               </Box>
                             </Box>
                           }
+                          secondaryTypographyProps={{ component: 'div' }}
                         />
                         <ListItemSecondaryAction>
                           <IconButton
@@ -459,17 +461,18 @@ const CourseEnrollment = () => {
                   </Typography>
                   <Box display="flex" gap={1} mb={2}>
                     {detailsDialog.course.course_code && (
-                      <Chip label={detailsDialog.course.course_code} variant="outlined" />
+                      <Chip label={String(detailsDialog.course.course_code)} variant="outlined" />
                     )}
                     {detailsDialog.course.semester && (
                       <Chip 
-                        label={detailsDialog.course.semester.charAt(0).toUpperCase() + detailsDialog.course.semester.slice(1)} 
-                        color={getSemesterChipColor(detailsDialog.course.semester)}
+                        label={String(detailsDialog.course.semester).charAt(0).toUpperCase() + String(detailsDialog.course.semester).slice(1)} 
+                        sx={getSemesterChipColor(detailsDialog.course.semester)}
+                        size="small"
                       />
                     )}
-                    <Chip label={`${detailsDialog.course.year}`} variant="outlined" />
+                    <Chip label={String(detailsDialog.course.year || '')} variant="outlined" />
                     {detailsDialog.course.credits && (
-                      <Chip label={`${detailsDialog.course.credits} credits`} color="primary" />
+                      <Chip label={String(detailsDialog.course.credits) + ' credits'} color="primary" />
                     )}
                   </Box>
                 </Box>

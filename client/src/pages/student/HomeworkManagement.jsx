@@ -30,7 +30,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Edit as EditIcon,
   Schedule as ScheduleIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
@@ -43,11 +44,14 @@ const HomeworkManagement = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [searchCourse, setSearchCourse] = useState('');
   
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [selectedHomework, setSelectedHomework] = useState(null);
+  const [editingHomework, setEditingHomework] = useState(null);
   
   // Form states
   const [newHomework, setNewHomework] = useState({
@@ -135,6 +139,48 @@ const HomeworkManagement = () => {
     }
   };
 
+  const handleEditHomework = (hw) => {
+    setEditingHomework(hw);
+    setNewHomework({
+      title: hw.title,
+      description: hw.description || '',
+      course_id: hw.course?._id || hw.course_id,
+      claimed_deadline: hw.claimed_deadline ? new Date(hw.claimed_deadline).toISOString().slice(0, 16) : '',
+      moodle_url: hw.moodle_url || '',
+      allow_partners: hw.allow_partners || false,
+      max_partners: hw.max_partners || 1
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateHomework = async () => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      // Update student homework (need to add API method)
+      await apiService.studentHomework.updateHomework(editingHomework._id, newHomework);
+      setSuccess('Homework updated successfully!');
+      setEditDialogOpen(false);
+      setEditingHomework(null);
+      setNewHomework({
+        title: '',
+        description: '',
+        course_id: '',
+        claimed_deadline: '',
+        moodle_url: '',
+        allow_partners: false,
+        max_partners: 1
+      });
+      fetchHomework();
+    } catch (err) {
+      console.error('Error updating homework:', err);
+      setError(err.response?.data?.error || 'Failed to update homework');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleCompleteHomework = async () => {
     try {
       setSubmitting(true);
@@ -149,6 +195,22 @@ const HomeworkManagement = () => {
     } catch (err) {
       console.error('Error completing homework:', err);
       setError(err.response?.data?.error || 'Failed to complete homework');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteHomework = async (hw) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      await apiService.studentHomework.deleteHomework(hw._id);
+      setSuccess('Homework and all related partnerships deleted successfully!');
+      fetchHomework();
+    } catch (err) {
+      console.error('Error deleting homework:', err);
+      setError(err.response?.data?.error || 'Failed to delete homework');
     } finally {
       setSubmitting(false);
     }
@@ -177,6 +239,11 @@ const HomeworkManagement = () => {
       default: return 'default';
     }
   };
+
+  // Filter homework by course
+  const filteredHomework = searchCourse
+    ? homework.filter(hw => (hw.course?._id || hw.course_id) === searchCourse)
+    : homework;
 
   if (loading) {
     return (
@@ -213,6 +280,29 @@ const HomeworkManagement = () => {
           Create, manage, and track your homework assignments
         </Typography>
       </Box>
+
+      {/* Course Filter */}
+      <Box mb={3}>
+        <FormControl fullWidth sx={{ maxWidth: 400 }}>
+          <InputLabel>Filter by Course</InputLabel>
+          <Select
+            value={searchCourse}
+            onChange={(e) => setSearchCourse(e.target.value)}
+            label="Filter by Course"
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              borderRadius: '8px'
+            }}
+          >
+            <MenuItem value="">All Courses</MenuItem>
+            {courses.map((course) => (
+              <MenuItem key={course._id} value={course._id}>
+                {course.course_code} - {course.course_name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
       
       <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
         <Button
@@ -242,7 +332,7 @@ const HomeworkManagement = () => {
       )}
 
       <Grid container spacing={4}>
-        {homework.map((hw) => (
+        {filteredHomework.map((hw) => (
           <Grid item xs={12} md={6} lg={4} key={hw._id} sx={{ mb: 3 }}>
             <div className="dashboard-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '20px', marginBottom: '16px' }}>
               <div className="card-content" style={{ flexGrow: 1 }}>
@@ -347,7 +437,7 @@ const HomeworkManagement = () => {
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={<EditIcon />}
+                      startIcon={<CheckCircleIcon />}
                       onClick={() => {
                         setSelectedHomework(hw);
                         setCompleteDialogOpen(true);
@@ -362,6 +452,38 @@ const HomeworkManagement = () => {
                     </Button>
                   )}
                   
+                  {/* Show edit/delete buttons for all student-created homework (not lecturer-created) */}
+                  {hw.uploader_role === 'student' && (
+                    <>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<EditIcon />}
+                        onClick={() => handleEditHomework(hw)}
+                        disabled={submitting}
+                        sx={{
+                          borderColor: '#95E1D3',
+                          color: '#333',
+                          '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDeleteHomework(hw)}
+                        disabled={submitting}
+                        sx={{
+                          '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  )}
                 </Box>
               </div>
             </div>
@@ -369,15 +491,15 @@ const HomeworkManagement = () => {
         ))}
       </Grid>
 
-      {homework.length === 0 && (
-        <Paper elevation={1} sx={{ p: 4, textAlign: 'center' }}>
+      {filteredHomework.length === 0 && (
+        <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary">
             No homework found
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Click "Add Homework" to create your first homework entry
           </Typography>
-        </Paper>
+        </div>
       )}
 
       {/* Create Homework Dialog */}
@@ -496,6 +618,135 @@ const HomeworkManagement = () => {
             disabled={submitting || !newHomework.title || !newHomework.course_id || !newHomework.claimed_deadline}
           >
             {submitting ? <CircularProgress size={24} /> : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Homework Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => {
+        setEditDialogOpen(false);
+        setEditingHomework(null);
+      }} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Homework</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Title"
+                value={newHomework.title}
+                onChange={(e) => setNewHomework({ ...newHomework, title: e.target.value })}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                multiline
+                rows={3}
+                value={newHomework.description}
+                onChange={(e) => setNewHomework({ ...newHomework, description: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  value={newHomework.course_id}
+                  onChange={(e) => setNewHomework({ ...newHomework, course_id: e.target.value })}
+                >
+                  {courses.map((course) => (
+                    <MenuItem key={course._id} value={course._id}>
+                      {course.course_name} ({course.course_code})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Deadline"
+                type="datetime-local"
+                value={newHomework.claimed_deadline}
+                onChange={(e) => setNewHomework({ ...newHomework, claimed_deadline: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Moodle URL"
+                value={newHomework.moodle_url}
+                onChange={(e) => setNewHomework({ ...newHomework, moodle_url: e.target.value })}
+                placeholder="https://moodle.example.com/mod/assign/view.php?id=123"
+              />
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Allow Study Partners
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Enable students to form partnerships for this homework
+                  </Typography>
+                </Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={newHomework.allow_partners}
+                      onChange={(e) => setNewHomework({ ...newHomework, allow_partners: e.target.checked })}
+                      color="primary"
+                    />
+                  }
+                  label=""
+                />
+              </Box>
+            </Grid>
+            
+            {newHomework.allow_partners && (
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Maximum Partners</InputLabel>
+                  <Select
+                    value={newHomework.max_partners}
+                    onChange={(e) => setNewHomework({ ...newHomework, max_partners: e.target.value })}
+                    label="Maximum Partners"
+                  >
+                    <MenuItem value={1}>1 Partner</MenuItem>
+                    <MenuItem value={2}>2 Partners</MenuItem>
+                    <MenuItem value={3}>3 Partners</MenuItem>
+                    <MenuItem value={4}>4 Partners</MenuItem>
+                    <MenuItem value={5}>5 Partners</MenuItem>
+                  </Select>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                    Maximum number of partners allowed for this homework
+                  </Typography>
+                </FormControl>
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setEditDialogOpen(false);
+            setEditingHomework(null);
+          }}>Cancel</Button>
+          <Button
+            onClick={handleUpdateHomework}
+            variant="contained"
+            disabled={submitting || !newHomework.title || !newHomework.course_id || !newHomework.claimed_deadline}
+            sx={{
+              backgroundColor: '#95E1D3',
+              color: '#333',
+              '&:hover': { backgroundColor: '#7dd3c0' }
+            }}
+          >
+            {submitting ? <CircularProgress size={24} /> : 'Update'}
           </Button>
         </DialogActions>
       </Dialog>

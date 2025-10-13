@@ -4,7 +4,6 @@ const Homework = require('../models/Homework');
 const Course = require('../models/Course');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
-const File = require('../models/File');
 const { checkJwt, extractUser, requireLecturer } = require('../middleware/auth');
 
 // GET /api/homework - Get all homework with filters
@@ -53,13 +52,6 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
           path: 'student_id',
           select: 'name email full_name'
         }
-      })
-      .populate({
-        path: 'files',
-        populate: {
-          path: 'uploaded_by',
-          select: 'name email'
-        }
       });
     
     if (upcoming === 'true') {
@@ -86,13 +78,6 @@ router.get('/:id', checkJwt, extractUser, async (req, res) => {
         populate: {
           path: 'student_id',
           select: 'name email full_name'
-        }
-      })
-      .populate({
-        path: 'files',
-        populate: {
-          path: 'uploaded_by',
-          select: 'name email'
         }
       })
       .populate({
@@ -259,11 +244,6 @@ router.get('/course/:courseId', checkJwt, extractUser, async (req, res) => {
             student_id: user._id
           }).populate('student_id', 'name email');
           
-          const submissionFiles = await File.find({
-            homework_id: hw._id,
-            uploaded_by: user._id
-          });
-          
           return {
             ...hw.toObject(),
             submitted: !!studentSubmission,
@@ -271,12 +251,7 @@ router.get('/course/:courseId', checkJwt, extractUser, async (req, res) => {
               _id: studentSubmission._id,
               submitted_at: studentSubmission.submission_date,
               comments: studentSubmission.feedback,
-              grade: studentSubmission.grade,
-              files: submissionFiles.map(file => ({
-                _id: file._id,
-                original_name: file.original_name,
-                filename: file.filename
-              }))
+              grade: studentSubmission.grade
             } : null
           };
         }));
@@ -407,10 +382,27 @@ router.delete('/:id', checkJwt, extractUser, requireLecturer, async (req, res) =
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    homework.is_active = false;
-    await homework.save();
+    // Delete related data
+    const Partner = require('../models/Partner');
     
-    res.json({ message: 'Homework deleted successfully' });
+    // Delete partnerships for this homework
+    await Partner.deleteMany({ homework_id: req.params.id });
+    
+    // Delete grades for this homework
+    await Grade.deleteMany({ homework_id: req.params.id });
+    
+    // Delete the homework itself
+    await Homework.findByIdAndDelete(req.params.id);
+    
+    console.log(`Deleted homework ${req.params.id} and its partnerships/grades`);
+    
+    res.json({ 
+      message: 'Homework and all related data deleted successfully',
+      deleted: {
+        homework_id: req.params.id,
+        title: homework.title
+      }
+    });
   } catch (error) {
     console.error('Error deleting homework:', error);
     res.status(500).json({ error: 'Failed to delete homework' });

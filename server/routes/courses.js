@@ -433,10 +433,62 @@ router.delete('/:id', checkJwt, extractUser, async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
     
-    course.is_active = false;
-    await course.save();
+    // Cascade delete: Delete all related data for this course
+    const Homework = require('../models/Homework');
+    const StudentHomework = require('../models/StudentHomework');
+    const Partner = require('../models/Partner');
+    const Exam = require('../models/Exam');
+    const Class = require('../models/Class');
+    const Grade = require('../models/Grade');
     
-    res.json({ message: 'Course deactivated successfully' });
+    const courseId = course._id;
+    
+    console.log(`Deleting course: ${course.course_name} (${course.course_code})`);
+    
+    // Find all homework IDs (both traditional and student homework) for this course
+    const traditionalHomework = await Homework.find({ course_id: courseId }).select('_id');
+    const studentHomework = await StudentHomework.find({ course_id: courseId }).select('_id');
+    const exams = await Exam.find({ course_id: courseId }).select('_id');
+    
+    const allHomeworkIds = [
+      ...traditionalHomework.map(hw => hw._id),
+      ...studentHomework.map(hw => hw._id)
+    ];
+    
+    const examIds = exams.map(exam => exam._id);
+    
+    console.log(`Found ${traditionalHomework.length} traditional homework, ${studentHomework.length} student homework, and ${exams.length} exams to delete`);
+    
+    // Delete all related data for this course
+    await Promise.all([
+      Homework.deleteMany({ course_id: courseId }),
+      Exam.deleteMany({ course_id: courseId }),
+      Class.deleteMany({ course_id: courseId }),
+      StudentHomework.deleteMany({ course_id: courseId }),
+      Partner.deleteMany({ homework_id: { $in: allHomeworkIds } }),
+      Grade.deleteMany({ 
+        $or: [
+          { homework_id: { $in: allHomeworkIds } },
+          { exam_id: { $in: examIds } }
+        ]
+      })
+    ]);
+    
+    console.log(`Deleted all related data: ${allHomeworkIds.length} homework assignments, partnerships, and grades`);
+    
+    // Delete the course itself
+    await Course.findByIdAndDelete(courseId);
+    
+    console.log(`Successfully deleted course: ${course.course_name}`);
+    
+    res.json({ 
+      message: 'Course and all related data deleted successfully',
+      deleted: {
+        course: course.course_name,
+        homework: allHomeworkIds.length,
+        exams: examIds.length
+      }
+    });
   } catch (error) {
     console.error('Error deleting course:', error);
     res.status(500).json({ error: 'Failed to delete course' });

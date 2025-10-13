@@ -18,7 +18,6 @@ The Moodle Homework Planner uses MongoDB as its database. This document provides
   - [StudyProgress](#studyprogress)
   - [Partner](#partner)
   - [RoleRequest](#rolerequest)
-  - [File](#file)
 - [Relationship Summary](#relationship-summary)
 - [Indexes](#indexes)
 
@@ -30,15 +29,14 @@ The Moodle Homework Planner uses MongoDB as its database. This document provides
 |------------|-------------|-------------------|
 | **User** | Stores user accounts (students, lecturers, admins) | Referenced by most other collections |
 | **Course** | Academic courses | Has many Classes, Homework, Exams; Belongs to Lecturer; Has many Students |
-| **Class** | Individual class sessions | Belongs to Course; Has many Files |
-| **Homework** | Homework assignments | Belongs to Course; Has many Grades, Files, Partners |
+| **Class** | Individual class sessions | Belongs to Course |
+| **Homework** | Homework assignments | Belongs to Course; Has many Grades, Partners |
 | **StudentHomework** | Student-uploaded homework | Belongs to Course and User |
 | **Grade** | Student grades for homework/exams | Belongs to Student, Homework or Exam |
 | **Exam** | Examinations | Belongs to Course; Has many Grades |
 | **StudyProgress** | Student study tracking | Belongs to Student (User) |
 | **Partner** | Student partnerships for homework | Belongs to Homework and two Students |
 | **RoleRequest** | Role change requests | Belongs to User |
-| **File** | File uploads | Belongs to Homework or Class; Uploaded by User |
 
 ---
 
@@ -51,7 +49,6 @@ erDiagram
     User ||--o{ Grade : "receives"
     User ||--o{ StudyProgress : "tracks"
     User ||--o{ RoleRequest : "submits"
-    User ||--o{ File : "uploads"
     User ||--o{ StudentHomework : "uploads"
     User ||--o{ Partner : "student1"
     User ||--o{ Partner : "student2"
@@ -62,12 +59,9 @@ erDiagram
     Course ||--o{ StudentHomework : "belongs to"
     
     Homework ||--o{ Grade : "graded"
-    Homework ||--o{ File : "attached to"
     Homework ||--o{ Partner : "allows partnerships"
     
     Exam ||--o{ Grade : "graded"
-    
-    Class ||--o{ File : "contains materials"
     
     Grade }o--|| User : "graded by (lecturer)"
 ```
@@ -109,7 +103,6 @@ erDiagram
 - **One-to-Many with Grade**: A user receives many grades
 - **One-to-Many with StudyProgress**: A user tracks study progress over time
 - **One-to-Many with RoleRequest**: A user can submit role change requests
-- **One-to-Many with File**: A user uploads multiple files
 - **One-to-Many with StudentHomework**: A user uploads student homework
 - **One-to-Many with Partner**: A user can have multiple partnerships
 
@@ -214,11 +207,6 @@ erDiagram
 #### Relationships
 
 - **Many-to-One with Course**: Class belongs to one course
-- **One-to-Many with File**: Class can have multiple file attachments
-
-#### Virtual Fields
-
-- `files`: Virtual populate to File collection
 
 #### Indexes
 
@@ -274,13 +262,11 @@ erDiagram
 
 - **Many-to-One with Course**: Homework belongs to one course
 - **One-to-Many with Grade**: Homework has many grades
-- **One-to-Many with File**: Homework can have file attachments
 - **One-to-Many with Partner**: Homework can have student partnerships
 
 #### Virtual Fields
 
 - `grades`: Virtual populate to Grade collection
-- `files`: Virtual populate to File collection
 - `partners`: Virtual populate to Partner collection
 
 #### Indexes
@@ -653,56 +639,6 @@ erDiagram
 
 ---
 
-### File
-
-**Collection:** `files`
-
-**Purpose:** Manages file uploads for homework and class materials.
-
-#### Schema Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `_id` | ObjectId | Yes | MongoDB auto-generated ID |
-| `filename` | String | Yes | Stored filename |
-| `original_name` | String | Yes | Original filename |
-| `file_path` | String | Yes | File storage path |
-| `file_size` | Number | Yes | File size in bytes |
-| `mime_type` | String | Yes | MIME type |
-| `homework_id` | ObjectId → Homework | No | Reference to homework (nullable) |
-| `class_id` | ObjectId → Class | No | Reference to class (nullable) |
-| `uploaded_by` | ObjectId → User | Yes | Reference to uploader |
-| `description` | String | No | File description |
-| `file_type` | String | No | Enum: 'assignment', 'resource', 'submission', 'other' |
-| `is_active` | Boolean | No | Active status (default: true) |
-| `createdAt` | Date | Auto | Creation timestamp |
-| `updatedAt` | Date | Auto | Last update timestamp |
-
-#### Relationships
-
-- **Many-to-One with Homework**: File may belong to one homework
-- **Many-to-One with Class**: File may belong to one class
-- **Many-to-One with User**: File uploaded by one user
-
-#### Indexes
-
-- `homework_id`
-- `class_id`
-- `uploaded_by`
-
-#### Instance Methods
-
-- `getFileUrl()`: Get download URL
-- `getFormattedSize()`: Get human-readable file size
-
-#### Static Methods
-
-- `findByHomework(homeworkId)`: Find files by homework
-- `findByClass(classId)`: Find files by class
-- `findByUser(userId)`: Find files uploaded by user
-
----
-
 ## Relationship Summary
 
 ### One-to-Many Relationships
@@ -713,17 +649,14 @@ erDiagram
 | User | Grade | `student_id` | Student receives grades |
 | User | StudyProgress | `student_id` | Student tracks progress |
 | User | RoleRequest | `user` | User submits role requests |
-| User | File | `uploaded_by` | User uploads files |
 | User | StudentHomework | `uploaded_by` | User uploads homework |
 | Course | Class | `course_id` | Course has class sessions |
 | Course | Homework | `course_id` | Course has homework |
 | Course | Exam | `course_id` | Course has exams |
 | Course | StudentHomework | `course_id` | Course has student homework |
 | Homework | Grade | `homework_id` | Homework receives grades |
-| Homework | File | `homework_id` | Homework has attachments |
 | Homework | Partner | `homework_id` | Homework allows partnerships |
 | Exam | Grade | `exam_id` | Exam receives grades |
-| Class | File | `class_id` | Class has materials |
 
 ### Many-to-Many Relationships
 
@@ -737,7 +670,6 @@ erDiagram
 | Child | Parents | Implementation | Description |
 |-------|---------|----------------|-------------|
 | Grade | Homework OR Exam | `homework_id` XOR `exam_id` | Grade belongs to either homework or exam |
-| File | Homework OR Class | `homework_id` XOR `class_id` | File attached to homework or class |
 
 ---
 
@@ -803,11 +735,6 @@ erDiagram
 - `student2_id`
 - Compound unique: `(homework_id, student1_id, student2_id)`
 
-#### File Collection
-- `homework_id`
-- `class_id`
-- `uploaded_by`
-
 ---
 
 ## Data Integrity Rules
@@ -842,7 +769,6 @@ erDiagram
 | StudyProgress | 2 KB per doc | Very high volume (daily per student) |
 | Partner | 0.5 KB per doc | Low-medium volume |
 | RoleRequest | 0.5 KB per doc | Low volume |
-| File | 0.5 KB per doc (metadata) | Medium-high volume |
 
 ---
 
@@ -852,10 +778,10 @@ erDiagram
 2. **Virtual Fields**: Many collections define virtual fields for relationships (populated on demand)
 3. **Soft Deletes**: Most collections use `is_active` boolean flag instead of hard deletion
 4. **Auth0 Integration**: User collection syncs with Auth0 via `auth0_id` and `lastSynced` fields
-5. **File Storage**: File collection stores metadata; actual files stored in filesystem at `file_path`
+5. **Grade Submission**: Students submit grades directly (no file uploads required)
 6. **OCR Integration**: StudentHomework has `extracted_grade_data` for OCR-extracted grades from screenshots
 
 ---
 
-*Last Updated: October 12, 2025*
+*Last Updated: October 13, 2025*
 
