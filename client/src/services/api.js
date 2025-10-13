@@ -326,9 +326,11 @@ export const apiService = {
       getHomework: () => api.get('/student-homework'),
       getLecturerHomework: () => api.get('/student-homework/lecturer/all'),
       createHomework: (data) => api.post('/student-homework', data),
+      updateHomework: (id, data) => api.put(`/student-homework/${id}`, data),
       completeHomework: (homeworkId, claimedGrade) => api.put(`/student-homework/${homeworkId}/complete`, { claimed_grade: claimedGrade }),
       getVerifications: () => api.get('/student-homework/lecturer/verifications'),
-      verifyDeadline: (homeworkId, data) => api.put(`/student-homework/${homeworkId}/verify-deadline`, data)
+      verifyDeadline: (homeworkId, data) => api.put(`/student-homework/${homeworkId}/verify-deadline`, data),
+      deleteHomework: (homeworkId) => api.delete(`/student-homework/${homeworkId}`)
     },
 
   // Test data endpoints

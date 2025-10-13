@@ -6,7 +6,6 @@ const fs = require('fs');
 const Course = require('../models/Course');
 const Homework = require('../models/Homework');
 const Grade = require('../models/Grade');
-const File = require('../models/File');
 const Partner = require('../models/Partner');
 const User = require('../models/User');
 const { checkJwt, extractUser, requireStudent } = require('../middleware/auth');
@@ -201,8 +200,8 @@ router.get('/homework/:homeworkId', checkJwt, extractUser, requireStudent, async
   }
 });
 
-// POST /api/student-submission/homework/:homeworkId/submit - Submit homework with files
-router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStudent, upload.array('files', 5), async (req, res) => {
+// POST /api/student-submission/homework/:homeworkId/submit - Submit homework
+router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {
     const auth0Id = req.userInfo.auth0_id;
     const homeworkId = req.params.homeworkId;
@@ -280,26 +279,6 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
       }
     }
     
-    // Save uploaded files
-    const savedFiles = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const fileDoc = new File({
-          original_name: file.originalname,
-          filename: file.filename,
-          file_path: file.path,
-          file_size: file.size,
-          mime_type: file.mimetype,
-          homework_id: homeworkId,
-          uploaded_by: studentId,
-          file_type: 'submission'
-        });
-        
-        await fileDoc.save();
-        savedFiles.push(fileDoc);
-      }
-    }
-    
     // Check for existing partner relationship or create new one
     let partnerRelationship = null;
     let partnerId = null;
@@ -372,11 +351,6 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
       message: 'Homework submitted successfully',
       submission: {
         grade_id: grade._id,
-        files: savedFiles.map(file => ({
-          _id: file._id,
-          original_name: file.original_name,
-          filename: file.filename
-        })),
         partner: partnerRelationship ? {
           partner_id: partnerRelationship._id,
           partner_student_id: partnerId,
@@ -388,147 +362,6 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
   } catch (error) {
     console.error('Error submitting homework:', error);
     res.status(500).json({ error: 'Failed to submit homework' });
-  }
-});
-
-// GET /api/student-submission/homework/:homeworkId/files - Get submitted files
-router.get('/homework/:homeworkId/files', checkJwt, extractUser, requireStudent, async (req, res) => {
-  try {
-    const auth0Id = req.userInfo.auth0_id;
-    const homeworkId = req.params.homeworkId;
-    
-    // First, find the user in our database using the Auth0 ID
-    const user = await User.findOne({ auth0_id: auth0Id });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found in database' });
-    }
-    
-    const studentId = user._id;
-    
-    // Check if student has submitted this homework
-    const grade = await Grade.findOne({
-      homework_id: homeworkId,
-      student_id: studentId
-    });
-    
-    if (!grade) {
-      return res.status(404).json({ error: 'No submission found for this homework' });
-    }
-    
-    // Get files for this submission
-    const files = await File.find({ homework_id: homeworkId, uploaded_by: studentId });
-    
-    const filesData = files.map(file => ({
-      _id: file._id,
-      original_name: file.original_name,
-      file_name: file.file_name,
-      file_size: file.file_size,
-      mime_type: file.mime_type,
-      uploaded_at: file.uploaded_at,
-      download_url: `/api/student-submission/files/${file._id}/download`
-    }));
-    
-    res.json(filesData);
-  } catch (error) {
-    console.error('Error fetching submitted files:', error);
-    res.status(500).json({ error: 'Failed to fetch submitted files' });
-  }
-});
-
-// GET /api/student-submission/files/:fileId/download - Download submitted file
-router.get('/files/:fileId/download', checkJwt, extractUser, requireStudent, async (req, res) => {
-  try {
-    const auth0Id = req.userInfo.auth0_id;
-    const fileId = req.params.fileId;
-    
-    // First, find the user in our database using the Auth0 ID
-    const user = await User.findOne({ auth0_id: auth0Id });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found in database' });
-    }
-    
-    const studentId = user._id;
-    
-    // Get file details
-    const file = await File.findById(fileId);
-    if (!file) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-    
-    // Check if user owns this file or is partnered with the owner
-    const isOwner = file.uploaded_by.equals(studentId);
-    
-    if (!isOwner) {
-      // Check if user is partnered with the file owner for this homework
-      const partner = await Partner.findOne({
-        homework_id: file.homework_id,
-        $or: [
-          { student1_id: studentId, student2_id: file.uploaded_by },
-          { student2_id: studentId, student1_id: file.uploaded_by }
-        ]
-      });
-      
-      if (!partner) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-    }
-    
-    // Check if file exists on disk
-    if (!fs.existsSync(file.file_path)) {
-      return res.status(404).json({ error: 'File not found on server' });
-    }
-    
-    // Send file
-    res.download(file.file_path, file.original_name);
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    res.status(500).json({ error: 'Failed to download file' });
-  }
-});
-
-// DELETE /api/student-submission/files/:fileId - Delete submitted file
-router.delete('/files/:fileId', checkJwt, extractUser, requireStudent, async (req, res) => {
-  try {
-    const auth0Id = req.userInfo.auth0_id;
-    const fileId = req.params.fileId;
-    
-    // First, find the user in our database using the Auth0 ID
-    const user = await User.findOne({ auth0_id: auth0Id });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found in database' });
-    }
-    
-    const studentId = user._id;
-    
-    // Get file details
-    const file = await File.findById(fileId);
-    if (!file) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-    
-    // Check if user owns this file
-    if (!file.uploaded_by.equals(studentId)) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    // Check if homework is still open for submission
-    const homework = await Homework.findById(file.homework_id);
-    if (!homework || !homework.is_active || new Date() > homework.due_date) {
-      return res.status(400).json({ error: 'Cannot delete file after homework deadline' });
-    }
-    
-    // Delete file from disk
-    if (fs.existsSync(file.file_path)) {
-      fs.unlinkSync(file.file_path);
-    }
-    
-    // Delete file record from database
-    await File.findByIdAndDelete(fileId);
-    
-    res.json({ message: 'File deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting file:', error);
-    res.status(500).json({ error: 'Failed to delete file' });
   }
 });
 
@@ -798,7 +631,7 @@ router.delete('/homework/:homeworkId/partner', checkJwt, extractUser, requireStu
 });
 
 // PUT /api/student-submission/homework/:homeworkId/submission - Update homework submission
-router.put('/homework/:homeworkId/submission', checkJwt, extractUser, requireStudent, upload.array('files', 5), async (req, res) => {
+router.put('/homework/:homeworkId/submission', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {
     const auth0Id = req.userInfo.auth0_id;
     const homeworkId = req.params.homeworkId;
@@ -881,35 +714,6 @@ router.put('/homework/:homeworkId/submission', checkJwt, extractUser, requireStu
       }
     }
     
-    // Delete old files
-    const oldFiles = await File.find({ homework_id: homeworkId, uploaded_by: studentId });
-    for (const file of oldFiles) {
-      if (fs.existsSync(file.file_path)) {
-        fs.unlinkSync(file.file_path);
-      }
-      await File.findByIdAndDelete(file._id);
-    }
-    
-    // Save new uploaded files
-    const savedFiles = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const fileDoc = new File({
-          original_name: file.originalname,
-          filename: file.filename,
-          file_path: file.path,
-          file_size: file.size,
-          mime_type: file.mimetype,
-          homework_id: homeworkId,
-          uploaded_by: studentId,
-          file_type: 'submission'
-        });
-        
-        await fileDoc.save();
-        savedFiles.push(fileDoc);
-      }
-    }
-    
     // Update partner relationship if partner is selected
     if (partner_id) {
       // Remove existing partner relationship
@@ -939,11 +743,6 @@ router.put('/homework/:homeworkId/submission', checkJwt, extractUser, requireStu
       message: 'Homework submission updated successfully',
       submission: {
         grade_id: existingGrade._id,
-        files: savedFiles.map(file => ({
-          _id: file._id,
-          original_name: file.original_name,
-          filename: file.filename
-        })),
         submitted_at: existingGrade.submission_date
       }
     });
@@ -997,17 +796,6 @@ router.delete('/homework/:homeworkId/submission', checkJwt, extractUser, require
     // Check if homework is still editable (not graded or within allowed time)
     if (submission.grade !== 0) {
       return res.status(400).json({ error: 'Cannot delete graded submission' });
-    }
-    
-    // Delete associated files
-    const files = await File.find({ homework_id: homeworkId, uploaded_by: studentId });
-    for (const file of files) {
-      // Delete physical file
-      if (fs.existsSync(file.file_path)) {
-        fs.unlinkSync(file.file_path);
-      }
-      // Delete file record
-      await File.findByIdAndDelete(file._id);
     }
     
     // Delete partner relationship if exists

@@ -37,20 +37,24 @@ import {
   FilterList as FilterListIcon,
   TrendingUp as TrendingUpIcon,
   Assignment as AssignmentIcon,
-  Bookmark as BookmarkIcon
+  Bookmark as BookmarkIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/student/ExamsFinals.css';
 
 function ExamsFinals() {
-  const { syncStatus } = useUserSyncContext();
+  const { syncStatus, user } = useUserSyncContext();
   const [examsData, setExamsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [openAddExamDialog, setOpenAddExamDialog] = useState(false);
+  const [openEditExamDialog, setOpenEditExamDialog] = useState(false);
+  const [editingExam, setEditingExam] = useState(null);
   const [courses, setCourses] = useState([]);
   const [examFormData, setExamFormData] = useState({
     course_id: '',
@@ -165,6 +169,66 @@ function ExamsFinals() {
       fetchExamsData(); // Refresh the exams data
     } catch (err) {
       setError('Failed to add exam. Please try again.');
+    }
+  };
+
+  const handleEditExam = (exam) => {
+    setEditingExam(exam);
+    setExamFormData({
+      course_id: exam.course?._id || exam.course_id || '',
+      title: exam.title || exam.exam_title || '',
+      exam_date: exam.exam_date || exam.due_date || '',
+      exam_time: exam.exam_time || '',
+      duration: exam.duration || exam.duration_minutes || '',
+      location: exam.location || exam.room || '',
+      description: exam.description || '',
+      exam_type: exam.exam_type || 'midterm'
+    });
+    setOpenEditExamDialog(true);
+  };
+
+  const handleUpdateExam = async () => {
+    try {
+      // Check if we have an update API method
+      if (apiService.lecturerManagement?.updateExam) {
+        await apiService.lecturerManagement.updateExam(editingExam._id, examFormData);
+      } else {
+        // Fallback to student dashboard add if update not available
+        await apiService.studentDashboard.addExam(examFormData);
+      }
+      setOpenEditExamDialog(false);
+      setEditingExam(null);
+      setExamFormData({
+        course_id: '',
+        title: '',
+        exam_date: '',
+        exam_time: '',
+        duration: '',
+        location: '',
+        description: '',
+        exam_type: 'midterm'
+      });
+      fetchExamsData();
+    } catch (err) {
+      setError('Failed to update exam. Please try again.');
+    }
+  };
+
+  const handleDeleteExam = async (exam) => {
+    if (!window.confirm(`Are you sure you want to delete "${exam.title || exam.exam_title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Check if we have a delete API method
+      if (apiService.lecturerManagement?.deleteExam) {
+        await apiService.lecturerManagement.deleteExam(exam._id);
+      } else {
+        throw new Error('Delete operation not available');
+      }
+      fetchExamsData();
+    } catch (err) {
+      setError('Failed to delete exam. Please try again.');
     }
   };
 
@@ -346,7 +410,7 @@ function ExamsFinals() {
                     <div className="dashboard-card" style={{ height: '100%' }}>
                       <div className="card-content">
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                          <Box>
+                          <Box flex={1}>
                             <Typography variant="h6" gutterBottom>
                               {exam.exam_title}
                             </Typography>
@@ -354,12 +418,43 @@ function ExamsFinals() {
                               {exam.course?.code} - {exam.course?.name}
                             </Typography>
                           </Box>
-                          <Chip 
-                            icon={getExamStatusIcon(exam.status)}
-                            label={String(exam.exam_type || 'midterm').replace(/\b\w/g, l => l.toUpperCase())}
-                            sx={getExamTypeColor(exam.exam_type)}
-                            size="small"
-                          />
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Chip 
+                              icon={getExamStatusIcon(exam.status)}
+                              label={String(exam.exam_type || 'midterm').replace(/\b\w/g, l => l.toUpperCase())}
+                              sx={getExamTypeColor(exam.exam_type)}
+                              size="small"
+                            />
+                            {/* Show edit/delete buttons for any student in the course */}
+                            {user && (
+                              <>
+                                <Tooltip title="Edit Exam">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleEditExam(exam)}
+                                    sx={{
+                                      backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                      '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.4)' }
+                                    }}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Exam">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteExam(exam)}
+                                    sx={{
+                                      backgroundColor: 'rgba(243, 129, 129, 0.2)',
+                                      '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.4)' }
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                          </Box>
                         </Box>
                         
                         <Box display="flex" alignItems="center" mb={1}>
@@ -467,13 +562,42 @@ function ExamsFinals() {
                         }
                       />
                       <ListItemSecondaryAction>
-                        <Box display="flex" gap={1}>
+                        <Box display="flex" gap={1} alignItems="center">
                           {exam.grade && (
                             <Chip 
                               label={`Grade: ${exam.grade}`}
                               color="success"
                               size="small"
                             />
+                          )}
+                          {/* Show edit/delete buttons for any student in the course */}
+                          {user && (
+                            <>
+                              <Tooltip title="Edit Exam">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEditExam(exam)}
+                                  sx={{
+                                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                    '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.4)' }
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete Exam">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDeleteExam(exam)}
+                                  sx={{
+                                    backgroundColor: 'rgba(243, 129, 129, 0.2)',
+                                    '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.4)' }
+                                  }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </>
                           )}
                         </Box>
                       </ListItemSecondaryAction>
@@ -602,6 +726,132 @@ function ExamsFinals() {
             }}
           >
             Add Exam
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Exam Dialog */}
+      <Dialog open={openEditExamDialog} onClose={() => {
+        setOpenEditExamDialog(false);
+        setEditingExam(null);
+      }} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Exam</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  name="course_id"
+                  value={examFormData.course_id}
+                  onChange={handleExamFormChange}
+                  label="Course"
+                >
+                  {courses.map((course) => (
+                    <MenuItem key={course._id} value={course._id}>
+                      {course.code || course.course_code} - {course.name || course.course_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="title"
+                label="Exam Title"
+                value={examFormData.title}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="exam_date"
+                label="Exam Date"
+                type="date"
+                value={examFormData.exam_date}
+                onChange={handleExamFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="exam_time"
+                label="Exam Time"
+                type="time"
+                value={examFormData.exam_time}
+                onChange={handleExamFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="duration"
+                label="Duration (minutes)"
+                type="number"
+                value={examFormData.duration}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="location"
+                label="Location/Room"
+                value={examFormData.location}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Exam Type</InputLabel>
+                <Select
+                  name="exam_type"
+                  value={examFormData.exam_type}
+                  onChange={handleExamFormChange}
+                  label="Exam Type"
+                >
+                  <MenuItem value="midterm">Midterm</MenuItem>
+                  <MenuItem value="final">Final</MenuItem>
+                  <MenuItem value="quiz">Quiz</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                name="description"
+                label="Description"
+                multiline
+                rows={3}
+                value={examFormData.description}
+                onChange={handleExamFormChange}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenEditExamDialog(false);
+            setEditingExam(null);
+          }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleUpdateExam} 
+            variant="contained"
+            sx={{
+              backgroundColor: '#F38181',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: '#e85a6b'
+              }
+            }}
+          >
+            Update Exam
           </Button>
         </DialogActions>
       </Dialog>

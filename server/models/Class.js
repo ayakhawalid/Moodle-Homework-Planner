@@ -93,13 +93,6 @@ classSchema.index({ room: 1 });
 classSchema.index({ course_id: 1, class_date: 1 });
 classSchema.index({ class_date: 1, start_time: 1 });
 
-// Virtual for files
-classSchema.virtual('files', {
-  ref: 'File',
-  localField: '_id',
-  foreignField: 'class_id'
-});
-
 // Instance method to check if class is today
 classSchema.methods.isToday = function() {
   const today = new Date();

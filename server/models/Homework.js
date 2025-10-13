@@ -80,13 +80,6 @@ homeworkSchema.virtual('grades', {
   foreignField: 'homework_id'
 });
 
-// Virtual for files
-homeworkSchema.virtual('files', {
-  ref: 'File',
-  localField: '_id',
-  foreignField: 'homework_id'
-});
-
 // Virtual for partners
 homeworkSchema.virtual('partners', {
   ref: 'Partner',

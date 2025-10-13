@@ -38,7 +38,7 @@ import StudyProgress from './pages/student/StudyProgress';
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
 import HomeworkChecker from './pages/lecturer/HomeworkChecker';
-import AddHomework from './pages/lecturer/AddHomework';
+import LecturerHomeworkManagement from './pages/lecturer/HomeworkManagement';
 import WorkloadStats from './pages/lecturer/WorkloadStats';
 import CourseManagement from './pages/lecturer/CourseManagement';
 import VerificationDashboard from './pages/lecturer/VerificationDashboard';
@@ -133,7 +133,7 @@ function AppContent() {
           {/* Lecturer Pages */}
           <Route path='/lecturer/dashboard' element={<ProtectedRoute requiredRole="lecturer"><LecturerDashboard /></ProtectedRoute>} />
           <Route path='/lecturer/homework-checker' element={<ProtectedRoute requiredRole="lecturer"><HomeworkChecker /></ProtectedRoute>} />
-          <Route path='/lecturer/add-homework' element={<ProtectedRoute requiredRole="lecturer"><AddHomework /></ProtectedRoute>} />
+          <Route path='/lecturer/homework' element={<ProtectedRoute requiredRole="lecturer"><LecturerHomeworkManagement /></ProtectedRoute>} />
           <Route path='/lecturer/stats' element={<ProtectedRoute requiredRole="lecturer"><WorkloadStats /></ProtectedRoute>} />
           <Route path='/lecturer/courses' element={<ProtectedRoute requiredRole="lecturer"><CourseManagement /></ProtectedRoute>} />
           <Route path='/lecturer/verifications' element={<ProtectedRoute requiredRole="lecturer"><VerificationDashboard /></ProtectedRoute>} />

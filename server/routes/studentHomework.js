@@ -7,6 +7,7 @@ const StudentHomework = require('../models/StudentHomework');
 const Homework = require('../models/Homework');
 const Course = require('../models/Course');
 const User = require('../models/User');
+const Partner = require('../models/Partner');
 const { checkJwt, extractUser, requireStudent, requireLecturer } = require('../middleware/auth');
 const gradeExtractionService = require('../services/gradeExtraction');
 
@@ -279,6 +280,80 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
   }
 });
 
+// PUT /student-homework/:id - Update student homework
+router.put('/:id', checkJwt, extractUser, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    const homework = await StudentHomework.findById(req.params.id).populate('course_id');
+    if (!homework) {
+      return res.status(404).json({ error: 'Homework not found' });
+    }
+
+    // Permission check:
+    // - Lecturers can edit any homework
+    // - Students can edit student-created homework if they're enrolled in the course
+    // - Students cannot edit lecturer-created homework
+    if (user.role === 'lecturer') {
+      // Lecturers can edit any homework
+    } else if (user.role === 'student') {
+      // Check if homework was created by a lecturer
+      if (homework.uploader_role === 'lecturer') {
+        return res.status(403).json({ error: 'Students cannot edit lecturer-created homework' });
+      }
+      
+      // Check if student is enrolled in the course
+      const course = homework.course_id;
+      if (!course.students.some(studentId => studentId.equals(user._id))) {
+        return res.status(403).json({ error: 'You are not enrolled in this course' });
+      }
+    } else {
+      return res.status(403).json({ error: 'You do not have permission to update this homework' });
+    }
+
+    const {
+      title,
+      description,
+      course_id,
+      claimed_deadline,
+      priority,
+      tags,
+      moodle_assignment_id,
+      moodle_url,
+      allow_partners,
+      max_partners
+    } = req.body;
+
+    // Update fields
+    if (title) homework.title = title;
+    if (description !== undefined) homework.description = description;
+    if (course_id) homework.course_id = course_id;
+    if (claimed_deadline) homework.claimed_deadline = new Date(claimed_deadline);
+    if (priority) homework.priority = priority;
+    if (tags !== undefined) homework.tags = tags;
+    if (moodle_assignment_id !== undefined) homework.moodle_assignment_id = moodle_assignment_id;
+    if (moodle_url !== undefined) homework.moodle_url = moodle_url;
+    if (allow_partners !== undefined) homework.allow_partners = allow_partners;
+    if (max_partners !== undefined) homework.max_partners = max_partners;
+
+    await homework.save();
+    await homework.populate('course_id', 'course_name course_code');
+    await homework.populate('uploaded_by', 'name email');
+
+    res.json({
+      message: 'Homework updated successfully',
+      homework
+    });
+  } catch (error) {
+    console.error('Error updating homework:', error);
+    res.status(500).json({ error: 'Failed to update homework' });
+  }
+});
+
 // PUT /api/student-homework/:id/complete - Mark homework as completed
 router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {
@@ -332,8 +407,72 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
       await homework.populate('course_id', 'course_name course_code');
       await homework.populate('uploaded_by', 'name email');
 
+      // Check for partners and propagate grade for traditional homework
+      const partnership = await Partner.findOne({
+        homework_id: traditionalHomework._id, // Use the original traditional homework ID
+        $or: [
+          { student1_id: user._id },
+          { student2_id: user._id }
+        ],
+        partnership_status: { $in: ['accepted', 'active'] }
+      });
+
+      let updatedPartners = [];
+      if (partnership && claimed_grade !== null && claimed_grade !== undefined) {
+        // Get the partner's ID
+        const partnerId = partnership.student1_id.equals(user._id) 
+          ? partnership.student2_id 
+          : partnership.student1_id;
+
+        // Find or create partner's StudentHomework record for this traditional homework
+        let partnerHomework = await StudentHomework.findOne({
+          title: traditionalHomework.title,
+          course_id: traditionalHomework.course_id,
+          uploaded_by: partnerId,
+          uploader_role: 'lecturer'
+        });
+
+        if (!partnerHomework) {
+          // Create a StudentHomework entry for the partner
+          partnerHomework = new StudentHomework({
+            title: traditionalHomework.title,
+            description: traditionalHomework.description,
+            course_id: traditionalHomework.course_id,
+            claimed_deadline: traditionalHomework.due_date,
+            assigned_date: traditionalHomework.assigned_date,
+            points_possible: traditionalHomework.points_possible,
+            uploader_role: 'lecturer',
+            uploaded_by: partnerId,
+            completion_status: 'completed',
+            completed_at: new Date(),
+            claimed_grade: claimed_grade,
+            deadline_verification_status: 'verified',
+            grade_verification_status: 'unverified',
+            tags: [],
+            moodle_url: ''
+          });
+        } else {
+          // Update existing partner homework with the same grade
+          partnerHomework.claimed_grade = claimed_grade;
+          partnerHomework.completion_status = 'completed';
+          partnerHomework.completed_at = new Date();
+          partnerHomework.grade_verification_status = 'unverified';
+        }
+
+        await partnerHomework.save();
+        
+        updatedPartners.push({
+          student_id: partnerId,
+          grade: claimed_grade
+        });
+        
+        console.log(`Grade ${claimed_grade} propagated to partner ${partnerId} for homework ${traditionalHomework._id}`);
+      }
+
       return res.json({
-        message: 'Traditional homework marked as completed',
+        message: updatedPartners.length > 0 
+          ? 'Traditional homework marked as completed and grade shared with partner(s)' 
+          : 'Traditional homework marked as completed',
         homework: {
           _id: homework._id,
           title: homework.title,
@@ -341,7 +480,8 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
           completed_at: homework.completed_at,
           claimed_grade: homework.claimed_grade,
           grade_verification_status: homework.grade_verification_status
-        }
+        },
+        partners_updated: updatedPartners
       });
     }
 
@@ -360,8 +500,72 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
 
     await homework.save();
 
+    // Check if student has partners for this homework and propagate grade
+    const partnership = await Partner.findOne({
+      homework_id: homeworkId,
+      $or: [
+        { student1_id: user._id },
+        { student2_id: user._id }
+      ],
+      partnership_status: { $in: ['accepted', 'active'] }
+    });
+
+    let updatedPartners = [];
+    if (partnership && claimed_grade !== null && claimed_grade !== undefined) {
+      // Get the partner's ID
+      const partnerId = partnership.student1_id.equals(user._id) 
+        ? partnership.student2_id 
+        : partnership.student1_id;
+
+      // For student homework, find the partner's record by matching homework details
+      let partnerHomework = await StudentHomework.findOne({
+        title: homework.title,
+        course_id: homework.course_id,
+        uploaded_by: partnerId,
+        claimed_deadline: homework.claimed_deadline
+      });
+
+      if (!partnerHomework) {
+        // If partner doesn't have their own record yet, create one
+        partnerHomework = new StudentHomework({
+          title: homework.title,
+          description: homework.description,
+          course_id: homework.course_id,
+          uploaded_by: partnerId,
+          uploader_role: homework.uploader_role,
+          claimed_deadline: homework.claimed_deadline,
+          verified_deadline: homework.verified_deadline,
+          deadline_verification_status: homework.deadline_verification_status,
+          completion_status: 'completed',
+          completed_at: new Date(),
+          claimed_grade: claimed_grade,
+          grade_verification_status: 'unverified',
+          tags: homework.tags || [],
+          moodle_assignment_id: homework.moodle_assignment_id,
+          moodle_url: homework.moodle_url
+        });
+      } else {
+        // Update existing partner homework with the same grade
+        partnerHomework.claimed_grade = claimed_grade;
+        partnerHomework.completion_status = 'completed';
+        partnerHomework.completed_at = new Date();
+        partnerHomework.grade_verification_status = 'unverified';
+      }
+
+      await partnerHomework.save();
+      
+      updatedPartners.push({
+        student_id: partnerId,
+        grade: claimed_grade
+      });
+      
+      console.log(`Grade ${claimed_grade} propagated to partner ${partnerId} for student homework ${homeworkId}`);
+    }
+
     res.json({
-      message: 'Homework marked as completed',
+      message: updatedPartners.length > 0 
+        ? 'Homework marked as completed and grade shared with partner(s)' 
+        : 'Homework marked as completed',
       homework: {
         _id: homework._id,
         title: homework.title,
@@ -369,7 +573,8 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
         completed_at: homework.completed_at,
         claimed_grade: homework.claimed_grade,
         grade_verification_status: homework.grade_verification_status
-      }
+      },
+      partners_updated: updatedPartners
     });
   } catch (error) {
     console.error('Error completing homework:', error);
@@ -401,7 +606,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
       course_id: { $in: courseIds }
     })
     .populate('course_id', 'course_name course_code')
-    .populate('uploaded_by', 'name email')
+    .populate('uploaded_by', 'name email full_name')
     .sort({ createdAt: -1 });
     
     // Query traditional Homework table
@@ -413,6 +618,17 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
     
     console.log(`Found ${studentHomework.length} student homework items`);
     console.log(`Found ${traditionalHomework.length} traditional homework items`);
+    
+    // Convert student homework to have consistent format
+    const convertedStudentHomework = studentHomework.map(hw => ({
+      ...hw.toObject(),
+      course: hw.course_id ? {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      } : null,
+      uploader_role: 'student'
+    }));
     
     // Convert traditional homework to match StudentHomework format
     const convertedTraditionalHomework = traditionalHomework.map(hw => ({
@@ -451,7 +667,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
     }));
     
     // Combine both types of homework
-    const allHomework = [...studentHomework, ...convertedTraditionalHomework];
+    const allHomework = [...convertedStudentHomework, ...convertedTraditionalHomework];
     
     // For lecturer view, calculate completion status based on all students in the course
     const Grade = require('../models/Grade');
@@ -539,6 +755,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
         uploaded_by: hw.uploaded_by ? {
           _id: hw.uploaded_by._id,
           name: hw.uploaded_by.name,
+          full_name: hw.uploaded_by.full_name || hw.uploaded_by.name,
           email: hw.uploaded_by.email,
           role: hw.uploader_role
         } : null,
@@ -697,6 +914,67 @@ router.put('/:id/verify-deadline', checkJwt, extractUser, requireLecturer, async
   } catch (error) {
     console.error('Error verifying deadline:', error);
     res.status(500).json({ error: 'Failed to verify deadline' });
+  }
+});
+
+// DELETE /api/student-homework/:id - Delete student homework (Student who created it or Lecturer)
+router.delete('/:id', checkJwt, extractUser, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    const homeworkId = req.params.id;
+    const homework = await StudentHomework.findById(homeworkId).populate('course_id');
+    
+    if (!homework) {
+      return res.status(404).json({ error: 'Homework not found' });
+    }
+
+    // Permission check:
+    // - Lecturers can delete any homework in their courses
+    // - Students can delete student-created homework if they're enrolled in the course
+    // - Students cannot delete lecturer-created homework
+    if (user.role === 'lecturer') {
+      // Check if lecturer teaches this course
+      if (!homework.course_id.lecturer_id.equals(user._id)) {
+        return res.status(403).json({ error: 'You can only delete homework from your own courses' });
+      }
+    } else if (user.role === 'student') {
+      // Check if homework was created by a lecturer
+      if (homework.uploader_role === 'lecturer') {
+        return res.status(403).json({ error: 'Students cannot delete lecturer-created homework' });
+      }
+      
+      // Check if student is enrolled in the course
+      const course = homework.course_id;
+      if (!course.students.some(studentId => studentId.equals(user._id))) {
+        return res.status(403).json({ error: 'You can only delete homework from courses you are enrolled in' });
+      }
+    } else {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Delete partnerships for this homework
+    await Partner.deleteMany({ homework_id: homeworkId });
+    
+    // Delete the homework itself
+    await StudentHomework.findByIdAndDelete(homeworkId);
+    
+    console.log(`Deleted student homework ${homeworkId} and its partnerships`);
+    
+    res.json({ 
+      message: 'Homework and all related partnerships deleted successfully',
+      deleted: {
+        homework_id: homeworkId,
+        title: homework.title
+      }
+    });
+  } catch (error) {
+    console.error('Error deleting student homework:', error);
+    res.status(500).json({ error: 'Failed to delete homework' });
   }
 });
 

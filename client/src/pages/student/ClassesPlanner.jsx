@@ -34,19 +34,23 @@ import {
   Today as TodayIcon,
   Schedule as ScheduleIcon,
   TrendingUp as TrendingUpIcon,
-  Assignment as AssignmentIcon
+  Assignment as AssignmentIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/student/ClassesPlanner.css';
 
 function ClassesPlanner() {
-  const { syncStatus } = useUserSyncContext();
+  const { syncStatus, user } = useUserSyncContext();
   const [classesData, setClassesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [openAddClassDialog, setOpenAddClassDialog] = useState(false);
+  const [openEditClassDialog, setOpenEditClassDialog] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
   const [courses, setCourses] = useState([]);
   const [classFormData, setClassFormData] = useState({
     course_id: '',
@@ -167,6 +171,64 @@ function ClassesPlanner() {
       fetchClassesData(); // Refresh the classes data
     } catch (err) {
       setError('Failed to add class. Please try again.');
+    }
+  };
+
+  const handleEditClass = (classItem) => {
+    setEditingClass(classItem);
+    setClassFormData({
+      course_id: classItem.course?._id || classItem.course_id || '',
+      topic: classItem.topic || '',
+      date: classItem.date || classItem.class_date || '',
+      start_time: classItem.start_time || '',
+      end_time: classItem.end_time || '',
+      location: classItem.room || classItem.location || '',
+      description: classItem.description || ''
+    });
+    setOpenEditClassDialog(true);
+  };
+
+  const handleUpdateClass = async () => {
+    try {
+      // Check if we have an update API method, otherwise use add
+      if (apiService.lecturerManagement?.updateClass) {
+        await apiService.lecturerManagement.updateClass(editingClass._id, classFormData);
+      } else {
+        // Fallback to student dashboard add if update not available
+        await apiService.studentDashboard.addClass(classFormData);
+      }
+      setOpenEditClassDialog(false);
+      setEditingClass(null);
+      setClassFormData({
+        course_id: '',
+        topic: '',
+        date: '',
+        start_time: '',
+        end_time: '',
+        location: '',
+        description: ''
+      });
+      fetchClassesData();
+    } catch (err) {
+      setError('Failed to update class. Please try again.');
+    }
+  };
+
+  const handleDeleteClass = async (classItem) => {
+    if (!window.confirm(`Are you sure you want to delete "${classItem.topic}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Check if we have a delete API method
+      if (apiService.lecturerManagement?.deleteClass) {
+        await apiService.lecturerManagement.deleteClass(classItem._id);
+      } else {
+        throw new Error('Delete operation not available');
+      }
+      fetchClassesData();
+    } catch (err) {
+      setError('Failed to delete class. Please try again.');
     }
   };
 
@@ -432,7 +494,7 @@ function ClassesPlanner() {
                               <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
                                 <Chip 
                                   icon={<AccessTimeIcon sx={{ color: '#D6F7AD' }} />}
-                                  label={`${formatTime(classItem.start_time)} - ${formatTime(classItem.end_time)}`}
+                                  label={`${formatTime(classItem.start_time) || 'TBA'} - ${formatTime(classItem.end_time) || 'TBA'}`}
                                   size="small"
                                   variant="outlined"
                                   sx={{
@@ -444,7 +506,7 @@ function ClassesPlanner() {
                                 {classItem.room && (
                                   <Chip 
                                     icon={<LocationOnIcon sx={{ color: '#95E1D3' }} />}
-                                    label={classItem.room}
+                                    label={String(classItem.room || 'TBA')}
                                     size="small"
                                     variant="outlined"
                                     sx={{
@@ -460,7 +522,7 @@ function ClassesPlanner() {
                                   sx={getClassTypeColor(classItem.class_type)}
                                 />
                                 <Chip 
-                                  label={`${classItem.duration_minutes || 90} min`}
+                                  label={String(classItem.duration_minutes || 90) + ' min'}
                                   size="small"
                                   variant="outlined"
                                   sx={{
@@ -477,6 +539,36 @@ function ClassesPlanner() {
                                 </Typography>
                               )}
                             </Box>
+                            
+                            {/* Show edit/delete buttons for any student in the course */}
+                            {user && (
+                              <Box display="flex" gap={1} ml={2}>
+                                <Tooltip title="Edit Class">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleEditClass(classItem)}
+                                    sx={{
+                                      backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                      '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.4)' }
+                                    }}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Class">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteClass(classItem)}
+                                    sx={{
+                                      backgroundColor: 'rgba(243, 129, 129, 0.2)',
+                                      '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.4)' }
+                                    }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            )}
                           </Box>
                         </div>
                       </div>
@@ -590,6 +682,118 @@ function ClassesPlanner() {
             }}
           >
             Add Class
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Class Dialog */}
+      <Dialog open={openEditClassDialog} onClose={() => {
+        setOpenEditClassDialog(false);
+        setEditingClass(null);
+      }} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Class</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  name="course_id"
+                  value={classFormData.course_id}
+                  onChange={handleClassFormChange}
+                  label="Course"
+                >
+                  {courses.map((course) => (
+                    <MenuItem key={course._id} value={course._id}>
+                      {course.course_code} - {course.course_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="topic"
+                label="Class Topic"
+                value={classFormData.topic}
+                onChange={handleClassFormChange}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="date"
+                label="Date"
+                type="date"
+                value={classFormData.date}
+                onChange={handleClassFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="start_time"
+                label="Start Time"
+                type="time"
+                value={classFormData.start_time}
+                onChange={handleClassFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                name="end_time"
+                label="End Time"
+                type="time"
+                value={classFormData.end_time}
+                onChange={handleClassFormChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                name="location"
+                label="Location/Room"
+                value={classFormData.location}
+                onChange={handleClassFormChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                name="description"
+                label="Description"
+                multiline
+                rows={3}
+                value={classFormData.description}
+                onChange={handleClassFormChange}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenEditClassDialog(false);
+            setEditingClass(null);
+          }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleUpdateClass} 
+            variant="contained"
+            sx={{
+              backgroundColor: '#95E1D3',
+              color: '#333',
+              '&:hover': {
+                backgroundColor: '#7dd3c0'
+              }
+            }}
+          >
+            Update Class
           </Button>
         </DialogActions>
       </Dialog>

@@ -481,7 +481,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                         </Typography>
                       )}
 
-                      {selectedEvent.resource.homework.completion_status && (
+                      {selectedEvent.resource.homework.completion_status && userRole !== 'lecturer' && (
                         <Box sx={{ mt: 1 }}>
                           <Chip
                             label={`Status: ${String(selectedEvent.resource.homework.completion_status).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`}

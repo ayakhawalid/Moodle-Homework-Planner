@@ -37,32 +37,24 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Group as GroupIcon,
-  Assignment as AssignmentIcon,
   School as SchoolIcon,
   Visibility as ViewIcon,
   CalendarToday as CalendarIcon,
   Person as PersonIcon,
-  Description as DescriptionIcon,
-  Settings as SettingsIcon,
-  ToggleOn as ToggleOnIcon,
-  ToggleOff as ToggleOffIcon
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { apiService } from '../../services/api';
-import { useNavigate } from 'react-router-dom';
 
 const CourseManagement = () => {
   const { user } = useUserSyncContext();
-  const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewingCourse, setViewingCourse] = useState(null);
-  const [partnerSettingsDialogOpen, setPartnerSettingsDialogOpen] = useState(false);
-  const [editingPartnerSettings, setEditingPartnerSettings] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -74,11 +66,6 @@ const CourseManagement = () => {
     credits: '',
     semester: '',
     year: new Date().getFullYear()
-  });
-
-  const [partnerSettingsData, setPartnerSettingsData] = useState({
-    enabled: true,
-    max_partners_per_student: 1
   });
 
   const semesters = ['fall', 'spring', 'summer', 'winter'];
@@ -205,54 +192,6 @@ const CourseManagement = () => {
     setViewingCourse(null);
   };
 
-  const handleManageAssignments = (course) => {
-    // Navigate to homework checker with course pre-selected
-    navigate('/lecturer/homework-checker', { 
-      state: { 
-        selectedCourseId: course._id, 
-        courseName: course.course_name 
-      } 
-    });
-  };
-
-  const handleOpenPartnerSettings = (course) => {
-    setEditingPartnerSettings(course);
-    setPartnerSettingsData({
-      enabled: course.partner_settings?.enabled !== false,
-      max_partners_per_student: course.partner_settings?.max_partners_per_student || 1
-    });
-    setPartnerSettingsDialogOpen(true);
-    setError('');
-    setSuccess('');
-  };
-
-  const handleClosePartnerSettings = () => {
-    setPartnerSettingsDialogOpen(false);
-    setEditingPartnerSettings(null);
-    setError('');
-  };
-
-  const handlePartnerSettingsChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setPartnerSettingsData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleSavePartnerSettings = async () => {
-    try {
-      setError('');
-      
-      await apiService.courses.updatePartnerSettings(editingPartnerSettings._id, partnerSettingsData);
-      setSuccess('Partner settings updated successfully');
-      handleClosePartnerSettings();
-      loadCourses();
-    } catch (error) {
-      console.error('Error updating partner settings:', error);
-      setError(error?.response?.data?.error || 'Failed to update partner settings');
-    }
-  };
 
   const getSemesterChipColor = (semester) => {
     const colors = {
@@ -371,7 +310,7 @@ const CourseManagement = () => {
                         </TableCell>
                         <TableCell>
                           <Chip 
-                            label={course.course_code || 'No Code'} 
+                            label={String(course.course_code || 'No Code')} 
                             variant="outlined" 
                             size="small"
                           />
@@ -380,7 +319,7 @@ const CourseManagement = () => {
                           <Box>
                             {course.semester && (
                               <Chip 
-                                label={course.semester.charAt(0).toUpperCase() + course.semester.slice(1)} 
+                                label={String(course.semester).charAt(0).toUpperCase() + String(course.semester).slice(1)} 
                                 size="small"
                                 sx={{ mr: 1, ...getSemesterChipColor(course.semester) }}
                               />
@@ -418,29 +357,6 @@ const CourseManagement = () => {
                               sx={{ color: '#F38181', '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' } }}
                             >
                               <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Manage Assignments">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => handleManageAssignments(course)}
-                              sx={{ color: '#F38181', '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' } }}
-                            >
-                              <AssignmentIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Partner Settings">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => handleOpenPartnerSettings(course)}
-                              sx={{ 
-                                color: '#F38181',
-                                '&:hover': { 
-                                  backgroundColor: 'rgba(243, 129, 129, 0.1)' 
-                                }
-                              }}
-                            >
-                              {course.partner_settings?.enabled !== false ? <ToggleOnIcon /> : <ToggleOffIcon />}
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Delete Course">
@@ -605,14 +521,14 @@ const CourseManagement = () => {
                     </Typography>
                     <Box display="flex" alignItems="center" mb={2}>
                       <Chip 
-                        label={viewingCourse.course_code || 'No Code'} 
+                        label={String(viewingCourse.course_code || 'No Code')} 
                         variant="outlined" 
                         sx={{ mr: 2 }}
                       />
                       <Chip 
-                        label={viewingCourse.semester ? viewingCourse.semester.charAt(0).toUpperCase() + viewingCourse.semester.slice(1) : 'No Semester'} 
-                        color={getSemesterChipColor(viewingCourse.semester)}
-                        sx={{ mr: 2 }}
+                        label={viewingCourse.semester ? String(viewingCourse.semester).charAt(0).toUpperCase() + String(viewingCourse.semester).slice(1) : 'No Semester'} 
+                        sx={{ mr: 2, ...getSemesterChipColor(viewingCourse.semester) }}
+                        size="small"
                       />
                       <Typography variant="body2" color="text.secondary">
                         {viewingCourse.year}
@@ -758,97 +674,6 @@ const CourseManagement = () => {
           </DialogActions>
         </Dialog>
 
-        {/* Partner Settings Dialog */}
-        <Dialog 
-          open={partnerSettingsDialogOpen} 
-          onClose={handleClosePartnerSettings}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            <Box display="flex" alignItems="center">
-              <SettingsIcon sx={{ mr: 1 }} />
-              Partner Settings - {editingPartnerSettings?.course_name}
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
-            {success && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                {success}
-              </Alert>
-            )}
-            
-            <Box sx={{ mt: 2 }}>
-              <FormControl fullWidth sx={{ mb: 3 }}>
-                <Box display="flex" alignItems="center" justifyContent="space-between">
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      Enable Partner Functionality
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Allow students to form study partnerships for this course
-                    </Typography>
-                  </Box>
-                  <Box display="flex" alignItems="center">
-                    <input
-                      type="checkbox"
-                      name="enabled"
-                      checked={partnerSettingsData.enabled}
-                      onChange={handlePartnerSettingsChange}
-                      style={{ transform: 'scale(1.5)' }}
-                    />
-                  </Box>
-                </Box>
-              </FormControl>
-
-              {partnerSettingsData.enabled && (
-                <FormControl fullWidth>
-                  <InputLabel>Maximum Partners per Student</InputLabel>
-                  <Select
-                    name="max_partners_per_student"
-                    value={partnerSettingsData.max_partners_per_student}
-                    onChange={handlePartnerSettingsChange}
-                    label="Maximum Partners per Student"
-                  >
-                    <MenuItem value={1}>1 Partner</MenuItem>
-                    <MenuItem value={2}>2 Partners</MenuItem>
-                    <MenuItem value={3}>3 Partners</MenuItem>
-                    <MenuItem value={4}>4 Partners</MenuItem>
-                    <MenuItem value={5}>5 Partners</MenuItem>
-                  </Select>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Students can have up to this many partners for this course
-                  </Typography>
-                </FormControl>
-              )}
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={handleClosePartnerSettings}
-              sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSavePartnerSettings}
-              variant="contained"
-              startIcon={<SettingsIcon />}
-              sx={{ 
-                backgroundColor: '#F38181',
-                color: 'white',
-                '&:hover': { backgroundColor: '#e85a6b' }
-              }}
-            >
-              Save Settings
-            </Button>
-          </DialogActions>
-        </Dialog>
       </Box>
     </DashboardLayout>
   );

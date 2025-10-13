@@ -414,6 +414,9 @@ router.delete('/:id', checkJwt, extractUser, requireAdminOrManageUsers, async (r
       const Homework = require('../models/Homework');
       const Exam = require('../models/Exam');
       const Class = require('../models/Class');
+      const StudentHomework = require('../models/StudentHomework');
+      const Partner = require('../models/Partner');
+      const Grade = require('../models/Grade');
       
       // Find all courses taught by this lecturer
       const lecturerCourses = await Course.find({ lecturer_id: user._id });
@@ -421,12 +424,36 @@ router.delete('/:id', checkJwt, extractUser, requireAdminOrManageUsers, async (r
       
       console.log(`Deleting ${lecturerCourses.length} courses for lecturer: ${user.email}`);
       
-      // Delete all homework, exams, and classes for these courses
+      // Find all homework IDs (both traditional and student homework) for these courses
+      const traditionalHomework = await Homework.find({ course_id: { $in: courseIds } }).select('_id');
+      const studentHomework = await StudentHomework.find({ course_id: { $in: courseIds } }).select('_id');
+      const exams = await Exam.find({ course_id: { $in: courseIds } }).select('_id');
+      
+      const allHomeworkIds = [
+        ...traditionalHomework.map(hw => hw._id),
+        ...studentHomework.map(hw => hw._id)
+      ];
+      
+      const examIds = exams.map(exam => exam._id);
+      
+      console.log(`Found ${traditionalHomework.length} traditional homework, ${studentHomework.length} student homework, and ${exams.length} exams to delete`);
+      
+      // Delete all related data for these courses
       await Promise.all([
         Homework.deleteMany({ course_id: { $in: courseIds } }),
         Exam.deleteMany({ course_id: { $in: courseIds } }),
-        Class.deleteMany({ course_id: { $in: courseIds } })
+        Class.deleteMany({ course_id: { $in: courseIds } }),
+        StudentHomework.deleteMany({ course_id: { $in: courseIds } }),
+        Partner.deleteMany({ homework_id: { $in: allHomeworkIds } }),
+        Grade.deleteMany({ 
+          $or: [
+            { homework_id: { $in: allHomeworkIds } },
+            { exam_id: { $in: examIds } }
+          ]
+        })
       ]);
+      
+      console.log(`Deleted partnerships and grades for ${allHomeworkIds.length} homework assignments`);
       
       // Delete the courses themselves
       await Course.deleteMany({ lecturer_id: user._id });
@@ -473,6 +500,9 @@ router.delete('/me', checkJwt, extractUser, async (req, res) => {
       const Homework = require('../models/Homework');
       const Exam = require('../models/Exam');
       const Class = require('../models/Class');
+      const StudentHomework = require('../models/StudentHomework');
+      const Partner = require('../models/Partner');
+      const Grade = require('../models/Grade');
       
       // Find all courses taught by this lecturer
       const lecturerCourses = await Course.find({ lecturer_id: currentUser._id });
@@ -480,12 +510,36 @@ router.delete('/me', checkJwt, extractUser, async (req, res) => {
       
       console.log(`Self-deletion: Deleting ${lecturerCourses.length} courses for lecturer: ${currentUser.email}`);
       
-      // Delete all homework, exams, and classes for these courses
+      // Find all homework IDs (both traditional and student homework) for these courses
+      const traditionalHomework = await Homework.find({ course_id: { $in: courseIds } }).select('_id');
+      const studentHomework = await StudentHomework.find({ course_id: { $in: courseIds } }).select('_id');
+      const exams = await Exam.find({ course_id: { $in: courseIds } }).select('_id');
+      
+      const allHomeworkIds = [
+        ...traditionalHomework.map(hw => hw._id),
+        ...studentHomework.map(hw => hw._id)
+      ];
+      
+      const examIds = exams.map(exam => exam._id);
+      
+      console.log(`Self-deletion: Found ${traditionalHomework.length} traditional homework, ${studentHomework.length} student homework, and ${exams.length} exams to delete`);
+      
+      // Delete all related data for these courses
       await Promise.all([
         Homework.deleteMany({ course_id: { $in: courseIds } }),
         Exam.deleteMany({ course_id: { $in: courseIds } }),
-        Class.deleteMany({ course_id: { $in: courseIds } })
+        Class.deleteMany({ course_id: { $in: courseIds } }),
+        StudentHomework.deleteMany({ course_id: { $in: courseIds } }),
+        Partner.deleteMany({ homework_id: { $in: allHomeworkIds } }),
+        Grade.deleteMany({ 
+          $or: [
+            { homework_id: { $in: allHomeworkIds } },
+            { exam_id: { $in: examIds } }
+          ]
+        })
       ]);
+      
+      console.log(`Self-deletion: Deleted partnerships and grades for ${allHomeworkIds.length} homework assignments`);
       
       // Delete the courses themselves
       await Course.deleteMany({ lecturer_id: currentUser._id });

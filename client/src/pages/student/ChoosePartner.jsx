@@ -36,7 +36,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   FilterList as FilterListIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
@@ -238,6 +239,30 @@ function ChoosePartner() {
       setSuccess('Partnership ended successfully! You can now choose a new partner.');
     } catch (err) {
       setError('Failed to change partner. Please try again.');
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
+  const handleDeletePartnership = async (partnership) => {
+    if (!window.confirm(`Are you sure you want to delete this partnership? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setSendingRequest(true);
+      setError(null);
+      
+      // Delete the partnership
+      await apiService.studentDashboard.respondToPartnerRequest(partnership._id, 'decline');
+      
+      // Refresh data to update the UI
+      await fetchPartnerData();
+      await fetchPartnerRequests();
+      
+      setSuccess('Partnership deleted successfully!');
+    } catch (err) {
+      setError('Failed to delete partnership. Please try again.');
     } finally {
       setSendingRequest(false);
     }
@@ -672,6 +697,16 @@ function ChoosePartner() {
                                 >
                                   Mark Complete
                                 </Button>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  variant="outlined"
+                                  startIcon={<DeleteIcon />}
+                                  onClick={() => handleDeletePartnership(partnership)}
+                                  disabled={sendingRequest}
+                                >
+                                  Delete
+                                </Button>
                               </div>
                             </div>
                           </Grid>
@@ -1048,6 +1083,16 @@ function ChoosePartner() {
                                 onClick={() => handleChangePartner(partnership)}
                               >
                                 Change Partner
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                startIcon={<DeleteIcon />}
+                                onClick={() => handleDeletePartnership(partnership)}
+                                disabled={sendingRequest}
+                              >
+                                Delete
                               </Button>
                             </Box>
                           </div>
