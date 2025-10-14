@@ -190,13 +190,8 @@ function ClassesPlanner() {
 
   const handleUpdateClass = async () => {
     try {
-      // Check if we have an update API method, otherwise use add
-      if (apiService.lecturerManagement?.updateClass) {
-        await apiService.lecturerManagement.updateClass(editingClass._id, classFormData);
-      } else {
-        // Fallback to student dashboard add if update not available
-        await apiService.studentDashboard.addClass(classFormData);
-      }
+      // Use the student classes API endpoint
+      await apiService.classes.update(editingClass._id, classFormData);
       setOpenEditClassDialog(false);
       setEditingClass(null);
       setClassFormData({
@@ -210,6 +205,7 @@ function ClassesPlanner() {
       });
       fetchClassesData();
     } catch (err) {
+      console.error('Update class error:', err);
       setError('Failed to update class. Please try again.');
     }
   };
@@ -220,14 +216,11 @@ function ClassesPlanner() {
     }
 
     try {
-      // Check if we have a delete API method
-      if (apiService.lecturerManagement?.deleteClass) {
-        await apiService.lecturerManagement.deleteClass(classItem._id);
-      } else {
-        throw new Error('Delete operation not available');
-      }
+      // Use the student classes API endpoint
+      await apiService.classes.delete(classItem._id);
       fetchClassesData();
     } catch (err) {
+      console.error('Delete class error:', err);
       setError('Failed to delete class. Please try again.');
     }
   };

@@ -169,10 +169,8 @@ router.get('/homework/:homeworkId', checkJwt, extractUser, requireStudent, async
       _id: homework._id,
       title: homework.title,
       description: homework.description,
-      instructions: homework.instructions,
       due_date: homework.due_date,
       assigned_date: homework.assigned_date,
-      points_possible: homework.points_possible,
       course: {
         _id: homework.course_id._id,
         name: homework.course_id.course_name,
@@ -324,7 +322,6 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
       grade: 0, // Temporary grade, will be updated by lecturer
       graded_by: studentId, // Temporary, will be updated by lecturer
       points_earned: 0,
-      points_possible: homework.points_possible
     });
     
     await grade.save();
@@ -341,7 +338,6 @@ router.post('/homework/:homeworkId/submit', checkJwt, extractUser, requireStuden
         grade: 0, // Temporary grade, will be updated by lecturer
         graded_by: studentId, // Temporary, will be updated by lecturer
         points_earned: 0,
-        points_possible: homework.points_possible
       });
       
       await partnerGrade.save();

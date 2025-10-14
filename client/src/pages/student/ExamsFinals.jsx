@@ -220,14 +220,11 @@ function ExamsFinals() {
     }
 
     try {
-      // Check if we have a delete API method
-      if (apiService.lecturerManagement?.deleteExam) {
-        await apiService.lecturerManagement.deleteExam(exam._id);
-      } else {
-        throw new Error('Delete operation not available');
-      }
+      // Use the student exam API endpoint
+      await apiService.exams.delete(exam._id);
       fetchExamsData();
     } catch (err) {
+      console.error('Delete exam error:', err);
       setError('Failed to delete exam. Please try again.');
     }
   };
@@ -560,6 +557,7 @@ function ExamsFinals() {
                             )}
                           </Box>
                         }
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                       <ListItemSecondaryAction>
                         <Box display="flex" gap={1} alignItems="center">

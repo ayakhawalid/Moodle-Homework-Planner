@@ -31,7 +31,8 @@ import {
   Edit as EditIcon,
   Schedule as ScheduleIcon,
   School as SchoolIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  PlayArrow as PlayArrowIcon
 } from '@mui/icons-material';
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
@@ -59,12 +60,12 @@ const HomeworkManagement = () => {
     description: '',
     course_id: '',
     claimed_deadline: '',
-    moodle_url: '',
     allow_partners: false,
     max_partners: 1
   });
   
   const [claimedGrade, setClaimedGrade] = useState('');
+  const [isLate, setIsLate] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -146,7 +147,6 @@ const HomeworkManagement = () => {
       description: hw.description || '',
       course_id: hw.course?._id || hw.course_id,
       claimed_deadline: hw.claimed_deadline ? new Date(hw.claimed_deadline).toISOString().slice(0, 16) : '',
-      moodle_url: hw.moodle_url || '',
       allow_partners: hw.allow_partners || false,
       max_partners: hw.max_partners || 1
     });
@@ -181,15 +181,41 @@ const HomeworkManagement = () => {
     }
   };
 
+  const handleStartWorking = async (hw) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      await apiService.studentHomework.startHomework(hw._id);
+      setSuccess('Homework marked as in progress!');
+      fetchHomework();
+    } catch (err) {
+      console.error('Error starting homework:', err);
+      setError(err.response?.data?.error || 'Failed to start homework');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleCompleteHomework = async () => {
     try {
       setSubmitting(true);
       setError(null);
       
-      await apiService.studentHomework.completeHomework(selectedHomework._id, claimedGrade);
-      setSuccess('Homework marked as completed!');
+      // If homework is in_progress, mark as completed without grade
+      // If homework is completed or graded, add/update grade and mark as graded
+      const gradeToSend = selectedHomework.completion_status === 'in_progress' ? null : claimedGrade;
+      const successMessage = selectedHomework.completion_status === 'in_progress' 
+        ? 'Homework marked as submitted!' 
+        : selectedHomework.completion_status === 'graded'
+        ? 'Grade updated successfully!'
+        : 'Grade added successfully!';
+      
+      await apiService.studentHomework.completeHomework(selectedHomework._id, gradeToSend, isLate);
+      setSuccess(successMessage);
       setCompleteDialogOpen(false);
       setClaimedGrade('');
+      setIsLate(false);
       setSelectedHomework(null);
       fetchHomework();
     } catch (err) {
@@ -219,9 +245,8 @@ const HomeworkManagement = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'verified': return 'success';
-      case 'pending_review': return 'warning';
       case 'rejected': return 'error';
-      case 'unverified': return 'default';
+      case 'unverified': return 'warning';
       default: return 'default';
     }
   };
@@ -331,165 +356,218 @@ const HomeworkManagement = () => {
         </Alert>
       )}
 
-      <Grid container spacing={4}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {filteredHomework.map((hw) => (
-          <Grid item xs={12} md={6} lg={4} key={hw._id} sx={{ mb: 3 }}>
-            <div className="dashboard-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '20px', marginBottom: '16px' }}>
-              <div className="card-content" style={{ flexGrow: 1 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                  <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
-                    {hw.title}
-                  </Typography>
+          <Paper 
+            key={hw._id}
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 2,
+              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid',
+              borderColor: 'rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+              {/* Left Section: Title and Course Info */}
+              <Box sx={{ flex: '1 1 300px', minWidth: 0 }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600,
+                    color: '#333',
+                    mb: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {hw.title}
+                </Typography>
+                <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                  <Box display="flex" alignItems="center">
+                    <SchoolIcon sx={{ fontSize: 18, color: '#666', mr: 0.5 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {hw.course.name}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">•</Typography>
+                  <Box display="flex" alignItems="center">
+                    <ScheduleIcon sx={{ fontSize: 18, color: '#666', mr: 0.5 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(hw.claimed_deadline).toLocaleDateString()}
+                    </Typography>
+                  </Box>
                 </Box>
+              </Box>
 
-                <Box display="flex" alignItems="center" mb={1}>
-                  <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {hw.course.name} ({hw.course.code})
-                  </Typography>
-                </Box>
-
-                <Box display="flex" alignItems="center" mb={2}>
-                  <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    Due: {new Date(hw.claimed_deadline).toLocaleDateString()}
-                  </Typography>
-                </Box>
-
-                {hw.description && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {hw.description}
-                  </Typography>
-                )}
-
-                <Box display="flex" gap={1} mb={2} flexWrap="wrap">
+              {/* Middle Section: Status Badges */}
+              <Box display="flex" gap={1} flexWrap="wrap" alignItems="center" sx={{ flex: '0 1 auto' }}>
+                <Chip
+                  label={hw.completion_status.replace('_', ' ').toUpperCase()}
+                  sx={{
+                    backgroundColor: hw.completion_status === 'graded' ? '#95E1D3' :
+                                    hw.completion_status === 'completed' ? '#95E1D3' : 
+                                    hw.completion_status === 'in_progress' ? '#FCE38A' : 
+                                    '#F38181',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '0.75rem'
+                  }}
+                  size="medium"
+                />
+                {hw.claimed_grade && (
                   <Chip
-                    label={hw.completion_status.replace('_', ' ')}
+                    label={`${hw.claimed_grade}%`}
                     sx={{
-                      backgroundColor: hw.completion_status === 'completed' ? 'rgba(149, 225, 211, 0.3)' : 
-                                      hw.completion_status === 'in_progress' ? 'rgba(252, 227, 138, 0.3)' : 
-                                      'rgba(243, 129, 129, 0.3)',
+                      backgroundColor: '#D6F7AD',
                       color: '#333',
-                      border: hw.completion_status === 'completed' ? '1px solid #95E1D3' : 
-                              hw.completion_status === 'in_progress' ? '1px solid #FCE38A' : 
-                              '1px solid #F38181'
+                      fontWeight: 700,
+                      fontSize: '0.875rem'
+                    }}
+                    size="medium"
+                  />
+                )}
+                {hw.is_late && (
+                  <Chip
+                    label="LATE"
+                    sx={{
+                      backgroundColor: 'rgba(243, 129, 129, 0.3)',
+                      color: '#333',
+                      border: '1px solid #F38181',
+                      fontWeight: 600
                     }}
                     size="small"
                   />
-                  {hw.uploader_role === 'lecturer' ? (
-                    <Chip
-                      label="Lecturer Assigned"
-                      sx={{
-                        backgroundColor: 'rgba(149, 225, 211, 0.3)',
-                        color: '#333',
-                        border: '1px solid #95E1D3'
-                      }}
-                      size="small"
-                    />
-                  ) : (
-                    <Chip
-                      label={`Deadline: ${formatStatus(hw.deadline_verification_status)}`}
-                      sx={{
-                        backgroundColor: hw.deadline_verification_status === 'verified' ? 'rgba(149, 225, 211, 0.3)' : 
-                                        'rgba(252, 227, 138, 0.3)',
-                        color: '#333',
-                        border: hw.deadline_verification_status === 'verified' ? '1px solid #95E1D3' : 
-                                '1px solid #FCE38A'
-                      }}
-                      size="small"
-                    />
-                  )}
-                  {hw.claimed_grade && (
-                    <Chip
-                      label={`Grade: ${hw.claimed_grade}`}
-                      sx={{
-                        backgroundColor: 'rgba(214, 247, 173, 0.3)',
-                        color: '#333',
-                        border: '1px solid #D6F7AD'
-                      }}
-                      size="small"
-                    />
-                  )}
-                </Box>
-
-                {hw.tags && hw.tags.length > 0 && (
-                  <Box display="flex" gap={0.5} mb={2} flexWrap="wrap">
-                    {hw.tags.map((tag, index) => (
-                      <Chip 
-                        key={index} 
-                        label={tag} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{
-                          backgroundColor: 'rgba(149, 225, 211, 0.2)',
-                          color: '#333',
-                          border: '1px solid #95E1D3'
-                        }}
-                      />
-                    ))}
-                  </Box>
                 )}
+              </Box>
 
-                <Divider sx={{ my: 2 }} />
-
-                <Box display="flex" gap={1} flexWrap="wrap">
-                  {hw.completion_status === 'not_started' && (
+              {/* Right Section: Action Buttons */}
+              <Box display="flex" gap={1} flexWrap="wrap" sx={{ flex: '0 1 auto' }}>
+                {/* Not Started: Only show Start Working button */}
+                {hw.completion_status === 'not_started' && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={() => handleStartWorking(hw)}
+                    disabled={submitting}
+                    sx={{
+                      borderColor: '#FCE38A',
+                      color: '#333',
+                      '&:hover': { borderColor: '#f5d563', backgroundColor: 'rgba(252, 227, 138, 0.1)' }
+                    }}
+                  >
+                    Start Working
+                  </Button>
+                )}
+                
+                {/* In Progress: Show Submit button */}
+                {hw.completion_status === 'in_progress' && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<CheckCircleIcon />}
+                    onClick={() => {
+                      setSelectedHomework(hw);
+                      setCompleteDialogOpen(true);
+                    }}
+                    sx={{
+                      borderColor: '#95E1D3',
+                      color: '#333',
+                      '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                    }}
+                  >
+                    Mark as Submitted
+                  </Button>
+                )}
+                
+                {/* Completed: Show Add Grade button */}
+                {hw.completion_status === 'completed' && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<CheckCircleIcon />}
+                    onClick={() => {
+                      setSelectedHomework(hw);
+                      setCompleteDialogOpen(true);
+                    }}
+                    sx={{
+                      borderColor: '#A8E6CF',
+                      color: '#333',
+                      '&:hover': { borderColor: '#8fd9b6', backgroundColor: 'rgba(168, 230, 207, 0.1)' }
+                    }}
+                  >
+                    Add Grade
+                  </Button>
+                )}
+                
+                {/* Graded: Show Edit Grade button */}
+                {hw.completion_status === 'graded' && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={() => {
+                      setSelectedHomework(hw);
+                      setClaimedGrade(hw.claimed_grade || '');
+                      setCompleteDialogOpen(true);
+                    }}
+                    sx={{
+                      borderColor: '#95E1D3',
+                      color: '#333',
+                      '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                    }}
+                  >
+                    Edit Grade
+                  </Button>
+                )}
+                
+                {/* Show edit/delete buttons for student-created homework */}
+                {hw.uploader_role === 'student' && (
+                  <>
                     <Button
                       size="small"
                       variant="outlined"
-                      startIcon={<CheckCircleIcon />}
-                      onClick={() => {
-                        setSelectedHomework(hw);
-                        setCompleteDialogOpen(true);
-                      }}
+                      startIcon={<EditIcon />}
+                      onClick={() => handleEditHomework(hw)}
+                      disabled={submitting}
                       sx={{
                         borderColor: '#95E1D3',
                         color: '#333',
                         '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
                       }}
                     >
-                      Mark Complete
+                      Edit
                     </Button>
-                  )}
-                  
-                  {/* Show edit/delete buttons for all student-created homework (not lecturer-created) */}
-                  {hw.uploader_role === 'student' && (
-                    <>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<EditIcon />}
-                        onClick={() => handleEditHomework(hw)}
-                        disabled={submitting}
-                        sx={{
-                          borderColor: '#95E1D3',
-                          color: '#333',
-                          '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => handleDeleteHomework(hw)}
-                        disabled={submitting}
-                        sx={{
-                          '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' }
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </>
-                  )}
-                </Box>
-              </div>
-            </div>
-          </Grid>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => handleDeleteHomework(hw)}
+                      disabled={submitting}
+                      sx={{
+                        '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </Box>
+            </Box>
+          </Paper>
         ))}
-      </Grid>
+      </Box>
 
       {filteredHomework.length === 0 && (
         <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
@@ -552,15 +630,6 @@ const HomeworkManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Moodle URL"
-                value={newHomework.moodle_url}
-                onChange={(e) => setNewHomework({ ...newHomework, moodle_url: e.target.value })}
-                placeholder="https://moodle.example.com/mod/assign/view.php?id=123"
-              />
-            </Grid>
             
             
             
@@ -586,28 +655,6 @@ const HomeworkManagement = () => {
                 />
               </Box>
             </Grid>
-            
-            {newHomework.allow_partners && (
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Maximum Partners</InputLabel>
-                  <Select
-                    value={newHomework.max_partners}
-                    onChange={(e) => setNewHomework({ ...newHomework, max_partners: e.target.value })}
-                    label="Maximum Partners"
-                  >
-                    <MenuItem value={1}>1 Partner</MenuItem>
-                    <MenuItem value={2}>2 Partners</MenuItem>
-                    <MenuItem value={3}>3 Partners</MenuItem>
-                    <MenuItem value={4}>4 Partners</MenuItem>
-                    <MenuItem value={5}>5 Partners</MenuItem>
-                  </Select>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                    Maximum number of partners allowed for this homework
-                  </Typography>
-                </FormControl>
-              </Grid>
-            )}
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -675,15 +722,6 @@ const HomeworkManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Moodle URL"
-                value={newHomework.moodle_url}
-                onChange={(e) => setNewHomework({ ...newHomework, moodle_url: e.target.value })}
-                placeholder="https://moodle.example.com/mod/assign/view.php?id=123"
-              />
-            </Grid>
             
             <Grid item xs={12}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -707,28 +745,6 @@ const HomeworkManagement = () => {
                 />
               </Box>
             </Grid>
-            
-            {newHomework.allow_partners && (
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Maximum Partners</InputLabel>
-                  <Select
-                    value={newHomework.max_partners}
-                    onChange={(e) => setNewHomework({ ...newHomework, max_partners: e.target.value })}
-                    label="Maximum Partners"
-                  >
-                    <MenuItem value={1}>1 Partner</MenuItem>
-                    <MenuItem value={2}>2 Partners</MenuItem>
-                    <MenuItem value={3}>3 Partners</MenuItem>
-                    <MenuItem value={4}>4 Partners</MenuItem>
-                    <MenuItem value={5}>5 Partners</MenuItem>
-                  </Select>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                    Maximum number of partners allowed for this homework
-                  </Typography>
-                </FormControl>
-              </Grid>
-            )}
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -751,31 +767,63 @@ const HomeworkManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Complete Homework Dialog */}
+      {/* Complete/Grade Homework Dialog */}
       <Dialog open={completeDialogOpen} onClose={() => setCompleteDialogOpen(false)}>
-        <DialogTitle>Mark Homework as Complete</DialogTitle>
+        <DialogTitle>
+          {selectedHomework?.completion_status === 'in_progress' 
+            ? 'Mark Homework as Submitted' 
+            : selectedHomework?.completion_status === 'graded'
+            ? 'Edit Grade'
+            : 'Add Grade'}
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Mark "{selectedHomework?.title}" as completed
+            {selectedHomework?.completion_status === 'in_progress'
+              ? `Mark "${selectedHomework?.title}" as submitted (you can add the grade later when you receive it)`
+              : selectedHomework?.completion_status === 'graded'
+              ? `Update the grade for "${selectedHomework?.title}"`
+              : `Add the grade you received for "${selectedHomework?.title}"`}
           </Typography>
-          <TextField
-            fullWidth
-            label="Your Grade"
-            type="number"
-            value={claimedGrade}
-            onChange={(e) => setClaimedGrade(e.target.value)}
-            placeholder="Enter your grade (e.g., 85)"
-            inputProps={{ min: 0, max: 100 }}
-          />
+          
+          {/* Show late submission checkbox when marking as submitted */}
+          {selectedHomework?.completion_status === 'in_progress' && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isLate}
+                  onChange={(e) => setIsLate(e.target.checked)}
+                  color="warning"
+                />
+              }
+              label="This submission is late"
+              sx={{ mb: 2 }}
+            />
+          )}
+          
+          {/* Show grade field if adding or editing grade */}
+          {(selectedHomework?.completion_status === 'completed' || selectedHomework?.completion_status === 'graded') && (
+            <TextField
+              fullWidth
+              label="Your Grade"
+              type="number"
+              value={claimedGrade}
+              onChange={(e) => setClaimedGrade(e.target.value)}
+              placeholder="Enter your grade (e.g., 85)"
+              inputProps={{ min: 0, max: 100 }}
+              sx={{ mt: 2 }}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCompleteDialogOpen(false)}>Cancel</Button>
           <Button
             onClick={handleCompleteHomework}
             variant="contained"
-            disabled={submitting || !claimedGrade}
+            disabled={submitting || ((selectedHomework?.completion_status === 'completed' || selectedHomework?.completion_status === 'graded') && !claimedGrade)}
           >
-            {submitting ? <CircularProgress size={24} /> : 'Mark Complete'}
+            {submitting ? <CircularProgress size={24} /> : 
+              selectedHomework?.completion_status === 'in_progress' ? 'Submit' : 
+              selectedHomework?.completion_status === 'graded' ? 'Update Grade' : 'Add Grade'}
           </Button>
         </DialogActions>
       </Dialog>

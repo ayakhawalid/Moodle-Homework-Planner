@@ -60,12 +60,6 @@ const gradeSchema = new mongoose.Schema({
     default: false
   },
   
-  // Grade status
-  is_final: {
-    type: Boolean,
-    default: true
-  },
-  
   // Custom Timestamps
   graded_at: {
     type: Date,

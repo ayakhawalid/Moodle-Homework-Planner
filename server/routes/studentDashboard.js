@@ -63,6 +63,22 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     .populate('uploaded_by', 'name email')
     .sort({ claimed_deadline: 1 });
     
+    // Convert traditional homework to consistent format
+    const convertedTraditionalHomework = traditionalHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      course_id: hw.course_id._id,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      due_date: hw.due_date,
+      is_active: true,
+      uploader_role: 'lecturer'
+    }));
+    
     // Convert student homework to match traditional format
     const convertedStudentHomework = studentHomework.map(hw => ({
       _id: hw._id,
@@ -82,7 +98,7 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     }));
     
     // Combine both types
-    const allHomework = [...traditionalHomework, ...convertedStudentHomework];
+    const allHomework = [...convertedTraditionalHomework, ...convertedStudentHomework];
     
     console.log(`Student dashboard overview - Traditional: ${traditionalHomework.length}, Student: ${studentHomework.length}, Total: ${allHomework.length}`);
     console.log('Traditional homework filter:', { course_id: { $in: courseIds }, is_active: true });
@@ -241,10 +257,7 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
             _id: hw._id,
             title: hw.title,
             due_date: hw.due_date,
-            course: {
-              name: hw.course_id.course_name,
-              code: hw.course_id.course_code
-            },
+            course: hw.course, // Use the already formatted course object from conversion
             days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
           }))
       },
@@ -405,16 +418,32 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
       .populate('uploaded_by', 'name email')
       .sort({ claimed_deadline: 1 });
     
+    // Convert traditional homework to consistent format
+    const convertedTraditionalHomework = traditionalHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      assigned_date: hw.assigned_date,
+      points_possible: hw.points_possible,
+      course_id: {
+        _id: hw.course_id._id,
+        course_name: hw.course_id.course_name,
+        course_code: hw.course_id.course_code
+      },
+      due_date: hw.due_date,
+      is_active: true,
+      uploader_role: 'lecturer'
+    }));
+    
     // Convert student homework to match traditional format for processing
     const convertedStudentHomework = studentHomework.map(hw => ({
       _id: hw._id,
       title: hw.title,
       description: hw.description,
-      course_id: hw.course_id._id,
-      course: {
+      course_id: {
         _id: hw.course_id._id,
-        name: hw.course_id.course_name,
-        code: hw.course_id.course_code
+        course_name: hw.course_id.course_name,
+        course_code: hw.course_id.course_code
       },
       due_date: hw.claimed_deadline,
       is_active: true,
@@ -424,7 +453,7 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
     }));
     
     // Combine both types
-    const allHomework = [...traditionalHomework, ...convertedStudentHomework];
+    const allHomework = [...convertedTraditionalHomework, ...convertedStudentHomework];
     
     console.log(`Student homework planner - Traditional: ${traditionalHomework.length}, Student: ${studentHomework.length}, Total: ${allHomework.length}`);
     console.log('Filter used for traditional homework:', filter);
@@ -1481,13 +1510,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
         .populate('lecturer_id', 'name email full_name');
       
       if (selectedCourse) {
-        // Check if partner functionality is enabled for this course
-        if (!selectedCourse.partner_settings?.enabled) {
-          return res.status(403).json({ 
-            error: 'Partner functionality is disabled for this course',
-            partner_disabled: true 
-          });
-        }
+        // Partner functionality is now controlled at homework level
         
         // Get current partners for this student in this course (exclude completed partnerships)
         const existingPartners = await Partner.find({
@@ -1526,8 +1549,9 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           }
         });
         
-        // Check if student already has max partners for this course
-        if (currentPartners.length >= selectedCourse.partner_settings.max_partners_per_student) {
+        // Check if student already has max partners for this course (default max is 1)
+        const maxPartnersPerStudent = 1; // Default max partners
+        if (currentPartners.length >= maxPartnersPerStudent) {
           potentialPartners = []; // No more partners allowed
         } else {
           // Get students who don't already have max partners
@@ -1551,7 +1575,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
               partner.homework_id.course_id._id.toString() === course_id
             );
             
-            if (coursePartners.length >= selectedCourse.partner_settings.max_partners_per_student) {
+            if (coursePartners.length >= maxPartnersPerStudent) {
               studentsWithMaxPartners.add(student._id.toString());
             }
           }
@@ -1570,19 +1594,11 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           .populate('course_id', 'course_name course_code');
       }
     } else {
-      // Get all courses with potential partners (only those with partner functionality enabled)
+      // Get all courses with potential partners
+      const maxPartnersPerStudent = 1; // Default max partners
       const coursesWithPartners = await Promise.all(
         courses.map(async (course) => {
-          // Skip courses where partner functionality is disabled
-          if (!course.partner_settings?.enabled) {
-            return {
-              _id: course._id,
-              course_name: course.course_name,
-              course_code: course.course_code,
-              partner_enabled: false,
-              potential_partners: []
-            };
-          }
+          // Partners are now enabled at homework level
           
           const populatedCourse = await Course.findById(course._id)
             .populate('students', 'name email full_name picture');
@@ -1624,7 +1640,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           });
           
           let coursePotentialPartners = [];
-          if (coursePartners.length < course.partner_settings.max_partners_per_student) {
+          if (coursePartners.length < maxPartnersPerStudent) {
             // Get students who don't already have max partners
             const studentsWithMaxPartners = new Set();
             
@@ -1646,7 +1662,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
                 partner.homework_id.course_id._id.toString() === course._id.toString()
               );
               
-              if (studentCoursePartners.length >= course.partner_settings.max_partners_per_student) {
+              if (studentCoursePartners.length >= maxPartnersPerStudent) {
                 studentsWithMaxPartners.add(student._id.toString());
               }
             }
@@ -1664,7 +1680,7 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
             course_code: course.course_code,
             partner_enabled: true,
             current_partners: coursePartners.length,
-            max_partners: course.partner_settings.max_partners_per_student,
+            max_partners: maxPartnersPerStudent,
             potential_partners: coursePotentialPartners
           };
         })
@@ -1766,8 +1782,8 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
         _id: course._id,
         course_name: course.course_name,
         course_code: course.course_code,
-        partner_enabled: course.partner_settings?.enabled || false,
-        max_partners: course.partner_settings?.max_partners_per_student || 1
+        partner_enabled: true, // Partners controlled at homework level
+        max_partners: 1 // Default max partners
       })),
       potential_partners: potentialPartners,
       current_partners: currentPartners,

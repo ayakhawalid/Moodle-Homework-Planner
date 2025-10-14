@@ -215,6 +215,30 @@ export const apiService = {
     }
   },
 
+  // Exams
+  exams: {
+    getAll: (courseId = null) => {
+      const params = new URLSearchParams();
+      if (courseId) params.append('course_id', courseId);
+      return api.get(`/exams?${params.toString()}`);
+    },
+    create: (data) => api.post('/exams', data),
+    update: (id, data) => api.put(`/exams/${id}`, data),
+    delete: (id) => api.delete(`/exams/${id}`)
+  },
+
+  // Classes
+  classes: {
+    getAll: (courseId = null) => {
+      const params = new URLSearchParams();
+      if (courseId) params.append('course_id', courseId);
+      return api.get(`/classes?${params.toString()}`);
+    },
+    create: (data) => api.post('/classes', data),
+    update: (id, data) => api.put(`/classes/${id}`, data),
+    delete: (id) => api.delete(`/classes/${id}`)
+  },
+
   // Student dashboard
   studentDashboard: {
     getOverview: () => api.get('/student-dashboard/overview'),
@@ -327,7 +351,8 @@ export const apiService = {
       getLecturerHomework: () => api.get('/student-homework/lecturer/all'),
       createHomework: (data) => api.post('/student-homework', data),
       updateHomework: (id, data) => api.put(`/student-homework/${id}`, data),
-      completeHomework: (homeworkId, claimedGrade) => api.put(`/student-homework/${homeworkId}/complete`, { claimed_grade: claimedGrade }),
+      startHomework: (homeworkId) => api.put(`/student-homework/${homeworkId}/start`),
+      completeHomework: (homeworkId, claimedGrade, isLate = false) => api.put(`/student-homework/${homeworkId}/complete`, { claimed_grade: claimedGrade, is_late: isLate }),
       getVerifications: () => api.get('/student-homework/lecturer/verifications'),
       verifyDeadline: (homeworkId, data) => api.put(`/student-homework/${homeworkId}/verify-deadline`, data),
       deleteHomework: (homeworkId) => api.delete(`/student-homework/${homeworkId}`)

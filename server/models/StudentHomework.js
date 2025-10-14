@@ -39,7 +39,7 @@ const studentHomeworkSchema = new mongoose.Schema({
   },
   deadline_verification_status: {
     type: String,
-    enum: ['unverified', 'verified', 'rejected', 'pending_review'],
+    enum: ['unverified', 'verified', 'rejected'],
     default: 'unverified'
   },
   deadline_verified_by: {
@@ -60,32 +60,6 @@ const studentHomeworkSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
-  verified_grade: {
-    type: Number,
-    min: 0,
-    max: 100
-  },
-  grade_verification_status: {
-    type: String,
-    enum: ['unverified', 'verified', 'rejected', 'pending_review'],
-    default: 'unverified'
-  },
-  grade_verified_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  grade_verified_at: {
-    type: Date
-  },
-  grade_screenshot_path: {
-    type: String
-  },
-  extracted_grade_data: {
-    extracted_grade: Number,
-    extracted_total: Number,
-    confidence: Number,
-    raw_text: String
-  },
   
   // Status
   completion_status: {
@@ -96,21 +70,9 @@ const studentHomeworkSchema = new mongoose.Schema({
   completed_at: {
     type: Date
   },
-  
-  // Tags
-  tags: [{
-    type: String,
-    trim: true
-  }],
-  
-  // Moodle reference
-  moodle_assignment_id: {
-    type: String,
-    trim: true
-  },
-  moodle_url: {
-    type: String,
-    trim: true
+  is_late: {
+    type: Boolean,
+    default: false
   },
   
   // Partner settings
@@ -122,7 +84,7 @@ const studentHomeworkSchema = new mongoose.Schema({
     type: Number,
     default: 1,
     min: 1,
-    max: 5
+    max: 1
   }
 }, {
   timestamps: true,
@@ -136,7 +98,6 @@ studentHomeworkSchema.index({ uploaded_by: 1 });
 studentHomeworkSchema.index({ claimed_deadline: 1 });
 studentHomeworkSchema.index({ completion_status: 1 });
 studentHomeworkSchema.index({ deadline_verification_status: 1 });
-studentHomeworkSchema.index({ grade_verification_status: 1 });
 
 // Virtual for days until deadline
 studentHomeworkSchema.virtual('days_until_deadline').get(function() {
@@ -161,8 +122,8 @@ studentHomeworkSchema.statics.findByCourse = function(courseId) {
 studentHomeworkSchema.statics.findPendingVerifications = function() {
   return this.find({
     $or: [
-      { deadline_verification_status: 'pending_review' },
-      { grade_verification_status: 'pending_review' }
+      { deadline_verification_status: 'unverified' },
+      { grade_verification_status: 'unverified' }
     ]
   }).populate('uploaded_by', 'name email').populate('course_id', 'course_name course_code');
 };

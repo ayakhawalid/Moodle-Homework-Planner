@@ -133,10 +133,7 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       course_id,
       title,
       description,
-      instructions,
       due_date,
-      points_possible,
-      submission_type,
       allow_late_submission,
       allow_partners,
       max_partners
@@ -157,10 +154,7 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       course_id,
       title,
       description,
-      instructions,
       due_date,
-      points_possible,
-      submission_type,
       allow_late_submission,
       allow_partners: allow_partners || false,
       max_partners: max_partners || 1
@@ -193,19 +187,13 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
     const {
       title,
       description,
-      instructions,
       due_date,
-      points_possible,
-      submission_type,
       allow_late_submission
     } = req.body;
     
     if (title) homework.title = title;
     if (description) homework.description = description;
-    if (instructions) homework.instructions = instructions;
     if (due_date) homework.due_date = due_date;
-    if (points_possible) homework.points_possible = points_possible;
-    if (submission_type) homework.submission_type = submission_type;
     if (allow_late_submission !== undefined) homework.allow_late_submission = allow_late_submission;
     
     await homework.save();
@@ -339,7 +327,6 @@ router.post('/:id/grade', checkJwt, extractUser, requireLecturer, async (req, re
       // Update existing grade
       gradeRecord.grade = grade;
       gradeRecord.points_earned = points_earned;
-      gradeRecord.points_possible = homework.points_possible;
       gradeRecord.feedback = feedback;
       gradeRecord.is_late = is_late;
       gradeRecord.letter_grade = gradeRecord.calculateLetterGrade();
@@ -351,7 +338,6 @@ router.post('/:id/grade', checkJwt, extractUser, requireLecturer, async (req, re
         homework_id: req.params.id,
         grade,
         points_earned,
-        points_possible: homework.points_possible,
         feedback,
         is_late,
         graded_by: lecturer._id

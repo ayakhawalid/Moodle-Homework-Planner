@@ -50,10 +50,6 @@ const classSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  max_capacity: {
-    type: Number,
-    min: 1
-  },
   
   // Class status
   is_cancelled: {

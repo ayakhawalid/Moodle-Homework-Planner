@@ -26,20 +26,6 @@ const homeworkSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  points_possible: {
-    type: Number,
-    min: 0,
-    default: 100
-  },
-  instructions: {
-    type: String,
-    trim: true
-  },
-  submission_type: {
-    type: String,
-    enum: ['file', 'text', 'both'],
-    default: 'both'
-  },
   
   // Homework status
   is_active: {
@@ -60,7 +46,7 @@ const homeworkSchema = new mongoose.Schema({
     type: Number,
     default: 1,
     min: 1,
-    max: 5
+    max: 1
   }
 }, {
   timestamps: true,

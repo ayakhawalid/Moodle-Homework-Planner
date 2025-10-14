@@ -198,7 +198,6 @@ const LecturerCalendar = () => {
   const traditionalHomework = homework.filter(hw => hw.uploader_role === 'lecturer').length;
   const studentHomework = homework.filter(hw => hw.uploader_role === 'student').length;
   const pendingVerifications = homework.filter(hw => 
-    hw.deadline_verification_status === 'pending_review' || 
     hw.deadline_verification_status === 'unverified'
   ).length;
 

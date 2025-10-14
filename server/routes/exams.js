@@ -128,8 +128,8 @@ router.get('/:id', checkJwt, extractUser, async (req, res) => {
   }
 });
 
-// POST /api/exams - Create new exam (Lecturer only)
-router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
+// POST /api/exams - Create new exam
+router.post('/', checkJwt, extractUser, async (req, res) => {
   try {
     const {
       course_id,
@@ -149,14 +149,31 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       notes_allowed
     } = req.body;
     
-    // Verify course exists and lecturer has access
+    // Verify course exists
     const course = await Course.findById(course_id);
     if (!course) {
       return res.status(404).json({ error: 'Course not found' });
     }
     
-    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
-    if (!course.lecturer_id.equals(lecturer._id)) {
+    const user = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const userRole = req.userInfo.roles[0];
+    
+    // Check permissions
+    if (userRole === 'lecturer') {
+      // Lecturers can only create exams for their own courses
+      if (!course.lecturer_id.equals(user._id)) {
+        return res.status(403).json({ error: 'Access denied - not your course' });
+      }
+    } else if (userRole === 'student') {
+      // Students can create exams if they're enrolled in the course
+      if (!course.students.some(studentId => studentId.equals(user._id))) {
+        return res.status(403).json({ error: 'Access denied - not enrolled in this course' });
+      }
+    } else {
       return res.status(403).json({ error: 'Access denied' });
     }
     
@@ -188,17 +205,34 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
   }
 });
 
-// PUT /api/exams/:id - Update exam (Lecturer only)
-router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
+// PUT /api/exams/:id - Update exam
+router.put('/:id', checkJwt, extractUser, async (req, res) => {
   try {
     const exam = await Exam.findById(req.params.id).populate('course_id');
     if (!exam) {
       return res.status(404).json({ error: 'Exam not found' });
     }
     
-    // Check if lecturer owns this exam
-    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
-    if (!exam.course_id.lecturer_id.equals(lecturer._id)) {
+    const user = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const userRole = req.userInfo.roles[0];
+    
+    // Check permissions
+    if (userRole === 'lecturer') {
+      // Lecturers can only update exams from their own courses
+      if (!exam.course_id.lecturer_id.equals(user._id)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    } else if (userRole === 'student') {
+      // Students can update exams if they're enrolled in the course
+      const course = exam.course_id;
+      if (!course.students.some(studentId => studentId.equals(user._id))) {
+        return res.status(403).json({ error: 'Access denied - not enrolled in this course' });
+      }
+    } else {
       return res.status(403).json({ error: 'Access denied' });
     }
     
@@ -252,7 +286,11 @@ router.post('/:id/publish', checkJwt, extractUser, requireLecturer, async (req, 
       return res.status(404).json({ error: 'Exam not found' });
     }
     
-    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
+    const lecturer = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+    if (!lecturer) {
+      return res.status(404).json({ error: 'Lecturer not found in database' });
+    }
+    
     if (!exam.course_id.lecturer_id.equals(lecturer._id)) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -383,7 +421,11 @@ router.post('/:id/grade', checkJwt, extractUser, requireLecturer, async (req, re
       return res.status(404).json({ error: 'Exam not found' });
     }
     
-    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
+    const lecturer = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+    if (!lecturer) {
+      return res.status(404).json({ error: 'Lecturer not found in database' });
+    }
+    
     if (!exam.course_id.lecturer_id.equals(lecturer._id)) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -426,16 +468,34 @@ router.post('/:id/grade', checkJwt, extractUser, requireLecturer, async (req, re
   }
 });
 
-// DELETE /api/exams/:id - Delete exam (Lecturer only)
-router.delete('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
+// DELETE /api/exams/:id - Delete exam
+router.delete('/:id', checkJwt, extractUser, async (req, res) => {
   try {
     const exam = await Exam.findById(req.params.id).populate('course_id');
     if (!exam) {
       return res.status(404).json({ error: 'Exam not found' });
     }
     
-    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
-    if (!exam.course_id.lecturer_id.equals(lecturer._id)) {
+    const user = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const userRole = req.userInfo.roles[0];
+    
+    // Check permissions
+    if (userRole === 'lecturer') {
+      // Lecturers can only delete exams from their own courses
+      if (!exam.course_id.lecturer_id.equals(user._id)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    } else if (userRole === 'student') {
+      // Students can delete exams if they're enrolled in the course
+      const course = exam.course_id;
+      if (!course.students.some(studentId => studentId.equals(user._id))) {
+        return res.status(403).json({ error: 'Access denied - not enrolled in this course' });
+      }
+    } else {
       return res.status(403).json({ error: 'Access denied' });
     }
     

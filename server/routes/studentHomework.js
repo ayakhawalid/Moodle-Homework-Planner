@@ -74,7 +74,6 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
     .populate('course_id', 'course_name course_code')
     .populate('uploaded_by', 'name email')
     .populate('deadline_verified_by', 'name email')
-    .populate('grade_verified_by', 'name email')
     .sort({ claimed_deadline: 1 });
 
     // 2. Traditional Homework table (lecturer-created homework)
@@ -107,7 +106,6 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
       },
       claimed_deadline: hw.due_date,
       assigned_date: hw.assigned_date,
-      points_possible: hw.points_possible,
       uploader_role: 'lecturer',
       uploaded_by: {
         _id: 'lecturer',
@@ -167,15 +165,9 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
         verified_deadline: hw.verified_deadline,
         deadline_verification_status: hw.deadline_verification_status,
         claimed_grade: hw.claimed_grade,
-        verified_grade: hw.verified_grade,
-        grade_verification_status: hw.grade_verification_status,
         completion_status: hw.completion_status,
-        priority: hw.priority,
-        tags: hw.tags,
         days_until_deadline: hw.days_until_deadline,
         is_overdue: hw.is_overdue,
-        moodle_assignment_id: hw.moodle_assignment_id,
-        moodle_url: hw.moodle_url,
         createdAt: hw.createdAt,
         completed_at: hw.completed_at
       })),
@@ -201,10 +193,6 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       description,
       course_id,
       claimed_deadline,
-      priority,
-      tags,
-      moodle_assignment_id,
-      moodle_url,
       allow_partners,
       max_partners
     } = req.body;
@@ -235,13 +223,9 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       uploaded_by: user._id,
       uploader_role: userRole,
       claimed_deadline: new Date(claimed_deadline),
-      priority: priority || 'medium',
-      tags: tags || [],
-      moodle_assignment_id,
-      moodle_url,
       allow_partners: allow_partners || false,
       max_partners: max_partners || 1,
-      deadline_verification_status: 'pending_review' // Set to pending review for lecturer verification
+      deadline_verification_status: 'unverified' // Set to unverified for lecturer verification
     });
 
     await homework.save();
@@ -266,8 +250,6 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
           role: homework.uploader_role
         } : null,
         claimed_deadline: homework.claimed_deadline,
-        priority: homework.priority,
-        tags: homework.tags,
         allow_partners: homework.allow_partners,
         max_partners: homework.max_partners,
         deadline_verification_status: homework.deadline_verification_status,
@@ -320,10 +302,6 @@ router.put('/:id', checkJwt, extractUser, async (req, res) => {
       description,
       course_id,
       claimed_deadline,
-      priority,
-      tags,
-      moodle_assignment_id,
-      moodle_url,
       allow_partners,
       max_partners
     } = req.body;
@@ -333,10 +311,6 @@ router.put('/:id', checkJwt, extractUser, async (req, res) => {
     if (description !== undefined) homework.description = description;
     if (course_id) homework.course_id = course_id;
     if (claimed_deadline) homework.claimed_deadline = new Date(claimed_deadline);
-    if (priority) homework.priority = priority;
-    if (tags !== undefined) homework.tags = tags;
-    if (moodle_assignment_id !== undefined) homework.moodle_assignment_id = moodle_assignment_id;
-    if (moodle_url !== undefined) homework.moodle_url = moodle_url;
     if (allow_partners !== undefined) homework.allow_partners = allow_partners;
     if (max_partners !== undefined) homework.max_partners = max_partners;
 
@@ -353,6 +327,85 @@ router.put('/:id', checkJwt, extractUser, async (req, res) => {
     res.status(500).json({ error: 'Failed to update homework' });
   }
 });
+// PUT /api/student-homework/:id/start - Mark homework as in progress
+router.put('/:id/start', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    const homeworkId = req.params.id;
+
+    // First try to find in StudentHomework table
+    let homework = await StudentHomework.findById(homeworkId);
+    
+    if (!homework) {
+      // If not found in StudentHomework, check if it's traditional homework
+      const traditionalHomework = await Homework.findById(homeworkId);
+      if (!traditionalHomework) {
+        return res.status(404).json({ error: 'Homework not found' });
+      }
+
+      // Check if student is enrolled in the course
+      const course = await Course.findById(traditionalHomework.course_id);
+      if (!course.students.includes(user._id)) {
+        return res.status(403).json({ error: 'You are not enrolled in this course' });
+      }
+
+      // Create a StudentHomework entry for traditional homework when starting
+      homework = new StudentHomework({
+        title: traditionalHomework.title,
+        description: traditionalHomework.description,
+        course_id: traditionalHomework.course_id,
+        claimed_deadline: traditionalHomework.due_date,
+        verified_deadline: traditionalHomework.due_date,
+        uploader_role: 'lecturer',
+        uploaded_by: user._id, // Student starting the homework
+        completion_status: 'in_progress',
+        deadline_verification_status: 'verified', // Traditional homework is considered verified
+        grade_verification_status: 'unverified'
+      });
+
+      await homework.save();
+      await homework.populate('course_id', 'course_name course_code');
+      await homework.populate('uploaded_by', 'name email');
+
+      return res.json({
+        message: 'Homework marked as in progress',
+        homework: {
+          _id: homework._id,
+          title: homework.title,
+          completion_status: homework.completion_status
+        }
+      });
+    }
+
+    // Update existing StudentHomework
+    if (homework.completion_status === 'not_started') {
+      homework.completion_status = 'in_progress';
+      await homework.save();
+      await homework.populate('course_id', 'course_name course_code');
+      await homework.populate('uploaded_by', 'name email');
+
+      return res.json({
+        message: 'Homework marked as in progress',
+        homework: {
+          _id: homework._id,
+          title: homework.title,
+          completion_status: homework.completion_status
+        }
+      });
+    } else {
+      return res.status(400).json({ error: 'Homework is already in progress or completed' });
+    }
+
+  } catch (error) {
+    console.error('Error starting homework:', error);
+    res.status(500).json({ error: 'Failed to start homework' });
+  }
+});
 
 // PUT /api/student-homework/:id/complete - Mark homework as completed
 router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, res) => {
@@ -364,7 +417,7 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
     }
 
     const homeworkId = req.params.id;
-    const { claimed_grade } = req.body;
+    const { claimed_grade, is_late } = req.body;
 
     // First try to find in StudentHomework table
     let homework = await StudentHomework.findById(homeworkId);
@@ -383,22 +436,22 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
       }
 
       // Create a StudentHomework entry for traditional homework completion
+      // If grade is provided, mark as 'graded', otherwise mark as 'completed'
+      const completionStatus = claimed_grade !== null && claimed_grade !== undefined ? 'graded' : 'completed';
+      
       homework = new StudentHomework({
         title: traditionalHomework.title,
         description: traditionalHomework.description,
         course_id: traditionalHomework.course_id,
         claimed_deadline: traditionalHomework.due_date,
         assigned_date: traditionalHomework.assigned_date,
-        points_possible: traditionalHomework.points_possible,
         uploader_role: 'lecturer',
         uploaded_by: user._id, // Student completing the homework
-        completion_status: 'completed',
+        completion_status: completionStatus,
         completed_at: new Date(),
         claimed_grade: claimed_grade,
         deadline_verification_status: 'verified', // Traditional homework is considered verified
-        grade_verification_status: 'unverified',
-        tags: [],
-        moodle_url: '',
+        grade_verification_status: claimed_grade ? 'unverified' : 'unverified',
         created_at: new Date(),
         updated_at: new Date()
       });
@@ -434,29 +487,28 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
 
         if (!partnerHomework) {
           // Create a StudentHomework entry for the partner
+          const partnerStatus = claimed_grade !== null && claimed_grade !== undefined ? 'graded' : 'completed';
           partnerHomework = new StudentHomework({
             title: traditionalHomework.title,
             description: traditionalHomework.description,
             course_id: traditionalHomework.course_id,
             claimed_deadline: traditionalHomework.due_date,
             assigned_date: traditionalHomework.assigned_date,
-            points_possible: traditionalHomework.points_possible,
             uploader_role: 'lecturer',
             uploaded_by: partnerId,
-            completion_status: 'completed',
+            completion_status: partnerStatus,
             completed_at: new Date(),
             claimed_grade: claimed_grade,
             deadline_verification_status: 'verified',
-            grade_verification_status: 'unverified',
-            tags: [],
-            moodle_url: ''
+        grade_verification_status: claimed_grade ? 'unverified' : 'unverified'
           });
         } else {
           // Update existing partner homework with the same grade
+          const partnerStatus = claimed_grade !== null && claimed_grade !== undefined ? 'graded' : partnerHomework.completion_status;
           partnerHomework.claimed_grade = claimed_grade;
-          partnerHomework.completion_status = 'completed';
+          partnerHomework.completion_status = partnerStatus;
           partnerHomework.completed_at = new Date();
-          partnerHomework.grade_verification_status = 'unverified';
+          partnerHomework.grade_verification_status = claimed_grade ? 'unverified' : partnerHomework.grade_verification_status;
         }
 
         await partnerHomework.save();
@@ -493,10 +545,13 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
     }
 
     // Update homework
-    homework.completion_status = 'completed';
+    // If grade is provided, mark as 'graded', otherwise mark as 'completed'
+    const newStatus = claimed_grade !== null && claimed_grade !== undefined ? 'graded' : 'completed';
+    homework.completion_status = newStatus;
     homework.completed_at = new Date();
     homework.claimed_grade = claimed_grade;
-    homework.grade_verification_status = 'unverified';
+    homework.grade_verification_status = claimed_grade ? 'unverified' : 'unverified';
+    homework.is_late = is_late || false;
 
     await homework.save();
 
@@ -527,6 +582,7 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
 
       if (!partnerHomework) {
         // If partner doesn't have their own record yet, create one
+        const partnerStatus = claimed_grade !== null && claimed_grade !== undefined ? 'graded' : 'completed';
         partnerHomework = new StudentHomework({
           title: homework.title,
           description: homework.description,
@@ -536,20 +592,18 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
           claimed_deadline: homework.claimed_deadline,
           verified_deadline: homework.verified_deadline,
           deadline_verification_status: homework.deadline_verification_status,
-          completion_status: 'completed',
+          completion_status: partnerStatus,
           completed_at: new Date(),
           claimed_grade: claimed_grade,
-          grade_verification_status: 'unverified',
-          tags: homework.tags || [],
-          moodle_assignment_id: homework.moodle_assignment_id,
-          moodle_url: homework.moodle_url
+          grade_verification_status: claimed_grade ? 'unverified' : 'unverified',
         });
       } else {
         // Update existing partner homework with the same grade
+        const partnerStatus = claimed_grade !== null && claimed_grade !== undefined ? 'graded' : partnerHomework.completion_status;
         partnerHomework.claimed_grade = claimed_grade;
-        partnerHomework.completion_status = 'completed';
+        partnerHomework.completion_status = partnerStatus;
         partnerHomework.completed_at = new Date();
-        partnerHomework.grade_verification_status = 'unverified';
+        partnerHomework.grade_verification_status = claimed_grade ? 'unverified' : partnerHomework.grade_verification_status;
       }
 
       await partnerHomework.save();
@@ -655,13 +709,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
       completion_status: 'not_started',
       completed_at: null,
       claimed_grade: null,
-      verified_grade: null,
-      grade_verification_status: 'unverified',
       grade_verification_notes: '',
-      priority: 'medium',
-      tags: [],
-      moodle_assignment_id: '',
-      moodle_url: '',
       createdAt: hw.createdAt,
       updatedAt: hw.updatedAt
     }));
@@ -691,11 +739,11 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
         });
         gradedCount = grades.length;
       } else {
-        // For student-created homework, check verified_grade
+        // For student-created homework, check claimed_grade
         const studentSubmissions = await StudentHomework.find({
           title: hw.title,
           course_id: hw.course_id,
-          verified_grade: { $exists: true, $ne: null }
+          claimed_grade: { $exists: true, $ne: null }
         });
         gradedCount = studentSubmissions.length;
       }
@@ -767,13 +815,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
         completion_status: hw.completion_status,
         completed_at: hw.completed_at,
         claimed_grade: hw.claimed_grade,
-        verified_grade: hw.verified_grade,
-        grade_verification_status: hw.grade_verification_status,
         grade_verification_notes: hw.grade_verification_notes,
-        priority: hw.priority,
-        tags: hw.tags,
-        moodle_assignment_id: hw.moodle_assignment_id,
-        moodle_url: hw.moodle_url,
         createdAt: hw.createdAt,
         updatedAt: hw.updatedAt
       }))
@@ -827,8 +869,8 @@ router.get('/lecturer/verifications', checkJwt, extractUser, requireLecturer, as
     const pendingVerifications = await StudentHomework.find({
       course_id: { $in: courseIds },
       $or: [
-        { deadline_verification_status: { $in: ['pending_review', 'unverified'] } },
-        { grade_verification_status: { $in: ['pending_review', 'unverified'] } }
+        { deadline_verification_status: 'unverified' },
+        { grade_verification_status: 'unverified' }
       ]
     })
     .populate('course_id', 'course_name course_code')
