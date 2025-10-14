@@ -503,12 +503,62 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
     const traditionalHomeworkIds = traditionalHomework.map(hw => hw._id);
     const grades = await Grade.find({ homework_id: { $in: traditionalHomeworkIds } });
     
+    // Calculate late submissions from both tables
+    const lateGrades = grades.filter(grade => grade.is_late === true).length;
+    const lateStudentHomework = studentHomework.filter(hw => hw.is_late === true).length;
+    const totalLateSubmissions = lateGrades + lateStudentHomework;
+    
+    // Calculate submission statistics from BOTH tables
+    
+    // From StudentHomework table
+    const completedStudentHomework = studentHomework.filter(hw => 
+      hw.completion_status === 'completed' || hw.completion_status === 'graded'
+    ).length;
+    const inProgressStudentHomework = studentHomework.filter(hw => 
+      hw.completion_status === 'in_progress'
+    ).length;
+    const notStartedStudentHomework = studentHomework.filter(hw => 
+      hw.completion_status === 'not_started'
+    ).length;
+    
+    // From traditional homework (Grade table)
+    // All grades represent completed homework
+    const completedTraditionalHomework = grades.length;
+    
+    // Calculate not started traditional homework
+    // For each traditional homework, check how many students haven't submitted
+    let notStartedTraditionalCount = 0;
+    traditionalHomework.forEach(hw => {
+      const course = courses.find(c => c._id.equals(hw.course_id));
+      if (course) {
+        const studentsInCourse = course.students.length;
+        const gradesForThisHw = grades.filter(g => g.homework_id.equals(hw._id)).length;
+        notStartedTraditionalCount += (studentsInCourse - gradesForThisHw);
+      }
+    });
+    
+    // Combine statistics from both tables
+    const totalCompleted = completedStudentHomework + completedTraditionalHomework;
+    const totalInProgress = inProgressStudentHomework; // Only StudentHomework has in_progress
+    const totalNotStarted = notStartedStudentHomework + notStartedTraditionalCount;
+    const totalHomeworkInstances = studentHomework.length + 
+      (courses.reduce((sum, course) => {
+        const courseTraditionalHw = traditionalHomework.filter(hw => hw.course_id.equals(course._id));
+        return sum + (courseTraditionalHw.length * course.students.length);
+      }, 0));
+    
     // Calculate course-specific statistics
     const courseStats = await Promise.all(courses.map(async (course) => {
       const courseHomework = allHomework.filter(hw => hw.course_id._id.equals(course._id));
       const courseGrades = grades.filter(grade => 
         courseHomework.some(hw => hw._id.equals(grade.homework_id))
       );
+      
+      // Count late submissions for this course
+      const courseLateGrades = courseGrades.filter(grade => grade.is_late === true).length;
+      const courseStudentHw = studentHomework.filter(hw => hw.course_id._id.equals(course._id));
+      const courseLateStudentHw = courseStudentHw.filter(hw => hw.is_late === true).length;
+      const courseTotalLate = courseLateGrades + courseLateStudentHw;
       
       const averageGrade = courseGrades.length > 0 
         ? courseGrades.reduce((sum, grade) => sum + grade.grade, 0) / courseGrades.length 
@@ -526,7 +576,8 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
         homework_count: courseHomework.length,
         average_grade: Math.round(averageGrade * 100) / 100,
         pass_rate: Math.round(passRate * 100) / 100,
-        letter_grade: courseGrades.length > 0 ? getLetterGrade(averageGrade) : 'N/A'
+        letter_grade: courseGrades.length > 0 ? getLetterGrade(averageGrade) : 'N/A',
+        late_submissions: courseTotalLate
       };
     }));
     
@@ -552,7 +603,8 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
         total_graded: totalGrades,
         average_grade: Math.round(overallAverage * 100) / 100,
         pass_rate: Math.round(overallPassRate * 100) / 100,
-        letter_grade: getLetterGrade(overallAverage)
+        letter_grade: getLetterGrade(overallAverage),
+        late_submissions: totalLateSubmissions
       },
       course_statistics: courseStats,
       weekly_workload: weeklyWorkload,
@@ -560,6 +612,12 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
         completed: totalGrades,
         pending: totalHomework - totalGrades,
         completion_rate: totalHomework > 0 ? Math.round((totalGrades / totalHomework) * 100) : 0
+      },
+      homework_status: {
+        completed: totalCompleted,
+        in_progress: totalInProgress,
+        not_started: totalNotStarted,
+        total_homework_instances: totalHomeworkInstances
       }
     };
     
@@ -694,6 +752,37 @@ router.get('/courses-info', checkJwt, extractUser, requireLecturer, async (req, 
       const allHomework = [...processedTraditionalHomework, ...processedStudentHomework]
         .sort((a, b) => new Date(b.due_date) - new Date(a.due_date));
       
+      // Calculate homework status statistics for this course
+      // From StudentHomework
+      const completedStudentHw = courseStudentHomework.filter(hw => 
+        hw.completion_status === 'completed' || hw.completion_status === 'graded'
+      ).length;
+      const inProgressStudentHw = courseStudentHomework.filter(hw => 
+        hw.completion_status === 'in_progress'
+      ).length;
+      const notStartedStudentHw = courseStudentHomework.filter(hw => 
+        hw.completion_status === 'not_started'
+      ).length;
+      
+      // From traditional homework (via grades)
+      const traditionalHomeworkIds = traditionalHomework.map(hw => hw._id);
+      const courseGrades = await Grade.find({ 
+        homework_id: { $in: traditionalHomeworkIds } 
+      });
+      const completedTraditionalHw = courseGrades.length;
+      
+      // Calculate not started traditional homework
+      let notStartedTraditionalHw = 0;
+      traditionalHomework.forEach(hw => {
+        const gradesForThisHw = (hw.grades || []).length;
+        notStartedTraditionalHw += (totalStudents - gradesForThisHw);
+      });
+      
+      // Combine
+      const totalCompletedStatus = completedStudentHw + completedTraditionalHw;
+      const totalInProgressStatus = inProgressStudentHw;
+      const totalNotStartedStatus = notStartedStudentHw + notStartedTraditionalHw;
+      
       return {
         _id: course._id,
         course_name: course.course_name,
@@ -711,7 +800,12 @@ router.get('/courses-info', checkJwt, extractUser, requireLecturer, async (req, 
           student_count: totalStudents,
           homework_count: totalHomework,
           class_count: totalClasses,
-          exam_count: totalExams
+          exam_count: totalExams,
+          homework_status: {
+            completed: totalCompletedStatus,
+            in_progress: totalInProgressStatus,
+            not_started: totalNotStartedStatus
+          }
         },
         recent_homework: allHomework
       };

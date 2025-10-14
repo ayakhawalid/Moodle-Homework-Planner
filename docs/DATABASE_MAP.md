@@ -135,8 +135,6 @@ erDiagram
 | `year` | Number | No | Academic year (2020-2030) |
 | `students` | [ObjectId] → User | No | Array of enrolled student IDs |
 | `is_active` | Boolean | No | Course status (default: true) |
-| `partner_settings.enabled` | Boolean | No | Allow partnerships (default: true) |
-| `partner_settings.max_partners_per_student` | Number | No | Max partners (0-5, default: 1) |
 | `createdAt` | Date | Auto | Creation timestamp |
 | `updatedAt` | Date | Auto | Last update timestamp |
 
@@ -195,7 +193,6 @@ erDiagram
 | `agenda` | String | No | Class agenda |
 | `class_type` | String | No | Enum: 'lecture', 'lab', 'seminar', 'workshop', 'exam', 'other' |
 | `attendance_required` | Boolean | No | Attendance mandatory (default: true) |
-| `max_capacity` | Number | No | Maximum class capacity |
 | `is_cancelled` | Boolean | No | Cancellation status (default: false) |
 | `cancellation_reason` | String | No | Reason for cancellation |
 | `is_online` | Boolean | No | Online class flag (default: false) |
@@ -248,13 +245,10 @@ erDiagram
 | `description` | String | Yes | Homework description |
 | `due_date` | Date | Yes | Due date |
 | `assigned_date` | Date | No | Assignment date (default: now) |
-| `points_possible` | Number | No | Maximum points (min: 0, default: 100) |
-| `instructions` | String | No | Detailed instructions |
-| `submission_type` | String | No | Enum: 'file', 'text', 'both' (default: 'both') |
 | `is_active` | Boolean | No | Active status (default: true) |
 | `allow_late_submission` | Boolean | No | Allow late submissions (default: false) |
 | `allow_partners` | Boolean | No | Allow study partnerships (default: false) |
-| `max_partners` | Number | No | Max partners allowed (1-5, default: 1) |
+| `max_partners` | Number | No | Max partners allowed (fixed: 1) |
 | `createdAt` | Date | Auto | Creation timestamp |
 | `updatedAt` | Date | Auto | Last update timestamp |
 
@@ -305,24 +299,15 @@ erDiagram
 | `uploader_role` | String | Yes | Enum: 'student', 'lecturer' |
 | `claimed_deadline` | Date | Yes | Deadline claimed by student |
 | `verified_deadline` | Date | No | Verified deadline |
-| `deadline_verification_status` | String | No | Enum: 'unverified', 'verified', 'rejected', 'pending_review' |
+| `deadline_verification_status` | String | No | Enum: 'unverified', 'verified', 'rejected' |
 | `deadline_verified_by` | ObjectId → User | No | Lecturer who verified |
 | `deadline_verified_at` | Date | No | Verification timestamp |
 | `deadline_verification_notes` | String | No | Verification notes |
 | `claimed_grade` | Number | No | Grade claimed by student (0-100) |
-| `verified_grade` | Number | No | Verified grade (0-100) |
-| `grade_verification_status` | String | No | Enum: 'unverified', 'verified', 'rejected', 'pending_review' |
-| `grade_verified_by` | ObjectId → User | No | Lecturer who verified grade |
-| `grade_verified_at` | Date | No | Grade verification timestamp |
-| `grade_screenshot_path` | String | No | Path to grade screenshot |
-| `extracted_grade_data` | Object | No | OCR extracted grade data |
 | `completion_status` | String | No | Enum: 'not_started', 'in_progress', 'completed', 'graded' |
 | `completed_at` | Date | No | Completion timestamp |
-| `tags` | [String] | No | Tags for categorization |
-| `moodle_assignment_id` | String | No | Moodle assignment ID |
-| `moodle_url` | String | No | Moodle URL |
 | `allow_partners` | Boolean | No | Allow study partnerships (default: false) |
-| `max_partners` | Number | No | Max partners allowed (1-5, default: 1) |
+| `max_partners` | Number | No | Max partners allowed (fixed: 1) |
 | `createdAt` | Date | Auto | Creation timestamp |
 | `updatedAt` | Date | Auto | Last update timestamp |
 
@@ -344,7 +329,6 @@ erDiagram
 - `claimed_deadline`
 - `completion_status`
 - `deadline_verification_status`
-- `grade_verification_status`
 
 #### Static Methods
 
@@ -369,13 +353,11 @@ erDiagram
 | `exam_id` | ObjectId → Exam | No* | Reference to exam (nullable) |
 | `grade` | Number | Yes | Grade value (0-100) |
 | `points_earned` | Number | No | Points earned (min: 0) |
-| `points_possible` | Number | No | Points possible (min: 0) |
 | `letter_grade` | String | No | Letter grade: 'A+', 'A', 'A-', 'B+', etc. |
 | `graded_by` | ObjectId → User | Yes | Reference to grader (lecturer) |
 | `feedback` | String | No | Grading feedback |
 | `submission_date` | Date | No | Submission date |
 | `is_late` | Boolean | No | Late submission flag (default: false) |
-| `is_final` | Boolean | No | Final grade flag (default: true) |
 | `graded_at` | Date | No | Grading timestamp (default: now) |
 | `createdAt` | Date | Auto | Creation timestamp |
 | `updatedAt` | Date | Auto | Last update timestamp |
@@ -778,10 +760,128 @@ erDiagram
 2. **Virtual Fields**: Many collections define virtual fields for relationships (populated on demand)
 3. **Soft Deletes**: Most collections use `is_active` boolean flag instead of hard deletion
 4. **Auth0 Integration**: User collection syncs with Auth0 via `auth0_id` and `lastSynced` fields
-5. **Grade Submission**: Students submit grades directly (no file uploads required)
-6. **OCR Integration**: StudentHomework has `extracted_grade_data` for OCR-extracted grades from screenshots
+5. **Grade Submission**: Students self-report grades (lecturers only verify deadlines, not grades)
+6. **Partner Limitations**: Maximum 1 partner per student (pairs only)
 
 ---
 
-*Last Updated: October 13, 2025*
+## Removed Fields (For Database Cleanup)
+
+The following fields have been removed from the schema models and should be deleted from the actual MongoDB database:
+
+### Course Collection (`courses`)
+- ❌ `partner_settings.enabled`
+- ❌ `partner_settings.max_partners_per_student`
+
+**Reason:** Partner settings are now controlled at the homework level, not course level.
+
+---
+
+### Class Collection (`classes`)
+- ❌ `max_capacity`
+
+**Reason:** Class capacity tracking was not being utilized.
+
+---
+
+### Homework Collection (`homeworks`)
+- ❌ `points_possible`
+- ❌ `instructions`
+- ❌ `submission_type`
+
+**Reason:** These fields were defined but not actively used in the application.
+
+**Note:** `max_partners` field was updated from range (1-5) to fixed value (1).
+
+---
+
+### StudentHomework Collection (`studenthomeworks`)
+- ❌ `verified_grade`
+- ❌ `grade_verification_status`
+- ❌ `grade_verified_by`
+- ❌ `grade_verified_at`
+- ❌ `grade_screenshot_path`
+- ❌ `extracted_grade_data` (object with: extracted_grade, extracted_total, confidence, raw_text)
+- ❌ `tags` (array)
+- ❌ `moodle_assignment_id`
+- ❌ `moodle_url`
+- ❌ `priority`
+- ❌ `points_possible`
+
+**Reason:** 
+- Grade verification removed (students self-report grades, lecturers only verify deadlines)
+- OCR/screenshot functionality not implemented
+- Moodle integration not functional
+- Tags not used for filtering
+- Priority field was used in code but never defined in schema
+
+**Updated Fields:**
+- `deadline_verification_status` enum updated from `['unverified', 'verified', 'rejected', 'pending_review']` to `['unverified', 'verified', 'rejected']` (removed 'pending_review')
+- `max_partners` updated from range (1-5) to fixed value (1)
+
+**Index Removed:**
+- ❌ Index on `grade_verification_status`
+
+---
+
+### Grade Collection (`grades`)
+- ❌ `is_final`
+- ❌ `points_possible`
+
+**Reason:** These fields were not being used in the grading workflow.
+
+---
+
+### MongoDB Cleanup Commands
+
+To remove these fields from the actual database, run the following commands in MongoDB:
+
+```javascript
+// Course collection
+db.courses.updateMany({}, { $unset: { 
+  "partner_settings": "",
+}});
+
+// Class collection
+db.classes.updateMany({}, { $unset: { 
+  "max_capacity": "",
+}});
+
+// Homework collection
+db.homeworks.updateMany({}, { $unset: { 
+  "points_possible": "",
+  "instructions": "",
+  "submission_type": "",
+}});
+
+// StudentHomework collection
+db.studenthomeworks.updateMany({}, { $unset: { 
+  "verified_grade": "",
+  "grade_verification_status": "",
+  "grade_verified_by": "",
+  "grade_verified_at": "",
+  "grade_screenshot_path": "",
+  "extracted_grade_data": "",
+  "tags": "",
+  "moodle_assignment_id": "",
+  "moodle_url": "",
+  "priority": "",
+  "points_possible": "",
+}});
+
+// Grade collection
+db.grades.updateMany({}, { $unset: { 
+  "is_final": "",
+  "points_possible": "",
+}});
+
+// Drop removed indexes
+db.studenthomeworks.dropIndex("grade_verification_status_1");
+```
+
+**⚠️ Warning:** Always backup your database before running cleanup commands!
+
+---
+
+*Last Updated: October 14, 2025*
 

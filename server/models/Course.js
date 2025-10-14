@@ -51,20 +51,6 @@ const courseSchema = new mongoose.Schema({
   is_active: {
     type: Boolean,
     default: true
-  },
-  
-  // Partner settings
-  partner_settings: {
-    enabled: {
-      type: Boolean,
-      default: true
-    },
-    max_partners_per_student: {
-      type: Number,
-      default: 1,
-      min: 0,
-      max: 5
-    }
   }
 }, {
   timestamps: true,

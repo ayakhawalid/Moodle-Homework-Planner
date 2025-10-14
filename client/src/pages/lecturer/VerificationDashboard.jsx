@@ -123,9 +123,8 @@ const VerificationDashboard = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'verified': return 'success';
-      case 'pending_review': return 'warning';
       case 'rejected': return 'error';
-      case 'unverified': return 'default';
+      case 'unverified': return 'warning';
       default: return 'default';
     }
   };
@@ -133,14 +132,14 @@ const VerificationDashboard = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'verified': return <CheckCircleIcon color="success" />;
-      case 'pending_review': return <ScheduleIcon color="warning" />;
       case 'rejected': return <CancelIcon color="error" />;
+      case 'unverified': return <ScheduleIcon color="warning" />;
       default: return <ScheduleIcon color="disabled" />;
     }
   };
 
   const deadlineVerifications = verifications.filter(v => 
-    v.deadline_verification_status === 'pending_review' || v.deadline_verification_status === 'unverified'
+    v.deadline_verification_status === 'unverified'
   );
 
   if (loading) {

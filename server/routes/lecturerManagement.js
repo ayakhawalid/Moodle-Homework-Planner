@@ -52,7 +52,7 @@ router.get('/courses', checkJwt, extractUser, requireLecturer, async (req, res) 
 router.post('/homework', checkJwt, extractUser, requireLecturer, async (req, res) => {
   try {
     const auth0Id = req.userInfo.auth0_id;
-    const { course_id, title, description, due_date, points_possible, instructions } = req.body;
+    const { course_id, title, description, due_date } = req.body;
     
     // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
@@ -75,8 +75,6 @@ router.post('/homework', checkJwt, extractUser, requireLecturer, async (req, res
       description: description,
       due_date: new Date(due_date),
       assigned_date: new Date(),
-      points_possible: points_possible || 100,
-      instructions: instructions,
       is_active: true
     });
     
@@ -100,7 +98,7 @@ router.put('/homework/:id', checkJwt, extractUser, requireLecturer, async (req, 
   try {
     const auth0Id = req.userInfo.auth0_id;
     const homeworkId = req.params.id;
-    const { title, description, due_date, points_possible, instructions, is_active } = req.body;
+    const { title, description, due_date, is_active } = req.body;
     
     // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
@@ -127,8 +125,6 @@ router.put('/homework/:id', checkJwt, extractUser, requireLecturer, async (req, 
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (due_date !== undefined) updateData.due_date = new Date(due_date);
-    if (points_possible !== undefined) updateData.points_possible = points_possible;
-    if (instructions !== undefined) updateData.instructions = instructions;
     if (is_active !== undefined) updateData.is_active = is_active;
     
     const updatedHomework = await Homework.findByIdAndUpdate(

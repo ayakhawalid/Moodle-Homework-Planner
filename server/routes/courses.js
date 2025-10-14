@@ -178,8 +178,7 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
       credits,
       semester,
       year,
-      students,
-      partner_settings
+      students
     } = req.body;
     
     // Find lecturer user
@@ -209,7 +208,6 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
     if (semester !== undefined) updateData.semester = semester;
     if (year !== undefined) updateData.year = year;
     if (students !== undefined) updateData.students = students;
-    if (partner_settings !== undefined) updateData.partner_settings = partner_settings;
     
     const updatedCourse = await Course.findByIdAndUpdate(
       courseId,
@@ -225,58 +223,6 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
     res.status(500).json({ error: 'Failed to update course' });
   }
 });
-
-// PUT /api/courses/:id/partner-settings - Update partner settings (Lecturer/Admin only)
-router.put('/:id/partner-settings', checkJwt, extractUser, requireLecturer, async (req, res) => {
-  try {
-    const courseId = req.params.id;
-    const { enabled, max_partners_per_student } = req.body;
-    
-    // Find lecturer user
-    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
-    if (!lecturer) {
-      return res.status(404).json({ error: 'Lecturer not found' });
-    }
-    
-    // Find course and verify ownership
-    const course = await Course.findById(courseId);
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found' });
-    }
-    
-    // Check if lecturer owns this course (unless admin)
-    if (req.userInfo.roles[0] !== 'admin' && !course.lecturer_id.equals(lecturer._id)) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    // Update partner settings
-    const partnerSettings = {
-      enabled: enabled !== undefined ? enabled : course.partner_settings?.enabled !== false,
-      max_partners_per_student: max_partners_per_student !== undefined ? max_partners_per_student : (course.partner_settings?.max_partners_per_student || 1)
-    };
-    
-    const updatedCourse = await Course.findByIdAndUpdate(
-      courseId,
-      { partner_settings: partnerSettings },
-      { new: true, runValidators: true }
-    )
-    .populate('lecturer_id', 'name email full_name');
-    
-    res.json({
-      message: 'Partner settings updated successfully',
-      course: {
-        _id: updatedCourse._id,
-        course_name: updatedCourse.course_name,
-        course_code: updatedCourse.course_code,
-        partner_settings: updatedCourse.partner_settings
-      }
-    });
-  } catch (error) {
-    console.error('Error updating partner settings:', error);
-    res.status(500).json({ error: 'Failed to update partner settings' });
-  }
-});
-
 
 // POST /api/courses/:id/students - Add student to course (Students can enroll themselves, Lecturers/Admins can add any student)
 router.post('/:id/students', checkJwt, extractUser, async (req, res) => {

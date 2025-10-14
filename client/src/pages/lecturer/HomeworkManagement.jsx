@@ -451,7 +451,14 @@ const HomeworkManagement = () => {
           <Grid container spacing={4} rowSpacing={6}>
             {filteredHomework.length === 0 ? (
               <Grid item xs={12}>
-                <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
+                <div className="dashboard-card" style={{ 
+                  padding: '40px', 
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
                   <AssignmentIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
                   <Typography variant="h6" color="textSecondary">
                     No homework assignments yet
@@ -502,7 +509,7 @@ const HomeworkManagement = () => {
                         {/* Partner Settings */}
                         {hw.allow_partners && (
                           <Chip
-                            label={`Max ${hw.max_partners} partner${hw.max_partners > 1 ? 's' : ''}`}
+                            label="Allows Partners"
                             sx={{
                               backgroundColor: 'rgba(149, 225, 211, 0.3)',
                               color: '#333',
@@ -772,24 +779,6 @@ const HomeworkManagement = () => {
                     label="Allow Study Partners"
                   />
                 </Grid>
-
-                {/* Max Partners */}
-                {newHomework.allow_partners && (
-                  <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Maximum Partners</InputLabel>
-                      <Select
-                        value={newHomework.max_partners}
-                        onChange={(e) => setNewHomework({ ...newHomework, max_partners: e.target.value })}
-                        label="Maximum Partners"
-                      >
-                        {[1, 2, 3, 4, 5].map(num => (
-                          <MenuItem key={num} value={num}>{num} Partner{num > 1 ? 's' : ''}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
               </Grid>
             </Box>
           </DialogContent>
@@ -907,24 +896,6 @@ const HomeworkManagement = () => {
                     label="Allow Study Partners"
                   />
                 </Grid>
-
-                {/* Max Partners */}
-                {newHomework.allow_partners && (
-                  <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>Maximum Partners</InputLabel>
-                      <Select
-                        value={newHomework.max_partners}
-                        onChange={(e) => setNewHomework({ ...newHomework, max_partners: e.target.value })}
-                        label="Maximum Partners"
-                      >
-                        {[1, 2, 3, 4, 5].map(num => (
-                          <MenuItem key={num} value={num}>{num} Partner{num > 1 ? 's' : ''}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                )}
               </Grid>
             </Box>
           </DialogContent>

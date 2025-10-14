@@ -107,7 +107,7 @@ router.post('/create-sample', checkJwt, extractUser, async (req, res) => {
       claimed_deadline: sampleDeadline,
       priority: 'medium',
       tags: ['sample', 'test'],
-      deadline_verification_status: 'pending_review',
+      deadline_verification_status: 'unverified',
       grade_verification_status: 'unverified',
       completion_status: 'not_started'
     });
