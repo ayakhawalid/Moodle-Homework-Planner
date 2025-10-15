@@ -21,17 +21,19 @@ const gradeSchema = new mongoose.Schema({
   
   grade: {
     type: Number,
-    required: true,
     min: 0,
     max: 100
   },
   
+  // Completion status for this student's homework
+  completion_status: {
+    type: String,
+    enum: ['not_started', 'in_progress', 'completed', 'graded'],
+    default: 'not_started'
+  },
+  
   // Additional useful fields
   points_earned: {
-    type: Number,
-    min: 0
-  },
-  points_possible: {
     type: Number,
     min: 0
   },
@@ -88,6 +90,8 @@ gradeSchema.pre('save', function(next) {
     next(new Error('Either homework_id or exam_id must be provided'));
   } else if (this.homework_id && this.exam_id) {
     next(new Error('Cannot have both homework_id and exam_id'));
+  } else if (this.completion_status === 'graded' && (this.grade === null || this.grade === undefined)) {
+    next(new Error('Grade is required when completion_status is graded'));
   } else {
     next();
   }

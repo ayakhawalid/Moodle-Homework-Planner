@@ -32,6 +32,11 @@ const homeworkSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  completion_status: {
+    type: String,
+    enum: ['not_started', 'in_progress', 'completed', 'graded'],
+    default: 'not_started'
+  },
   allow_late_submission: {
     type: Boolean,
     default: false

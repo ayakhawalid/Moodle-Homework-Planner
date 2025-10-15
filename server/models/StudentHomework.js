@@ -54,19 +54,6 @@ const studentHomeworkSchema = new mongoose.Schema({
     trim: true
   },
   
-  // Grade info
-  claimed_grade: {
-    type: Number,
-    min: 0,
-    max: 100
-  },
-  
-  // Status
-  completion_status: {
-    type: String,
-    enum: ['not_started', 'in_progress', 'completed', 'graded'],
-    default: 'not_started'
-  },
   completed_at: {
     type: Date
   },
@@ -121,10 +108,7 @@ studentHomeworkSchema.statics.findByCourse = function(courseId) {
 // Static method to find pending verifications
 studentHomeworkSchema.statics.findPendingVerifications = function() {
   return this.find({
-    $or: [
-      { deadline_verification_status: 'unverified' },
-      { grade_verification_status: 'unverified' }
-    ]
+    deadline_verification_status: 'unverified'
   }).populate('uploaded_by', 'name email').populate('course_id', 'course_name course_code');
 };
 

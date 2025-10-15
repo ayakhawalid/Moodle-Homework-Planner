@@ -162,6 +162,25 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
     
     await homework.save();
     await homework.populate('course_id', 'course_name course_code');
+
+    // Create Grade entries for all enrolled students
+    const enrolledStudents = await User.find({
+      enrolled_courses: course_id,
+      role: 'student'
+    }).select('_id');
+
+    // Create Grade entries for all students with 'not_started' status
+    const gradeEntries = enrolledStudents.map(student => ({
+      student_id: student._id,
+      homework_id: homework._id,
+      homework_type: 'traditional',
+      completion_status: 'not_started',
+      graded_by: lecturer._id, // The homework creator (lecturer)
+      graded_at: new Date()
+    }));
+
+    await Grade.insertMany(gradeEntries);
+    console.log(`Created Grade entries for ${enrolledStudents.length} students for traditional homework ${homework._id}`);
     
     res.status(201).json(homework);
   } catch (error) {

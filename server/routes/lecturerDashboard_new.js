@@ -232,14 +232,6 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
     // Combine both types
     const allHomeworkStatus = [...traditionalHomeworkStatus, ...studentHomeworkStatus];
     
-    // Calculate overall statistics
-    const totalHomework = allHomeworkStatus.length;
-    const totalGraded = allHomeworkStatus.reduce((sum, hw) => sum + (hw.graded || 0), 0);
-    const totalNotGraded = allHomeworkStatus.reduce((sum, hw) => sum + (hw.completed || 0), 0);
-    
-    // Calculate average grade (mock calculation for now)
-    const averageGrade = totalGraded > 0 ? Math.floor(Math.random() * 20) + 80 : null;
-    
     res.json({
       course: {
         _id: course._id,
@@ -247,13 +239,7 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
         course_code: course.course_code,
         student_count: course.students.length
       },
-      homework_status: allHomeworkStatus,
-      overall_stats: {
-        total_homework: totalHomework,
-        total_graded: totalGraded,
-        total_not_graded: totalNotGraded,
-        average_grade: averageGrade
-      }
+      homework_status: allHomeworkStatus
     });
   } catch (error) {
     console.error('Error fetching homework status:', error);
@@ -634,7 +620,7 @@ router.get('/student-course-workload/:courseId', checkJwt, extractUser, requireL
     const allCourses = await Course.find({ 
       is_active: true,
       students: { $in: studentIds }
-    }).select('_id course_name course_code students');
+    }).select('_id course_name course_code');
     
     // Calculate workload for each course
     const studentWorkload = await Promise.all(allCourses.map(async otherCourse => {
@@ -702,160 +688,6 @@ router.get('/student-course-workload/:courseId', checkJwt, extractUser, requireL
   } catch (error) {
     console.error('Error fetching student course workload:', error);
     res.status(500).json({ error: 'Failed to fetch student course workload' });
-  }
-});
-
-// GET /api/lecturer-dashboard/workload-stats - Get workload statistics for lecturer
-router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req, res) => {
-  try {
-    const auth0Id = req.userInfo.auth0_id;
-    const user = await User.findOne({ auth0_id: auth0Id });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found in database' });
-    }
-
-    // Get all courses taught by this lecturer
-    const courses = await Course.find({ lecturer_id: user._id });
-    const courseIds = courses.map(course => course._id);
-
-    // Get total students across all courses
-    const totalStudents = await User.countDocuments({
-      enrolled_courses: { $in: courseIds },
-      role: 'student'
-    });
-
-    // Get total homework (both traditional and student-created)
-    const traditionalHomeworkCount = await Homework.countDocuments({
-      course_id: { $in: courseIds },
-      is_active: true
-    });
-
-    const studentHomeworkCount = await StudentHomework.countDocuments({
-      course_id: { $in: courseIds }
-    });
-
-    const totalHomework = traditionalHomeworkCount + studentHomeworkCount;
-
-    // Get course statistics
-    const courseStatistics = await Promise.all(courses.map(async (course) => {
-      const courseStudentCount = await User.countDocuments({
-        enrolled_courses: course._id,
-        role: 'student'
-      });
-
-      const courseTraditionalHomework = await Homework.countDocuments({
-        course_id: course._id,
-        is_active: true
-      });
-
-      const courseStudentHomework = await StudentHomework.countDocuments({
-        course_id: course._id
-      });
-
-      return {
-        course_id: course._id,
-        course_name: course.course_name,
-        course_code: course.course_code,
-        student_count: courseStudentCount,
-        homework_count: courseTraditionalHomework + courseStudentHomework
-      };
-    }));
-
-    // Generate weekly workload data (mock data for now)
-    const weeklyWorkload = [
-      { 
-        day: 'Monday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '1', title: 'Math Assignment 1', course: 'Mathematics' },
-          { _id: '2', title: 'Science Project', course: 'Physics' }
-        ]
-      },
-      { 
-        day: 'Tuesday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '3', title: 'History Essay', course: 'History' }
-        ]
-      },
-      { 
-        day: 'Wednesday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: []
-      },
-      { 
-        day: 'Thursday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '4', title: 'Literature Review', course: 'English' },
-          { _id: '5', title: 'Lab Report', course: 'Chemistry' }
-        ]
-      },
-      { 
-        day: 'Friday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '6', title: 'Programming Exercise', course: 'Computer Science' }
-        ]
-      },
-      { 
-        day: 'Saturday', 
-        homework_count: Math.floor(Math.random() * 3),
-        homework: []
-      },
-      { 
-        day: 'Sunday', 
-        homework_count: Math.floor(Math.random() * 3),
-        homework: []
-      }
-    ];
-
-    res.json({
-      overview: {
-        total_courses: courses.length,
-        total_students: totalStudents,
-        total_homework: totalHomework
-      },
-      course_statistics: courseStatistics,
-      weekly_workload: weeklyWorkload
-    });
-  } catch (error) {
-    console.error('Error fetching workload stats:', error);
-    res.status(500).json({ error: 'Failed to fetch workload statistics' });
-  }
-});
-
-// GET /api/lecturer-dashboard/courses-info - Get courses information for lecturer
-router.get('/courses-info', checkJwt, extractUser, requireLecturer, async (req, res) => {
-  try {
-    const auth0Id = req.userInfo.auth0_id;
-    const user = await User.findOne({ auth0_id: auth0Id });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found in database' });
-    }
-
-    // Get all courses taught by this lecturer
-    const courses = await Course.find({ lecturer_id: user._id })
-      .select('_id course_name course_code students')
-      .populate('students', 'name email');
-
-    // Format the response
-    const coursesInfo = courses.map(course => ({
-      _id: course._id,
-      course_name: course.course_name,
-      course_code: course.course_code,
-      student_count: course.students.length,
-      students: course.students.map(student => ({
-        _id: student._id,
-        name: student.name,
-        email: student.email
-      }))
-    }));
-
-    res.json(coursesInfo);
-  } catch (error) {
-    console.error('Error fetching courses info:', error);
-    res.status(500).json({ error: 'Failed to fetch courses information' });
   }
 });
 
