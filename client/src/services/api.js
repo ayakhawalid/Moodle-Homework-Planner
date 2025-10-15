@@ -197,6 +197,10 @@ export const apiService = {
     getWorkloadStats: () => api.get('/lecturer-dashboard/workload-stats'),
     getCoursesInfo: () => api.get('/lecturer-dashboard/courses-info'),
     getStudentCourseWorkload: (courseId) => api.get(`/lecturer-dashboard/student-course-workload/${courseId}`),
+        getHomeworkStatus: (courseId) => api.get(`/lecturer-dashboard/homework-status/${courseId}`),
+        getHomeworkStatusAny: (courseId) => api.get(`/lecturer-dashboard/homework-status-any/${courseId}`),
+        getAllHomeworkStatus: () => api.get('/lecturer-dashboard/all-homework-status'),
+        getAllHomework: () => api.get('/lecturer-dashboard/all-homework'),
     getHomeworkChecker: (status = 'pending', courseId = null) => {
       const params = new URLSearchParams();
       if (status) params.append('status', status);

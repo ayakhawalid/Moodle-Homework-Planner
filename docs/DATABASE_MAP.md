@@ -303,8 +303,6 @@ erDiagram
 | `deadline_verified_by` | ObjectId → User | No | Lecturer who verified |
 | `deadline_verified_at` | Date | No | Verification timestamp |
 | `deadline_verification_notes` | String | No | Verification notes |
-| `claimed_grade` | Number | No | Grade claimed by student (0-100) |
-| `completion_status` | String | No | Enum: 'not_started', 'in_progress', 'completed', 'graded' |
 | `completed_at` | Date | No | Completion timestamp |
 | `allow_partners` | Boolean | No | Allow study partnerships (default: false) |
 | `max_partners` | Number | No | Max partners allowed (fixed: 1) |
@@ -327,7 +325,6 @@ erDiagram
 - `course_id`
 - `uploaded_by`
 - `claimed_deadline`
-- `completion_status`
 - `deadline_verification_status`
 
 #### Static Methods
@@ -341,7 +338,7 @@ erDiagram
 
 **Collection:** `grades`
 
-**Purpose:** Stores student grades for homework and exams.
+**Purpose:** Stores individual student progress and grades for homework and exams. Each student gets a Grade entry for every homework/exam they're enrolled in.
 
 #### Schema Fields
 
@@ -349,14 +346,17 @@ erDiagram
 |-------|------|----------|-------------|
 | `_id` | ObjectId | Yes | MongoDB auto-generated ID |
 | `student_id` | ObjectId → User | Yes | Reference to student |
-| `homework_id` | ObjectId → Homework | No* | Reference to homework (nullable) |
+| `homework_id` | ObjectId → Homework/StudentHomework | No* | Reference to homework (nullable) |
 | `exam_id` | ObjectId → Exam | No* | Reference to exam (nullable) |
-| `grade` | Number | Yes | Grade value (0-100) |
+| `homework_type` | String | No | Type: 'traditional' or 'student' |
+| `completion_status` | String | No | Status: 'not_started', 'in_progress', 'completed', 'graded' (default: 'not_started') |
+| `grade` | Number | No | Grade value (0-100) - only set when completion_status is 'graded' |
 | `points_earned` | Number | No | Points earned (min: 0) |
 | `letter_grade` | String | No | Letter grade: 'A+', 'A', 'A-', 'B+', etc. |
-| `graded_by` | ObjectId → User | Yes | Reference to grader (lecturer) |
+| `graded_by` | ObjectId → User | Yes | Reference to grader (student or lecturer) |
 | `feedback` | String | No | Grading feedback |
 | `submission_date` | Date | No | Submission date |
+| `completed_at` | Date | No | Completion timestamp |
 | `is_late` | Boolean | No | Late submission flag (default: false) |
 | `graded_at` | Date | No | Grading timestamp (default: now) |
 | `createdAt` | Date | Auto | Creation timestamp |
@@ -367,23 +367,28 @@ erDiagram
 #### Relationships
 
 - **Many-to-One with User** (student): Grade belongs to one student
-- **Many-to-One with Homework**: Grade may belong to one homework
+- **Many-to-One with Homework/StudentHomework**: Grade may belong to one homework (traditional or student-created)
 - **Many-to-One with Exam**: Grade may belong to one exam
-- **Many-to-One with User** (grader): Grade assigned by one lecturer
+- **Many-to-One with User** (grader): Grade assigned by one user (student or lecturer)
 
 #### Validation Rules
 
 - Pre-save validation ensures either `homework_id` or `exam_id` is present, but not both
+- If `completion_status` is 'graded', then `grade` field is required
+- `homework_type` must be 'traditional' or 'student' when `homework_id` is present
 
 #### Indexes
 
 - `student_id`
 - `homework_id`
 - `exam_id`
+- `homework_type`
+- `completion_status`
 - `graded_by`
 - `graded_at` (descending)
 - Compound: `(student_id, homework_id)`
 - Compound: `(student_id, exam_id)`
+- Compound: `(student_id, homework_id, homework_type)`
 
 #### Instance Methods
 
@@ -393,9 +398,11 @@ erDiagram
 #### Static Methods
 
 - `findByStudent(studentId)`: Find all grades for a student
-- `findByHomework(homeworkId)`: Find all grades for homework
+- `findByHomework(homeworkId, homeworkType)`: Find all grades for homework (traditional or student)
 - `findByExam(examId)`: Find all grades for exam
-- `getHomeworkAverage(homeworkId)`: Calculate average grade for homework
+- `getHomeworkAverage(homeworkId, homeworkType)`: Calculate average grade for homework
+- `findByStatus(completionStatus)`: Find grades by completion status
+- `findByStudentAndHomework(studentId, homeworkId, homeworkType)`: Find specific student's grade for homework
 
 ---
 
@@ -807,6 +814,8 @@ The following fields have been removed from the schema models and should be dele
 - ❌ `moodle_url`
 - ❌ `priority`
 - ❌ `points_possible`
+- ❌ `claimed_grade`
+- ❌ `completion_status`
 
 **Reason:** 
 - Grade verification removed (students self-report grades, lecturers only verify deadlines)
@@ -814,6 +823,7 @@ The following fields have been removed from the schema models and should be dele
 - Moodle integration not functional
 - Tags not used for filtering
 - Priority field was used in code but never defined in schema
+- **NEW:** `claimed_grade` and `completion_status` moved to Grade table for proper many-to-many relationship
 
 **Updated Fields:**
 - `deadline_verification_status` enum updated from `['unverified', 'verified', 'rejected', 'pending_review']` to `['unverified', 'verified', 'rejected']` (removed 'pending_review')
@@ -867,6 +877,8 @@ db.studenthomeworks.updateMany({}, { $unset: {
   "moodle_url": "",
   "priority": "",
   "points_possible": "",
+  "claimed_grade": "",
+  "completion_status": "",
 }});
 
 // Grade collection
@@ -883,5 +895,21 @@ db.studenthomeworks.dropIndex("grade_verification_status_1");
 
 ---
 
-*Last Updated: October 14, 2025*
+*Last Updated: December 19, 2024*
+
+## Recent Major Changes (December 2024)
+
+### Grade Table Restructure
+- **NEW APPROACH**: Grade table now stores individual student progress for ALL homework (both traditional and student-created)
+- **Many-to-Many Relationship**: Each student gets a Grade entry for every homework they're enrolled in
+- **Completion Status Tracking**: Individual student progress tracked in Grade table with `completion_status` field
+- **Partnership Grading**: When one student grades themselves, their partner's Grade entry is automatically updated
+- **Removed Fields**: `claimed_grade` and `completion_status` removed from StudentHomework table
+- **Added Fields**: `homework_type`, `completion_status`, `completed_at` added to Grade table
+
+### Benefits
+- Proper many-to-many relationship between students and homework
+- Individual student progress tracking
+- Simplified partnership grading logic
+- Consistent data structure for both traditional and student-created homework
 

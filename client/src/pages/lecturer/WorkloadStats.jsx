@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { apiService } from '../../services/api';
-import { Box, Typography, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { 
+  Box, 
+  Typography, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel, 
+  Grid, 
+  Paper, 
+  Chip,
+  CircularProgress
+} from '@mui/material';
 import {
   BarChart as BarChartIcon,
   Assignment as AssignmentIcon,
@@ -15,6 +26,7 @@ function WorkloadStats() {
   const [error, setError] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [courseDetails, setCourseDetails] = useState(null);
+  const [homeworkStatusData, setHomeworkStatusData] = useState(null);
 
   useEffect(() => {
     const fetchWorkloadStats = async () => {
@@ -38,6 +50,7 @@ function WorkloadStats() {
     const fetchCourseDetails = async () => {
       if (selectedCourse === 'all') {
         setCourseDetails(null);
+        setHomeworkStatusData(null);
         return;
       }
 
@@ -52,6 +65,26 @@ function WorkloadStats() {
 
     if (selectedCourse !== 'all') {
       fetchCourseDetails();
+    }
+  }, [selectedCourse]);
+
+  useEffect(() => {
+    const fetchHomeworkStatus = async () => {
+      if (selectedCourse === 'all' || !selectedCourse) {
+        setHomeworkStatusData(null);
+        return;
+      }
+
+      try {
+        const response = await apiService.lecturerDashboard.getHomeworkStatus(selectedCourse);
+        setHomeworkStatusData(response.data);
+      } catch (err) {
+        console.error('Error fetching homework status:', err);
+      }
+    };
+
+    if (selectedCourse !== 'all') {
+      fetchHomeworkStatus();
     }
   }, [selectedCourse]);
 
@@ -195,58 +228,222 @@ function WorkloadStats() {
                   </div>
 
                   <div style={{ marginTop: '20px' }}>
-                    <h4 style={{ marginBottom: '15px' }}>Homework Details</h4>
-                    {courseDetails.recent_homework && courseDetails.recent_homework.length > 0 ? (
-                      <div style={{ display: 'grid', gap: '15px' }}>
-                        {courseDetails.recent_homework.map((hw) => {
-                          const totalStudents = courseDetails.statistics?.student_count || 0;
-                          const gradedCount = hw.graded_count || 0;
-                          const notGradedCount = totalStudents - gradedCount;
-                          
-                          return (
-                            <div 
+                    <h4 style={{ marginBottom: '15px' }}>Homework Status Breakdown</h4>
+                    {homeworkStatusData && homeworkStatusData.homework_status.length > 0 ? (
+                      <div>
+                        {/* Overall Statistics */}
+                        <div style={{ 
+                          marginBottom: '20px', 
+                          padding: '15px', 
+                          background: '#f8f9fa', 
+                          borderRadius: '8px' 
+                        }}>
+                          <h5 style={{ marginBottom: '10px', color: '#2c3e50' }}>Overall Statistics</h5>
+                          <Grid container spacing={2}>
+                            <Grid item xs={6} sm={3}>
+                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(149, 225, 211, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="h5" sx={{ color: '#95E1D3', fontWeight: 'bold' }}>
+                                  {homeworkStatusData.overall_stats.total_homework}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Total Homework
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(214, 247, 173, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="h5" sx={{ color: '#D6F7AD', fontWeight: 'bold' }}>
+                                  {homeworkStatusData.overall_stats.total_graded}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Graded Submissions
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(252, 227, 138, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="h5" sx={{ color: '#FCE38A', fontWeight: 'bold' }}>
+                                  {homeworkStatusData.overall_stats.total_not_graded}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Pending Grading
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6} sm={3}>
+                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(243, 129, 129, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="h5" sx={{ color: '#F38181', fontWeight: 'bold' }}>
+                                  {homeworkStatusData.overall_stats.average_grade ? `${homeworkStatusData.overall_stats.average_grade}%` : 'N/A'}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Average Grade
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </div>
+
+                        {/* Individual Homework Status */}
+                        <div style={{ display: 'grid', gap: '15px' }}>
+                          {homeworkStatusData.homework_status.map((hw) => (
+                            <Paper 
                               key={hw._id} 
-                              style={{ 
-                                padding: '15px', 
-                                background: 'white', 
-                                border: '1px solid #e0e0e0',
+                              sx={{ 
+                                p: 2, 
+                                borderLeft: `4px solid ${hw.type === 'traditional' ? '#2196f3' : '#ff9800'}`,
                                 borderRadius: '8px' 
                               }}
                             >
-                              <h5 style={{ marginBottom: '10px', color: '#2c3e50' }}>{hw.title}</h5>
-                              <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-                                gap: '10px',
-                                marginTop: '10px'
-                              }}>
-                                <div style={{ padding: '10px', background: '#e8f5e9', borderRadius: '6px' }}>
-                                  <div style={{ fontSize: '0.85em', color: '#666' }}>Students Graded</div>
-                                  <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#4caf50' }}>
-                                    {gradedCount}
-                                  </div>
-                                </div>
-                                <div style={{ padding: '10px', background: '#fff3e0', borderRadius: '6px' }}>
-                                  <div style={{ fontSize: '0.85em', color: '#666' }}>Not Graded</div>
-                                  <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#ff9800' }}>
-                                    {notGradedCount}
-                                  </div>
-                                </div>
-                                <div style={{ padding: '10px', background: '#e3f2fd', borderRadius: '6px' }}>
-                                  <div style={{ fontSize: '0.85em', color: '#666' }}>Average Grade</div>
-                                  <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#2196f3' }}>
-                                    {hw.average_grade ? `${hw.average_grade}%` : 'N/A'}
-                                  </div>
-                                </div>
-                              </div>
-                              <div style={{ marginTop: '10px', fontSize: '0.9em', color: '#666' }}>
-                                <strong>Due Date:</strong> {new Date(hw.due_date).toLocaleDateString()}
-                              </div>
-                            </div>
-                          );
-                        })}
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                                <Box>
+                                  <Typography variant="h6" fontWeight="bold">
+                                    {hw.title}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" display="block">
+                                    Due: {new Date(hw.due_date).toLocaleDateString()}
+                                  </Typography>
+                                  <Chip 
+                                    label={hw.type === 'traditional' ? 'Traditional' : 'Student Created'} 
+                                    size="small" 
+                                    color={hw.type === 'traditional' ? 'primary' : 'warning'}
+                                    variant="outlined"
+                                    sx={{ mt: 0.5 }}
+                                  />
+                                </Box>
+                              </Box>
+                              
+                              {/* Elegant 4-Bar Chart */}
+                              <Box sx={{ mb: 2, height: 80, display: 'flex', alignItems: 'end', gap: 2, px: 2 }}>
+                                {(() => {
+                                  const maxValue = Math.max(
+                                    hw.status_counts.graded,
+                                    hw.status_counts.completed,
+                                    hw.status_counts.in_progress,
+                                    hw.status_counts.not_started,
+                                    1 // Prevent division by zero
+                                  );
+                                  
+                                  const statusData = [
+                                    { label: 'Graded', value: hw.status_counts.graded, color: '#95E1D3' },
+                                    { label: 'Completed', value: hw.status_counts.completed, color: '#D6F7AD' },
+                                    { label: 'In Progress', value: hw.status_counts.in_progress, color: '#FCE38A' },
+                                    { label: 'Not Started', value: hw.status_counts.not_started, color: '#F38181' }
+                                  ];
+                                  
+                                  return statusData.map((status, index) => (
+                                    <Box key={index} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '60px' }}>
+                                      <Box
+                                        sx={{
+                                          width: '24px',
+                                          height: `${(status.value / maxValue) * 50}px`,
+                                          background: `linear-gradient(135deg, ${status.color} 0%, ${status.color}CC 100%)`,
+                                          borderRadius: '12px 12px 4px 4px',
+                                          minHeight: status.value > 0 ? '6px' : '0px',
+                                          transition: 'all 0.3s ease',
+                                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                                          '&:hover': {
+                                            transform: 'scale(1.05)',
+                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                                          }
+                                        }}
+                                      />
+                                      <Typography variant="caption" sx={{ mt: 1, fontSize: '11px', textAlign: 'center', fontWeight: 600, color: '#666' }}>
+                                        {status.value}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ fontSize: '9px', textAlign: 'center', color: '#999', lineHeight: 1 }}>
+                                        {status.label}
+                                      </Typography>
+                                    </Box>
+                                  ));
+                                })()}
+                              </Box>
+
+                              <Grid container spacing={2}>
+                                <Grid item xs={6} sm={3}>
+                                  <Box sx={{ p: 1, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                    <Typography variant="h6" sx={{ color: '#95E1D3', fontWeight: 'bold' }}>
+                                      {hw.status_counts.graded}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Graded
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                                <Grid item xs={6} sm={3}>
+                                  <Box sx={{ p: 1, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                    <Typography variant="h6" sx={{ color: '#D6F7AD', fontWeight: 'bold' }}>
+                                      {hw.status_counts.completed}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Completed
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                                <Grid item xs={6} sm={3}>
+                                  <Box sx={{ p: 1, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                    <Typography variant="h6" sx={{ color: '#FCE38A', fontWeight: 'bold' }}>
+                                      {hw.status_counts.in_progress}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      In Progress
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                                <Grid item xs={6} sm={3}>
+                                  <Box sx={{ p: 1, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                    <Typography variant="h6" sx={{ color: '#F38181', fontWeight: 'bold' }}>
+                                      {hw.status_counts.not_started}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Not Started
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              </Grid>
+                              
+                              {/* Average Grade and Completion Rate */}
+                              <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={6}>
+                                  <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center' }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Average Grade
+                                    </Typography>
+                                    <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
+                                      {hw.average_grade ? `${hw.average_grade}%` : 'N/A'}
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center' }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Completion Rate
+                                    </Typography>
+                                    <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
+                                      {hw.total_students > 0 ? Math.round(((hw.status_counts.graded + hw.status_counts.completed) / hw.total_students) * 100) : 0}%
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              </Grid>
+
+                              {/* Progress Bar */}
+                              <Box sx={{ mt: 2 }}>
+                                <Box sx={{ width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.3)', borderRadius: 1, height: 8 }}>
+                                  <Box 
+                                    sx={{ 
+                                      width: `${hw.total_students > 0 ? ((hw.status_counts.graded + hw.status_counts.completed) / hw.total_students) * 100 : 0}%`, 
+                                      backgroundColor: '#95E1D3', 
+                                      height: '100%', 
+                                      borderRadius: 1,
+                                      transition: 'width 0.3s ease'
+                                    }} 
+                                  />
+                                </Box>
+                              </Box>
+                            </Paper>
+                          ))}
+                        </div>
                       </div>
-                    ) : (
+                    ) : homeworkStatusData ? (
                       <div style={{ 
                         padding: '30px', 
                         background: '#f8f9fa', 
@@ -256,6 +453,10 @@ function WorkloadStats() {
                       }}>
                         No homework assignments found for this course
                       </div>
+                    ) : (
+                      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+                        <CircularProgress />
+                      </Box>
                     )}
                   </div>
                 </div>

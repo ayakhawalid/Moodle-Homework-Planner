@@ -144,7 +144,22 @@ function HomeworkPlanner() {
                       
                       return (
                         <div key={hw._id} style={{marginBottom: '10px', padding: '10px', background: bgColor, borderRadius: '8px'}}>
-                          <strong>{hw.title}</strong><br />
+                          <strong>{hw.title}</strong>
+                          {hw.deadline_verification_status === 'unverified' && (
+                            <span style={{
+                              marginLeft: '8px',
+                              padding: '2px 6px',
+                              backgroundColor: 'rgba(255, 193, 7, 0.3)',
+                              color: '#333',
+                              border: '1px solid #FFC107',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}>
+                              DEADLINE NOT VERIFIED
+                            </span>
+                          )}
+                          <br />
                           <small style={{color: textColor}}>
                             Due: {dueDate.toLocaleDateString()} - {hw.course.name}
                           </small>

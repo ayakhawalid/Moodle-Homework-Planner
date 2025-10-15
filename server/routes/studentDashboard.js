@@ -51,11 +51,10 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
         { uploaded_by: studentId },
         // Lecturer-created homework
         { uploader_role: 'lecturer' },
-        // Other students' homework that has been verified
+        // Other students' homework (both verified and unverified)
         { 
           uploader_role: 'student',
-          uploaded_by: { $ne: studentId },
-          deadline_verification_status: { $in: ['verified'] }
+          uploaded_by: { $ne: studentId }
         }
       ]
     })
@@ -331,7 +330,7 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
           _id: grade._id,
           grade: grade.grade,
           type: grade.homework_id ? 'homework' : 'exam',
-          title: grade.homework_id ? grade.homework_id.title : grade.exam_id.exam_title,
+          title: grade.homework_id ? grade.homework_id.title : (grade.exam_id ? grade.exam_id.exam_title : 'Unknown'),
           date: grade.graded_at
         })),
         recent_study_sessions: studyProgress.slice(0, 3).map(progress => ({
@@ -399,11 +398,10 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
         { uploaded_by: studentId },
         // Lecturer-created homework
         { uploader_role: 'lecturer' },
-        // Other students' homework that has been verified
+        // Other students' homework (both verified and unverified)
         { 
           uploader_role: 'student',
-          uploaded_by: { $ne: studentId },
-          deadline_verification_status: { $in: ['verified'] }
+          uploaded_by: { $ne: studentId }
         }
       ]
     };

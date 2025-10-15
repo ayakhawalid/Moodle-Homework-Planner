@@ -448,6 +448,32 @@ const HomeworkManagement = () => {
                     size="small"
                   />
                 )}
+                {hw.deadline_verification_status === 'unverified' && (
+                  <Chip
+                    label="DEADLINE NOT VERIFIED"
+                    sx={{
+                      backgroundColor: 'rgba(255, 193, 7, 0.3)',
+                      color: '#333',
+                      border: '1px solid #FFC107',
+                      fontWeight: 600,
+                      fontSize: '0.75rem'
+                    }}
+                    size="small"
+                  />
+                )}
+                {hw.partner_info?.has_partner && hw.partner_info?.partnership_status === 'accepted' && (
+                  <Chip
+                    label={`PARTNER: ${hw.partner_info.partner_name}`}
+                    sx={{
+                      backgroundColor: 'rgba(149, 225, 211, 0.3)',
+                      color: '#333',
+                      border: '1px solid #95E1D3',
+                      fontWeight: 600,
+                      fontSize: '0.75rem'
+                    }}
+                    size="small"
+                  />
+                )}
               </Box>
 
               {/* Right Section: Action Buttons */}
