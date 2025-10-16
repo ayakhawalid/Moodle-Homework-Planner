@@ -307,6 +307,17 @@ const CourseWorkloadOverview = () => {
         completion_status: hw.completion_status 
       })));
 
+      // Helper to consistently extract course ID from homework item (handles populated objects)
+      const extractHomeworkCourseId = (hw) => {
+        if (!hw) return null;
+        // Prefer nested _id when course_id is populated
+        if (hw.course_id && typeof hw.course_id === 'object') {
+          return hw.course_id._id || null;
+        }
+        // Fallbacks
+        return hw.course_id || (hw.course && hw.course._id) || null;
+      };
+
       // Group homework by course
       const courseWorkloads = courses.map(course => {
         console.log(`\n--- Processing Course: ${course.course_name} (${course._id}) ---`);
@@ -315,24 +326,17 @@ const CourseWorkloadOverview = () => {
           title: hw.title,
           course_id: hw.course_id,
           course: hw.course,
-          course_match: (hw.course_id || (hw.course && hw.course._id)) === course._id
+          extracted_course_id: extractHomeworkCourseId(hw),
+          course_match: (() => {
+            const hwCourseId = extractHomeworkCourseId(hw);
+            return hwCourseId && course._id && hwCourseId.toString() === course._id.toString();
+          })()
         })));
         
         const courseHomework = allHomework.filter(hw => {
-          // Try multiple ways to match course IDs
-          const hwCourseId = hw.course_id || (hw.course && hw.course._id);
-          const courseId = course._id;
-          
-          // Convert both to strings for comparison
-          const hwCourseIdStr = hwCourseId ? hwCourseId.toString() : null;
-          const courseIdStr = course._id ? course._id.toString() : null;
-          
-          // Also try direct comparison in case they're the same type
-          const matches = hwCourseIdStr === courseIdStr || 
-                         hwCourseId === course._id ||
-                         (hwCourseId && course._id && hwCourseId.toString() === course._id.toString());
-          
-          return matches;
+          const hwCourseId = extractHomeworkCourseId(hw);
+          if (!hwCourseId || !course._id) return false;
+          return hwCourseId.toString() === course._id.toString();
         });
         
         console.log(`Course ${course.course_name}: ${courseHomework.length} homework items`);
@@ -444,7 +448,10 @@ const CourseWorkloadOverview = () => {
           day: date.getDate(),
           month: date.getMonth() + 1,
           assignments: dayHomework.length,
-          courses: [...new Set(dayHomework.map(hw => hw.course?._id).filter(Boolean))].length
+          courses: [...new Set(dayHomework.map(hw => {
+            if (hw.course_id && typeof hw.course_id === 'object') return hw.course_id._id;
+            return hw.course_id || (hw.course && hw.course._id);
+          }).filter(Boolean))].length
         });
       }
 

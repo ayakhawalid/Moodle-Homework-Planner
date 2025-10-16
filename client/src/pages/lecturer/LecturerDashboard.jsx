@@ -92,20 +92,20 @@ function LecturerDashboard() {
               <p className="card-subtitle">Analyze your teaching load</p>
             </div>
           </div>
-          <div className="card-content">
+            <div className="card-content">
             <p>View detailed statistics about your teaching workload.</p>
           </div>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">{dashboardData?.workload?.total_courses || 0}</span>
+              <span className="stat-value">{dashboardData?.statistics?.total_courses || 0}</span>
               <span className="stat-label">Courses</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{dashboardData?.workload?.total_exams || 0}</span>
+              <span className="stat-value">{dashboardData?.statistics?.total_exams || 0}</span>
               <span className="stat-label">Exams</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{dashboardData?.workload?.total_homework || 0}</span>
+              <span className="stat-value">{dashboardData?.statistics?.total_homework || 0}</span>
               <span className="stat-label">Homework</span>
             </div>
           </div>

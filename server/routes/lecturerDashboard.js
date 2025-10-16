@@ -724,10 +724,9 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
       role: 'student'
     });
 
-    // Get total homework (both traditional and student-created)
+    // Get total homework (both traditional and student-created) - no is_active filter
     const traditionalHomeworkCount = await Homework.countDocuments({
-      course_id: { $in: courseIds },
-      is_active: true
+      course_id: { $in: courseIds }
     });
 
     const studentHomeworkCount = await StudentHomework.countDocuments({
@@ -735,6 +734,66 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
     });
 
     const totalHomework = traditionalHomeworkCount + studentHomeworkCount;
+
+    // Upcoming and overdue counts based on dates
+    const now = new Date();
+
+    // Traditional by due_date
+    const upcomingTraditional = await Homework.countDocuments({
+      course_id: { $in: courseIds },
+      due_date: { $gte: now }
+    });
+    const overdueTraditional = await Homework.countDocuments({
+      course_id: { $in: courseIds },
+      due_date: { $lt: now }
+    });
+
+    // Student homework: use verified_deadline when verified, otherwise claimed_deadline
+    const upcomingStudent = await StudentHomework.countDocuments({
+      course_id: { $in: courseIds },
+      $or: [
+        {
+          deadline_verification_status: 'verified',
+          verified_deadline: { $gte: now }
+        },
+        {
+          $or: [
+            { deadline_verification_status: { $exists: false } },
+            { deadline_verification_status: { $ne: 'verified' } }
+          ],
+          claimed_deadline: { $gte: now }
+        }
+      ]
+    });
+
+    const overdueStudent = await StudentHomework.countDocuments({
+      course_id: { $in: courseIds },
+      $or: [
+        {
+          deadline_verification_status: 'verified',
+          verified_deadline: { $lt: now }
+        },
+        {
+          $or: [
+            { deadline_verification_status: { $exists: false } },
+            { deadline_verification_status: { $ne: 'verified' } }
+          ],
+          claimed_deadline: { $lt: now }
+        }
+      ]
+    });
+
+    const upcoming = upcomingTraditional + upcomingStudent;
+    const overdue = overdueTraditional + overdueStudent;
+
+    // Student homework needing deadline verification
+    const needsVerification = await StudentHomework.countDocuments({
+      course_id: { $in: courseIds },
+      $or: [
+        { deadline_verification_status: { $exists: false } },
+        { deadline_verification_status: { $ne: 'verified' } }
+      ]
+    });
 
     // Get course statistics
     const courseStatistics = await Promise.all(courses.map(async (course) => {
@@ -744,8 +803,7 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
       });
 
       const courseTraditionalHomework = await Homework.countDocuments({
-        course_id: course._id,
-        is_active: true
+        course_id: course._id
       });
 
       const courseStudentHomework = await StudentHomework.countDocuments({
@@ -761,60 +819,78 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
       };
     }));
 
-    // Generate weekly workload data (mock data for now)
-    const weeklyWorkload = [
-      { 
-        day: 'Monday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '1', title: 'Math Assignment 1', course: 'Mathematics' },
-          { _id: '2', title: 'Science Project', course: 'Physics' }
+    // Generate weekly workload data from real deadlines for the next 7 days
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const sevenDaysLater = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Fetch homework with deadlines in the next 7 days
+    const [upcomingTraditionalHw, upcomingStudentHw] = await Promise.all([
+      Homework.find({
+        course_id: { $in: courseIds },
+        due_date: { $gte: startOfToday, $lt: sevenDaysLater }
+      }).populate('course_id', 'course_name'),
+      StudentHomework.find({
+        course_id: { $in: courseIds },
+        $or: [
+          { deadline_verification_status: 'verified', verified_deadline: { $gte: startOfToday, $lt: sevenDaysLater } },
+          { $or: [
+              { deadline_verification_status: { $exists: false } },
+              { deadline_verification_status: { $ne: 'verified' } }
+            ],
+            claimed_deadline: { $gte: startOfToday, $lt: sevenDaysLater }
+          }
         ]
-      },
-      { 
-        day: 'Tuesday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '3', title: 'History Essay', course: 'History' }
-        ]
-      },
-      { 
-        day: 'Wednesday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: []
-      },
-      { 
-        day: 'Thursday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '4', title: 'Literature Review', course: 'English' },
-          { _id: '5', title: 'Lab Report', course: 'Chemistry' }
-        ]
-      },
-      { 
-        day: 'Friday', 
-        homework_count: Math.floor(Math.random() * 5) + 1,
-        homework: [
-          { _id: '6', title: 'Programming Exercise', course: 'Computer Science' }
-        ]
-      },
-      { 
-        day: 'Saturday', 
-        homework_count: Math.floor(Math.random() * 3),
-        homework: []
-      },
-      { 
-        day: 'Sunday', 
-        homework_count: Math.floor(Math.random() * 3),
-        homework: []
-      }
+      }).populate('course_id', 'course_name')
+    ]);
+
+    const allUpcoming = [
+      ...upcomingTraditionalHw.map(hw => ({
+        _id: hw._id,
+        title: hw.title,
+        course: hw.course_id?.course_name || 'Unknown Course',
+        date: hw.due_date
+      })),
+      ...upcomingStudentHw.map(hw => ({
+        _id: hw._id,
+        title: hw.title || 'Student Homework',
+        course: hw.course_id?.course_name || 'Unknown Course',
+        date: hw.verified_deadline || hw.claimed_deadline
+      }))
     ];
+
+    // Initialize structure for each day starting today
+    const weeklyBuckets = Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(startOfToday.getTime() + i * 24 * 60 * 60 * 1000);
+      return { day: dayNames[d.getDay()], dateKey: d.toISOString().slice(0, 10), homework: [] };
+    });
+
+    // Assign homework to buckets by date (YYYY-MM-DD)
+    allUpcoming.forEach(item => {
+      if (!item.date) return;
+      const key = new Date(item.date).toISOString().slice(0, 10);
+      const bucket = weeklyBuckets.find(b => b.dateKey === key);
+      if (bucket) bucket.homework.push({ _id: item._id, title: item.title, course: item.course });
+    });
+
+    // Format final weekly workload
+    const weeklyWorkload = weeklyBuckets.map(b => ({
+      day: b.day,
+      homework_count: b.homework.length,
+      homework: b.homework
+    }));
 
     res.json({
       overview: {
         total_courses: courses.length,
         total_students: totalStudents,
-        total_homework: totalHomework
+        total_homework: totalHomework,
+        upcoming,
+        overdue,
+        needs_verification: needsVerification,
+        total_traditional: traditionalHomeworkCount,
+        total_student: studentHomeworkCount
       },
       course_statistics: courseStatistics,
       weekly_workload: weeklyWorkload
