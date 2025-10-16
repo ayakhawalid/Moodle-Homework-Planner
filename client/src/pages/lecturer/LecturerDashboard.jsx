@@ -122,13 +122,18 @@ function LecturerDashboard() {
               <p className="card-subtitle">Latest updates</p>
             </div>
           </div>
-          <div className="card-content">
+            <div className="card-content">
             <p>Stay updated with recent submissions and class activities.</p>
             <div style={{marginTop: '15px'}}>
               {dashboardData?.recent_activity?.length > 0 ? (
                 dashboardData.recent_activity.map((activity, index) => (
                   <div key={index} style={{marginBottom: '8px', fontSize: '14px', color: '#333', padding: '8px', background: 'rgba(214, 247, 173, 0.2)', borderRadius: '6px'}}>
-                    • {activity.message}
+                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                      <span>• {activity.message}</span>
+                      {activity.timestamp && (
+                        <small style={{color: '#777'}}>{new Date(activity.timestamp).toLocaleString()}</small>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (

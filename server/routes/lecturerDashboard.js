@@ -47,6 +47,7 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
     
     // Combine both types
     const allHomework = [...traditionalHomework, ...studentHomework];
+    const allHomeworkIds = allHomework.map(hw => hw._id);
     
     // Calculate statistics
     const totalStudents = courses.reduce((sum, course) => sum + course.students.length, 0);
@@ -69,6 +70,35 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       return deadline && deadline < now;
     }).length;
     
+    // Build recent activity (last updates across homework and grades)
+    const recentTraditional = await Homework.find({ course_id: { $in: courseIds } })
+      .populate('course_id', 'course_name')
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .lean();
+
+    const recentStudentCreated = await StudentHomework.find({ course_id: { $in: courseIds } })
+      .populate('course_id', 'course_name')
+      .populate('uploaded_by', 'name email')
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .lean();
+
+    const recent_activity = [
+      ...recentTraditional.map(hw => ({
+        type: 'homework_updated',
+        timestamp: hw.updatedAt || hw.createdAt,
+        message: `Homework updated: ${hw.title} (${hw.course_id?.course_name || 'Unknown Course'})`,
+      })),
+      ...recentStudentCreated.map(hw => ({
+        type: 'student_homework_updated',
+        timestamp: hw.updatedAt || hw.createdAt,
+        message: `Student homework updated: ${hw.title || 'Untitled'} (${hw.course_id?.course_name || 'Unknown Course'})` + (hw.uploaded_by ? ` by ${hw.uploaded_by.name || hw.uploaded_by.email}` : ''),
+      }))
+    ]
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, 10);
+    
     res.json({
       courses: courses.map(course => ({
         _id: course._id,
@@ -87,7 +117,8 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
         total_exams: totalExams,
         upcoming_deadlines: upcomingDeadlines,
         overdue_homework: overdueHomework
-      }
+      },
+      recent_activity
     });
   } catch (error) {
     console.error('Error fetching lecturer dashboard overview:', error);
@@ -148,8 +179,7 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
     const traditionalHomeworkStatus = traditionalHomework.map(hw => {
       const homeworkGrades = grades.filter(grade => 
         grade.homework_id && 
-        grade.homework_id.toString() === hw._id.toString() &&
-        grade.homework_type === 'traditional'
+        grade.homework_id.toString() === hw._id.toString()
       );
       
       const statusCounts = {
@@ -161,10 +191,14 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
       
       // Count students by completion status from Grade table
       homeworkGrades.forEach(grade => {
-        if (grade.completion_status) {
+        if (grade.completion_status && statusCounts.hasOwnProperty(grade.completion_status)) {
           statusCounts[grade.completion_status]++;
         }
       });
+
+      // Derive not_started as students without any grade record/status
+      const recorded = statusCounts.in_progress + statusCounts.completed + statusCounts.graded;
+      statusCounts.not_started = Math.max(0, studentIds.length - recorded);
       
       // Calculate average grade for graded homework
       let averageGrade = null;
@@ -190,8 +224,7 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
     const studentHomeworkStatus = studentHomework.map(hw => {
       const homeworkGrades = grades.filter(grade => 
         grade.homework_id && 
-        grade.homework_id.toString() === hw._id.toString() &&
-        grade.homework_type === 'student'
+        grade.homework_id.toString() === hw._id.toString()
       );
       
       const statusCounts = {
@@ -203,10 +236,14 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
       
       // Count students by completion status from Grade table
       homeworkGrades.forEach(grade => {
-        if (grade.completion_status) {
+        if (grade.completion_status && statusCounts.hasOwnProperty(grade.completion_status)) {
           statusCounts[grade.completion_status]++;
         }
       });
+
+      // Derive not_started as students without any grade record/status
+      const recorded = statusCounts.in_progress + statusCounts.completed + statusCounts.graded;
+      statusCounts.not_started = Math.max(0, studentIds.length - recorded);
       
       // Calculate average grade for graded homework
       let averageGrade = null;
@@ -234,11 +271,16 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
     
     // Calculate overall statistics
     const totalHomework = allHomeworkStatus.length;
-    const totalGraded = allHomeworkStatus.reduce((sum, hw) => sum + (hw.graded || 0), 0);
-    const totalNotGraded = allHomeworkStatus.reduce((sum, hw) => sum + (hw.completed || 0), 0);
-    
-    // Calculate average grade (mock calculation for now)
-    const averageGrade = totalGraded > 0 ? Math.floor(Math.random() * 20) + 80 : null;
+    const totalGraded = allHomeworkStatus.reduce((sum, hw) => sum + (hw.status_counts?.graded || 0), 0);
+    const totalNotGraded = allHomeworkStatus.reduce((sum, hw) => sum + (hw.status_counts?.completed || 0), 0);
+
+    // Calculate overall average grade from graded entries
+    const allGradedAverages = allHomeworkStatus
+      .map(hw => hw.average_grade)
+      .filter(v => typeof v === 'number');
+    const averageGrade = allGradedAverages.length > 0
+      ? (allGradedAverages.reduce((s, v) => s + v, 0) / allGradedAverages.length)
+      : null;
     
     res.json({
       course: {
@@ -311,8 +353,7 @@ router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLectu
     const traditionalHomeworkStatus = traditionalHomework.map(hw => {
       const homeworkGrades = grades.filter(grade => 
         grade.homework_id && 
-        grade.homework_id.toString() === hw._id.toString() &&
-        grade.homework_type === 'traditional'
+        grade.homework_id.toString() === hw._id.toString()
       );
       
       const statusCounts = {
@@ -324,10 +365,14 @@ router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLectu
       
       // Count students by completion status from Grade table
       homeworkGrades.forEach(grade => {
-        if (grade.completion_status) {
+        if (grade.completion_status && statusCounts.hasOwnProperty(grade.completion_status)) {
           statusCounts[grade.completion_status]++;
         }
       });
+
+      // Derive not_started
+      const recorded = statusCounts.in_progress + statusCounts.completed + statusCounts.graded;
+      statusCounts.not_started = Math.max(0, studentIds.length - recorded);
       
       // Calculate average grade for graded homework
       let averageGrade = null;
@@ -353,8 +398,7 @@ router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLectu
     const studentHomeworkStatus = studentHomework.map(hw => {
       const homeworkGrades = grades.filter(grade => 
         grade.homework_id && 
-        grade.homework_id.toString() === hw._id.toString() &&
-        grade.homework_type === 'student'
+        grade.homework_id.toString() === hw._id.toString()
       );
       
       const statusCounts = {
@@ -366,10 +410,14 @@ router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLectu
       
       // Count students by completion status from Grade table
       homeworkGrades.forEach(grade => {
-        if (grade.completion_status) {
+        if (grade.completion_status && statusCounts.hasOwnProperty(grade.completion_status)) {
           statusCounts[grade.completion_status]++;
         }
       });
+
+      // Derive not_started
+      const recorded = statusCounts.in_progress + statusCounts.completed + statusCounts.graded;
+      statusCounts.not_started = Math.max(0, studentIds.length - recorded);
       
       // Calculate average grade for graded homework
       let averageGrade = null;
@@ -488,10 +536,14 @@ router.get('/all-homework-status', checkJwt, extractUser, requireLecturer, async
         
         // Count students by completion status from Grade table
         homeworkGrades.forEach(grade => {
-          if (grade.completion_status) {
+          if (grade.completion_status && statusCounts.hasOwnProperty(grade.completion_status)) {
             statusCounts[grade.completion_status]++;
           }
         });
+
+        // Derive not_started
+        const recorded = statusCounts.in_progress + statusCounts.completed + statusCounts.graded;
+        statusCounts.not_started = Math.max(0, courseStudentIds.length - recorded);
         
         // Calculate average grade for graded homework
         let averageGrade = null;
@@ -530,10 +582,14 @@ router.get('/all-homework-status', checkJwt, extractUser, requireLecturer, async
         
         // Count students by completion status from Grade table
         homeworkGrades.forEach(grade => {
-          if (grade.completion_status) {
+          if (grade.completion_status && statusCounts.hasOwnProperty(grade.completion_status)) {
             statusCounts[grade.completion_status]++;
           }
         });
+
+        // Derive not_started
+        const recorded = statusCounts.in_progress + statusCounts.completed + statusCounts.graded;
+        statusCounts.not_started = Math.max(0, courseStudentIds.length - recorded);
         
         // Calculate average grade for graded homework
         let averageGrade = null;
@@ -718,11 +774,12 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
     const courses = await Course.find({ lecturer_id: user._id });
     const courseIds = courses.map(course => course._id);
 
-    // Get total students across all courses
-    const totalStudents = await User.countDocuments({
-      enrolled_courses: { $in: courseIds },
-      role: 'student'
-    });
+    // Get total unique students across all courses (from Course.students array)
+    const totalStudents = (() => {
+      const allStudentIds = courses.flatMap(c => c.students || []);
+      const uniqueIds = new Set(allStudentIds.map(id => id.toString()));
+      return uniqueIds.size;
+    })();
 
     // Get total homework (both traditional and student-created) - no is_active filter
     const traditionalHomeworkCount = await Homework.countDocuments({
@@ -797,11 +854,6 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
 
     // Get course statistics
     const courseStatistics = await Promise.all(courses.map(async (course) => {
-      const courseStudentCount = await User.countDocuments({
-        enrolled_courses: course._id,
-        role: 'student'
-      });
-
       const courseTraditionalHomework = await Homework.countDocuments({
         course_id: course._id
       });
@@ -814,7 +866,7 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
         course_id: course._id,
         course_name: course.course_name,
         course_code: course.course_code,
-        student_count: courseStudentCount,
+        student_count: (course.students || []).length,
         homework_count: courseTraditionalHomework + courseStudentHomework
       };
     }));
@@ -881,6 +933,36 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
       homework: b.homework
     }));
 
+    // Recent activity: latest homework created/updated for lecturer courses
+    const recentTraditional = await Homework.find({ course_id: { $in: courseIds } })
+      .populate('course_id', 'course_name')
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .lean();
+
+    const recentStudentCreated = await StudentHomework.find({ course_id: { $in: courseIds } })
+      .populate('course_id', 'course_name')
+      .populate('uploaded_by', 'name email')
+      .sort({ updatedAt: -1 })
+      .limit(10)
+      .lean();
+
+    const recent_activity = [
+      ...recentTraditional.map(hw => ({
+        type: 'homework_updated',
+        timestamp: hw.updatedAt || hw.createdAt,
+        message: `Homework updated: ${hw.title} (${hw.course_id?.course_name || 'Unknown Course'})`,
+      })),
+      ...recentStudentCreated.map(hw => ({
+        type: 'student_homework_updated',
+        timestamp: hw.updatedAt || hw.createdAt,
+        message: `Student homework updated: ${hw.title || 'Untitled'} (${hw.course_id?.course_name || 'Unknown Course'}) by ${hw.uploaded_by?.name || hw.uploaded_by?.email || 'Student'}`,
+      }))
+    ]
+    // Sort by timestamp desc and take top 10
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, 10);
+
     res.json({
       overview: {
         total_courses: courses.length,
@@ -893,7 +975,8 @@ router.get('/workload-stats', checkJwt, extractUser, requireLecturer, async (req
         total_student: studentHomeworkCount
       },
       course_statistics: courseStatistics,
-      weekly_workload: weeklyWorkload
+      weekly_workload: weeklyWorkload,
+      recent_activity
     });
   } catch (error) {
     console.error('Error fetching workload stats:', error);

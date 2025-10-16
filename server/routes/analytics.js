@@ -22,7 +22,7 @@ router.get('/overview', checkJwt, extractUser, requireAdminOrReadStats, async (r
       { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
 
-    // Build last 12 month labels and counts
+    // Build last 12 month labels and counts - ensure we always have 12 months
     const monthLabels = [];
     const monthCounts = [];
     for (let i = 11; i >= 0; i--) {

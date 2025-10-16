@@ -296,7 +296,7 @@ const AdminDashboard = () => {
         </Grid>
 
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={6}>
             <div className="dashboard-card">
               <div className="card-header">
                 <div className="card-icon primary">
@@ -350,7 +350,7 @@ const AdminDashboard = () => {
             </div>
           </Grid>
 
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={6}>
             <div className="dashboard-card" style={{ minHeight: '400px' }}>
               <div className="card-header">
                 <div className="card-icon accent">
