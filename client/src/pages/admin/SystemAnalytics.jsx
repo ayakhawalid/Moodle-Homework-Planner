@@ -26,8 +26,14 @@ const SystemAnalytics = () => {
       chart: {
         type: 'area',
         height: 350,
+        width: '100%',
         toolbar: {
           show: false
+        },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
         }
       },
       colors: ['#95E1D3'],
@@ -47,13 +53,44 @@ const SystemAnalytics = () => {
         }
       },
       xaxis: {
-        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        labels: {
+          style: {
+            colors: '#666',
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif'
+          },
+          rotate: -45,
+          rotateAlways: false
+        }
       },
       yaxis: {
         title: {
           text: 'Number of Users'
+        },
+        labels: {
+          style: {
+            colors: '#666',
+            fontSize: '12px'
+          }
         }
-      }
+      },
+      responsive: [{
+        breakpoint: 768,
+        options: {
+          chart: {
+            height: 300
+          },
+          xaxis: {
+            labels: {
+              rotate: -90,
+              style: {
+                fontSize: '10px'
+              }
+            }
+          }
+        }
+      }]
     }
   });
 
@@ -145,10 +182,41 @@ const SystemAnalytics = () => {
         try {
           const overview = await api.get('/analytics/overview').then(r => r.data);
           if (overview?.userGrowth?.labels && overview?.userGrowth?.counts) {
+            // Ensure we always have 12 months with proper labels
+            const fullMonthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const fullMonthCounts = new Array(12).fill(0);
+            
+            // Map the backend data to the full 12-month array
+            overview.userGrowth.labels.forEach((label, index) => {
+              const monthIndex = fullMonthLabels.indexOf(label);
+              if (monthIndex !== -1 && overview.userGrowth.counts[index] !== undefined) {
+                fullMonthCounts[monthIndex] = overview.userGrowth.counts[index];
+              }
+            });
+            
+            console.log('Backend labels:', overview.userGrowth.labels);
+            console.log('Backend counts:', overview.userGrowth.counts);
+            console.log('Full month labels:', fullMonthLabels);
+            console.log('Full month counts:', fullMonthCounts);
+            
             setUserGrowthData(prev => ({
               ...prev,
-              options: { ...prev.options, xaxis: { ...prev.options.xaxis, categories: overview.userGrowth.labels } },
-              series: [{ name: 'Users', data: overview.userGrowth.counts }]
+              options: { 
+                ...prev.options, 
+                xaxis: { 
+                  categories: fullMonthLabels,
+                  labels: {
+                    style: {
+                      colors: '#666',
+                      fontSize: '12px',
+                      fontFamily: 'Arial, sans-serif'
+                    },
+                    rotate: -45,
+                    rotateAlways: false
+                  }
+                }
+              },
+              series: [{ name: 'Users', data: fullMonthCounts }]
             }));
           }
           if (overview?.weeklyActivity?.labels) {
@@ -211,12 +279,15 @@ const SystemAnalytics = () => {
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
                   User Growth Over Time
                 </Typography>
-                <Chart
-                  options={userGrowthData.options}
-                  series={userGrowthData.series}
-                  type="area"
-                  height={350}
-                />
+                <Box sx={{ width: '100%', overflow: 'hidden' }}>
+                  <Chart
+                    options={userGrowthData.options}
+                    series={userGrowthData.series}
+                    type="area"
+                    height={350}
+                    width="100%"
+                  />
+                </Box>
               </div>
             </div>
           </Grid>

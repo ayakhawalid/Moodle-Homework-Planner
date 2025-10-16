@@ -19,6 +19,13 @@ const gradeSchema = new mongoose.Schema({
     default: null
   },
   
+  // Type of homework (traditional or student-created)
+  homework_type: {
+    type: String,
+    enum: ['traditional', 'student'],
+    default: 'traditional'
+  },
+  
   grade: {
     type: Number,
     min: 0,
@@ -83,6 +90,7 @@ gradeSchema.index({ graded_at: -1 });
 // Compound indexes
 gradeSchema.index({ student_id: 1, homework_id: 1 });
 gradeSchema.index({ student_id: 1, exam_id: 1 });
+gradeSchema.index({ student_id: 1, homework_id: 1, homework_type: 1 });
 
 // Validation: Either homework_id or exam_id must be present
 gradeSchema.pre('save', function(next) {

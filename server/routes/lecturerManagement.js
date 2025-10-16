@@ -5,6 +5,8 @@ const Homework = require('../models/Homework');
 const Class = require('../models/Class');
 const Exam = require('../models/Exam');
 const User = require('../models/User');
+const Grade = require('../models/Grade');
+const Partner = require('../models/Partner');
 const { checkJwt, extractUser, requireLecturer } = require('../middleware/auth');
 
 // GET /api/lecturer-management/courses - Get lecturer's courses for management
@@ -169,8 +171,21 @@ router.delete('/homework/:id', checkJwt, extractUser, requireLecturer, async (re
       return res.status(403).json({ error: 'Access denied' });
     }
     
+    // Delete associated Grade entries for traditional homework
+    await Grade.deleteMany({
+      homework_id: homeworkId,
+      homework_type: 'traditional'
+    });
+
+    // Delete associated partnerships
+    await Partner.deleteMany({
+      homework_id: homeworkId
+    });
+    
     // Soft delete by setting is_active to false
     await Homework.findByIdAndUpdate(homeworkId, { is_active: false });
+    
+    console.log(`Homework ${homeworkId} soft deleted and related Grade entries cleaned up by lecturer ${lecturerId}`);
     
     res.json({ message: 'Homework deleted successfully' });
   } catch (error) {

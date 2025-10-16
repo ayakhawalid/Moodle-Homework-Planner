@@ -44,9 +44,8 @@ const StatCard = ({
           <Box flex={1}>
             <Typography 
               variant="subtitle2" 
-              color="textSecondary" 
+              sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'black' }}
               gutterBottom
-              sx={{ fontSize: '0.875rem', fontWeight: 500 }}
             >
               {title}
             </Typography>
@@ -65,8 +64,7 @@ const StatCard = ({
             {subtitle && (
               <Typography 
                 variant="body2" 
-                color="textSecondary" 
-                sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                sx={{ mt: 0.5, fontSize: '0.75rem', color: 'black' }}
               >
                 {subtitle}
               </Typography>

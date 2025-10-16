@@ -220,10 +220,10 @@ function WorkloadStats() {
                   <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
                     <h4 style={{ marginBottom: '10px' }}>{courseDetails.course_name} ({courseDetails.course_code})</h4>
                     <p style={{ color: '#666', marginBottom: '5px' }}>
-                      <strong>Students Enrolled:</strong> {courseDetails.statistics?.student_count || 0}
+                      <strong>Students Enrolled:</strong> {courseDetails.student_count ?? 0}
                     </p>
                     <p style={{ color: '#666', marginBottom: '0' }}>
-                      <strong>Total Homework:</strong> {courseDetails.statistics?.homework_count || 0}
+                      <strong>Total Homework:</strong> {homeworkStatusData?.homework_status?.length ?? 0}
                     </p>
                   </div>
 
@@ -299,13 +299,17 @@ function WorkloadStats() {
                                   <Typography variant="h6" fontWeight="bold">
                                     {hw.title}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary" display="block">
-                                    Due: {new Date(hw.due_date).toLocaleDateString()}
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                    {(() => {
+                                      const dateStr = hw.homework_type === 'traditional' ? hw.due_date : hw.claimed_deadline;
+                                      const dateObj = dateStr ? new Date(dateStr) : null;
+                                      return `Due: ${dateObj ? dateObj.toLocaleDateString() : 'N/A'}`;
+                                    })()}
                                   </Typography>
                                   <Chip 
-                                    label={hw.type === 'traditional' ? 'Traditional' : 'Student Created'} 
+                                    label={(hw.homework_type === 'traditional') ? 'Traditional' : 'Student Created'} 
                                     size="small" 
-                                    color={hw.type === 'traditional' ? 'primary' : 'warning'}
+                                    color={(hw.homework_type === 'traditional') ? 'primary' : 'warning'}
                                     variant="outlined"
                                     sx={{ mt: 0.5 }}
                                   />
@@ -323,7 +327,7 @@ function WorkloadStats() {
                                     1 // Prevent division by zero
                                   );
                                   
-                                  const statusData = [
+                                const statusData = [
                                     { label: 'Graded', value: hw.status_counts.graded, color: '#95E1D3' },
                                     { label: 'Completed', value: hw.status_counts.completed, color: '#D6F7AD' },
                                     { label: 'In Progress', value: hw.status_counts.in_progress, color: '#FCE38A' },
