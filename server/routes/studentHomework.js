@@ -142,11 +142,23 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
       homework_id: { $in: allHomeworkIds }
     });
 
-    // Create a map of homework_id to completion_status
+    // Create a map of homework_id to completion_status and grade
     const completionStatusMap = new Map();
+    const gradeMap = new Map();
     grades.forEach(grade => {
       completionStatusMap.set(grade.homework_id.toString(), grade.completion_status);
+      gradeMap.set(grade.homework_id.toString(), grade.grade);
     });
+
+    // Debug: Log grades data
+    console.log('=== STUDENT HOMEWORK GRADES DEBUG ===');
+    console.log('Total grades found:', grades.length);
+    console.log('Grades data:', grades.map(g => ({
+      homework_id: g.homework_id,
+      completion_status: g.completion_status
+    })));
+    console.log('Completion status map:', Object.fromEntries(completionStatusMap));
+    console.log('=== END STUDENT HOMEWORK GRADES DEBUG ===');
 
     // Get partner information for all homework
 
@@ -206,8 +218,9 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
         verified_deadline: hw.verified_deadline,
         deadline_verification_status: hw.deadline_verification_status,
         completion_status: completionStatusMap.get(hw._id.toString()) || 'not_started',
+        actual_grade: gradeMap.get(hw._id.toString()) || null, // Add actual grade from Grade table
+        claimed_grade: hw.claimed_grade || null, // Keep claimed grade for student-created homework
         days_until_deadline: hw.days_until_deadline,
-        is_overdue: hw.is_overdue,
         createdAt: hw.createdAt,
         completed_at: hw.completed_at,
         is_late: hw.is_late,

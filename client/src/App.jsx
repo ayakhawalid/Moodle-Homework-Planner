@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import NavBar from './Components/NavBar';
-import Footer from './Components/footer';
 import Home from './pages/Home';
 
 import Auth0Login from './pages/Auth0Login';
@@ -148,7 +147,6 @@ function AppContent() {
           
           
         </Routes>
-        {!isDashboardPage && <Footer />}
       </>
     );
 }

@@ -35,6 +35,18 @@ const StudentCalendar = () => {
     }
   }, [isAuthenticated]);
 
+  // Refresh data when window regains focus (e.g., returning from homework management)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isAuthenticated) {
+        fetchAllCalendarData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isAuthenticated]);
+
   const fetchAllCalendarData = async () => {
     try {
       setLoading(true);
@@ -163,23 +175,37 @@ const StudentCalendar = () => {
     );
   }
 
-  // Calculate statistics
+  // Calculate statistics using the same logic as the backend
   const totalHomework = homework.length;
-  const completedHomework = homework.filter(hw => hw.completion_status === 'completed').length;
-  const pendingHomework = homework.filter(hw => hw.completion_status !== 'completed').length;
-  const overdueHomework = homework.filter(hw => {
-    const dueDate = new Date(hw.due_date);
-    const today = new Date();
-    return dueDate < today && hw.completion_status !== 'completed';
-  }).length;
+  const completedHomework = homework.filter(hw => 
+    hw.completion_status === 'completed' || hw.completion_status === 'graded'
+  ).length;
+  const pendingHomework = totalHomework - completedHomework;
+  // Removed overdue calculation - students can mark homework as completed/graded after due date
 
-  // Get upcoming homework (next 7 days)
+  // Get upcoming homework (next 7 days) - only non-completed homework
   const upcomingHomework = homework.filter(hw => {
     const dueDate = new Date(hw.due_date);
     const today = new Date();
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-    return dueDate >= today && dueDate <= nextWeek && hw.completion_status !== 'completed';
+    const isUpcoming = dueDate >= today && dueDate <= nextWeek;
+    const isCompleted = hw.completion_status === 'completed' || hw.completion_status === 'graded';
+    return isUpcoming && !isCompleted;
   }).length;
+
+  // Debug logging for calendar statistics
+  console.log('=== CALENDAR STATISTICS DEBUG ===');
+  console.log('Total homework:', totalHomework);
+  console.log('Completed homework:', completedHomework);
+  console.log('Pending homework:', pendingHomework);
+  console.log('Upcoming homework:', upcomingHomework);
+  // Removed overdue logging
+  console.log('Homework completion statuses:', homework.map(hw => ({
+    title: hw.title,
+    completion_status: hw.completion_status,
+    due_date: hw.due_date
+  })));
+  console.log('=== END CALENDAR STATISTICS DEBUG ===');
 
   return (
     <DashboardLayout userRole="student">
@@ -251,19 +277,7 @@ const StudentCalendar = () => {
             </div>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <div className="dashboard-card">
-              <div className="card-header">
-                <div className="card-icon study-activity">
-                  <AssignmentIcon />
-                </div>
-                <div>
-                  <h3 className="card-title">{overdueHomework}</h3>
-                  <p className="card-subtitle">Overdue</p>
-                </div>
-              </div>
-            </div>
-          </Grid>
+          {/* Removed overdue card - students can mark homework as completed/graded after due date */}
         </Grid>
 
         {/* Calendar Component */}

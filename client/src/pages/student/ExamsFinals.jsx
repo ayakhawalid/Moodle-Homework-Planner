@@ -90,12 +90,22 @@ function ExamsFinals() {
     fetchExamsData();
   }, [selectedStatus, selectedCourse]);
 
+  // Refresh data when window regains focus (e.g., returning from other pages)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchExamsData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [selectedStatus, selectedCourse]);
+
   // Get exam status color
   const getExamStatusColor = (status) => {
     switch (status) {
       case 'upcoming': return 'warning';
       case 'completed': return 'success';
-      case 'overdue': return 'error';
+      // Removed overdue case - students can mark exams as completed/graded after due date
       default: return 'default';
     }
   };
@@ -105,7 +115,7 @@ function ExamsFinals() {
     switch (status) {
       case 'upcoming': return <ScheduleIcon />;
       case 'completed': return <CheckCircleIcon />;
-      case 'overdue': return <WarningIcon />;
+      // Removed overdue case - students can mark exams as completed/graded after due date
       default: return <QuizIcon />;
     }
   };
@@ -316,7 +326,7 @@ function ExamsFinals() {
                       <MenuItem value="all">All Exams</MenuItem>
                       <MenuItem value="upcoming">Upcoming</MenuItem>
                       <MenuItem value="completed">Completed</MenuItem>
-                      <MenuItem value="overdue">Overdue</MenuItem>
+                      {/* Removed overdue option - students can mark exams as completed/graded after due date */}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -369,16 +379,7 @@ function ExamsFinals() {
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#F38181' }}>
-                    {examsData?.summary?.overdue || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Overdue
-                  </Typography>
-                </Box>
-              </Grid>
+              {/* Removed overdue statistics - students can mark exams as completed/graded after due date */}
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
                   <Typography variant="h4" sx={{ color: '#D6F7AD' }}>
@@ -552,7 +553,7 @@ function ExamsFinals() {
                               <Typography variant="body2" color={exam.days_until_due <= 3 ? 'error.main' : exam.days_until_due <= 7 ? 'warning.main' : 'text.secondary'} component="div">
                                 {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 
                                  exam.days_until_due === 0 ? 'Today' : 
-                                 `${Math.abs(exam.days_until_due)} days overdue`}
+                                 `${Math.abs(exam.days_until_due)} days past due`}
                               </Typography>
                             )}
                           </Box>
