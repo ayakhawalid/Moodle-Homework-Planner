@@ -1,122 +1,157 @@
-/* Colored Circles Above Header */
-.colored-circles {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 15px;
+/* Removed colored circles */
+
+/* Ensure no white space around the page */
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: auto; /* Let height be determined by content */
+  min-height: 100vh; /* Minimum full viewport height */
+  overflow-x: hidden;
+  overflow-y: auto; /* Ensure vertical scroll is visible */
+  background: #ffffff; /* Fallback white background */
+}
+
+/* Home Footer */
+.home-footer {
+  position: relative;
+  width: 100%;
+  text-align: center;
+  padding: 2rem 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 20;
+  margin-top: auto;
+}
+
+.footer-text {
+  font-size: 0.9rem;
+  color: #000000;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Home Page Styles - Four Colored Walls Background */
+.home-container {
+  min-height: 200vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  overflow-y: visible; /* Allow content to flow naturally */
+}
+
+/* Walls Background Component */
+.walls-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Four Colored Walls - Individual Divs */
+.wall {
+  height: 120px; /* Make walls shorter */
+  width: 25vw;
+  position: fixed; /* Fixed positioning to stay at top */
+  top: 0;
+  left: 0;
+  animation: colorShift 8s ease-in-out infinite;
+  z-index: 100; /* Higher z-index to stay above content */
+}
+
+.wall-1 {
+  left: 0;
+  background: linear-gradient(90deg, #FF7F7F 0%, #FF6B6B 100%); /* Coral - Not Started */
+  z-index: 100;
+}
+
+.wall-2 {
+  left: 25vw;
+  background: linear-gradient(90deg, #FCE38A 0%, #F9D56E 100%); /* Yellow - In Progress */
+  z-index: 100;
+}
+
+.wall-3 {
+  left: 50vw;
+  background: linear-gradient(90deg, #95E1D3 0%, #7DD3C0 100%); /* Teal - Completed */
+  z-index: 100;
+}
+
+.wall-4 {
+  left: 75vw;
+  background: linear-gradient(90deg, #D6F7AD 0%, #C8F299 100%); /* Green - Graded */
+  z-index: 100;
+}
+
+@keyframes colorShift {
+  0%, 100% {
+    filter: hue-rotate(0deg) saturate(1);
+  }
+  25% {
+    filter: hue-rotate(10deg) saturate(1.1);
+  }
+  50% {
+    filter: hue-rotate(-5deg) saturate(0.9);
+  }
+  75% {
+    filter: hue-rotate(5deg) saturate(1.05);
+  }
+}
+
+/* Removed background container - using individual walls now */
+
+/* Main Content */
+.main-content {
+  position: relative;
+  width: 100%;
   z-index: 10;
 }
 
-.circle {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  animation: float 3s ease-in-out infinite;
-}
-
-.circle-1 {
-  background: linear-gradient(135deg, #D6F7AD, #C8F299);
-  animation-delay: 0s;
-}
-
-.circle-2 {
-  background: linear-gradient(135deg, #95E1D3, #7DD3C0);
-  animation-delay: 0.5s;
-}
-
-.circle-3 {
-  background: linear-gradient(135deg, #FCE38A, #F9D56E);
-  animation-delay: 1s;
-}
-
-.circle-4 {
-  background: linear-gradient(135deg, #F38181, #E85A6B);
-  animation-delay: 1.5s;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* Home Page Styles */
-.home-container {
+/* Hero Section */
+.hero-section {
   min-height: 100vh;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  padding-top: 0; /* No navbar */
-  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: 
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0px,
-      transparent 19px,
-      #e0e0e0 19px,
-      #e0e0e0 20px
-    ),
-    linear-gradient(
-      45deg,
-      transparent 25%,
-      rgba(255,255,255,0.1) 25%,
-      rgba(255,255,255,0.1) 50%,
-      transparent 50%,
-      transparent 75%,
-      rgba(255,255,255,0.1) 75%
-    ),
-    #fefefe;
-  background-size: 
-    100% 20px,
-    20px 20px,
-    100% 100%;
-}
-
-/* Full Background Image */
-.home-background {
-  position: relative;
-  min-height: 100vh;
-  width: 100%;
-}
-
-/* Content Overlay */
-.content-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   padding: 2rem;
 }
 
-.background-image {
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
+/* Removed background image */
 
 
 .content-section {
-  max-width: 600px;
-  width: 100%;
+  max-width: none;
+  width: 100vw;
   text-align: center;
-  padding: 3rem;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 25px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3rem 0;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 0;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  border: none;
   position: relative;
+  z-index: 20;
+  margin-top: 200px; /* Add space for the header walls */
 }
 
 /* Title Section */
@@ -124,8 +159,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 2rem; /* Gap between elements */
+  margin-bottom: 0; /* Remove space between website name and buttons */
+  z-index: 50;
+  position: relative;
+  padding: 2rem 2rem; /* Restore full padding */
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
 .home-logo {
@@ -141,18 +180,497 @@
   margin: 0;
   line-height: 1.2;
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #2E7D32, #4CAF50);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: #2E7D32; /* Fallback color */
+  color: #2d3748; /* Same color as about title */
 }
 
 .main-description {
-  font-size: 1.2rem;
+  font-size: 1.4rem; /* Bigger text */
   color: #4a5568;
   line-height: 1.6;
   margin-bottom: 2.5rem;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  text-align: center; /* Center the text */
+  padding: 0 2rem; /* Add side padding */
+  font-weight: 600; /* Same boldness as logo */
+}
+
+/* Magazine-style Layout */
+.magazine-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 3rem;
+  margin: 2rem 0;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 10;
+}
+
+.magazine-content {
+  flex: 1;
+  min-width: 0; /* Allow text to wrap properly */
+}
+
+.magazine-text {
+  margin-bottom: 0; /* Remove bottom margin since it's in a flex container */
+}
+
+.magazine-image {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden; /* Hide leaves that fall outside */
+}
+
+.magazine-logo {
+  width: 200px; /* Much bigger logo */
+  height: 200px; /* Much bigger logo */
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+  z-index: 10; /* Above the falling leaves */
+  position: relative;
+}
+
+.magazine-logo:hover {
+  transform: scale(1.05);
+}
+
+/* Responsive design for magazine layout */
+@media (max-width: 768px) {
+  .magazine-layout {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .magazine-logo {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+
+/* About Section */
+.about-section {
+  padding: 0 2rem; /* Add side padding for content readability */
+  padding-top: 200px; /* Add space for walls + fixed buttons */
+  padding-bottom: 0; /* Remove bottom padding since media section handles it */
+  text-align: left;
+  width: 100%; /* Full width so walls show on sides */
+  background: transparent; /* Remove background so walls show through */
+  position: relative;
+  z-index: 50; /* Lower z-index so walls stay on top */
+  margin-top: 0; /* Remove margin since walls are fixed */
+  min-height: auto; /* Don't force full height */
+  height: auto; /* Let content determine height */
+}
+
+/* Apply notebook background only to the six feature items by default */
+.feature-item {
+  background: 
+    repeating-linear-gradient(
+      transparent 0px,
+      transparent 23px,
+      #e0e0e0 23px,
+      #e0e0e0 24px
+    ),
+    #f8f9fa !important; /* Ruled lines + light gray background */
+  position: relative;
+  padding: 1rem 2rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+
+/* Navigation Bar - Fixed navbar */
+.nav-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Space between logo and buttons */
+  margin-bottom: 2rem; /* Space below buttons */
+  padding: 1rem 2rem; /* Add side padding for navbar */
+  width: 100%; /* Take full width of the page */
+  border-radius: 0; /* Remove rounded corners for full width */
+  transition: all 0.3s ease; /* Smooth transition */
+  position: fixed; /* Fixed positioning like navbar */
+  top: 120px; /* Position below the walls */
+  left: 0;
+  z-index: 1000; /* High z-index to stay on top */
+  background: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
+  backdrop-filter: blur(10px); /* Blur effect */
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.nav-logo:hover {
+  transform: scale(1.05);
+}
+
+.nav-logo-img {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.nav-logo-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3748;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.nav-auth-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.nav-buttons:hover {
+  background: transparent; /* Remove green hover effect */
+}
+
+.nav-auth-buttons .btn {
+  padding: 0.75rem 1.5rem; /* Add padding to create button area */
+  font-size: 1.2rem; /* Bigger text */
+  font-weight: 600; /* Make text bolder */
+  min-width: 100px;
+  background: transparent; /* No background color by default */
+  border: none; /* Remove border */
+  color: #333;
+  transition: all 0.3s ease;
+  box-shadow: none; /* Remove any shadow */
+  outline: none; /* Remove outline */
+  border-radius: 8px; /* Rounded corners for button area */
+}
+
+.nav-auth-buttons .btn:hover {
+  background: transparent; /* No individual button hover */
+  color: #333;
+  transform: none; /* No transform on individual buttons */
+  box-shadow: none; /* Remove shadow on hover */
+}
+
+/* Colored Circles - Standalone */
+.colored-circles {
+  display: flex;
+  justify-content: center;
+  gap: 20px; /* Increased gap for more spacing */
+  margin: 2rem 0; /* Add margin for spacing */
+}
+
+.circle {
+  width: 32px; /* Even bigger circles */
+  height: 32px; /* Even bigger circles */
+  border-radius: 50%;
+  animation: float 3s ease-in-out infinite;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.circle-1 {
+  background: linear-gradient(135deg, #FF7F7F, #FF6B6B); /* Coral - Not Started */
+  animation-delay: 0s;
+}
+
+.circle-2 {
+  background: linear-gradient(135deg, #FCE38A, #F9D56E); /* Yellow - In Progress */
+  animation-delay: 0.5s;
+}
+
+.circle-3 {
+  background: linear-gradient(135deg, #95E1D3, #7DD3C0); /* Teal - Completed */
+  animation-delay: 1s;
+}
+
+.circle-4 {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299); /* Green - Graded */
+  animation-delay: 1.5s;
+}
+
+/* Colored Circles in Title Section */
+.title-section .colored-circles {
+  display: flex;
+  justify-content: center;
+  gap: 20px; /* Increased gap for more spacing */
+  margin: 0; /* No margin since they're inline */
+}
+
+.title-section .circle {
+  width: 32px; /* Even bigger circles */
+  height: 32px; /* Even bigger circles */
+  border-radius: 50%;
+  animation: float 3s ease-in-out infinite;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.title-section .circle-1 {
+  background: linear-gradient(135deg, #FF7F7F, #FF6B6B); /* Coral - Not Started */
+  animation-delay: 0s;
+}
+
+.title-section .circle-2 {
+  background: linear-gradient(135deg, #FCE38A, #F9D56E); /* Yellow - In Progress */
+  animation-delay: 0.5s;
+}
+
+.title-section .circle-3 {
+  background: linear-gradient(135deg, #95E1D3, #7DD3C0); /* Teal - Completed */
+  animation-delay: 1s;
+}
+
+.title-section .circle-4 {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299); /* Green - Graded */
+  animation-delay: 1.5s;
+}
+
+.about-section .circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  animation: float 3s ease-in-out infinite;
+}
+
+.about-section .circle-1 {
+  background: linear-gradient(135deg, #FF7F7F, #FF6B6B); /* Coral - Not Started */
+  animation-delay: 0s;
+}
+
+.about-section .circle-2 {
+  background: linear-gradient(135deg, #FCE38A, #F9D56E); /* Yellow - In Progress */
+  animation-delay: 0.5s;
+}
+
+.about-section .circle-3 {
+  background: linear-gradient(135deg, #95E1D3, #7DD3C0); /* Teal - Completed */
+  animation-delay: 1s;
+}
+
+.about-section .circle-4 {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299); /* Green - Graded */
+  animation-delay: 1.5s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.about-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 2rem;
+  text-align: left;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 0 2rem; /* Add same side padding as other content */
+}
+
+.about-text {
+  font-size: 1.1rem;
+  color: #4a5568;
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+  text-align: justify;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 0 2rem; /* Add side padding for content readability */
+}
+
+.about-subtitle {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 3rem 0 1.5rem 0;
+  text-align: left;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 0 2rem; /* Add side padding for content readability */
+}
+
+.features-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+  padding: 0 2rem; /* Add side padding for content readability */
+}
+
+.feature-item {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  background: 
+    repeating-linear-gradient(
+      transparent 0px,
+      transparent 23px,
+      #e0e0e0 23px,
+      #e0e0e0 24px
+    ),
+    #f8f9fa !important; /* Keep ruled lines + notebook background on hover */
+}
+
+.feature-item h4 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1rem;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.feature-item p {
+  font-size: 1rem;
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Media Section - Replaces Footer */
+.media-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  background-color: #121619;
+  margin: 4rem -2rem 0 -2rem; /* Extend to full width by negating about-section padding */
+  width: 100vw; /* Full viewport width */
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  margin-bottom: 0; /* Remove any bottom margin */
+}
+
+.media-section .media-text {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+}
+
+.media-section .instagram-link {
+  color: white;
+  text-decoration: none;
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.media-section .instagram-link:hover {
+  transform: scale(1.1);
+}
+
+.media-section .instagram-link svg {
+  color: white;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.media-section .instagram-link:hover svg {
+  color: #D6F7AD;
+}
+
+/* Status System */
+.status-system {
+  margin-top: 2rem;
+}
+
+.status-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #000000;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.status-description {
+  font-size: 1rem;
+  color: #000000;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Status Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-color.green {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299); /* Completed */
+}
+
+.status-color.teal {
+  background: linear-gradient(135deg, #FCE38A, #F9D56E); /* In Progress - Yellow */
+}
+
+.status-color.yellow {
+  background: linear-gradient(135deg, #FF7F7F, #FF6B6B); /* Not Started - Coral */
+}
+
+.status-color.red {
+  background: linear-gradient(135deg, #95E1D3, #7DD3C0); /* Graded - Teal */
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.status-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #000000;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.status-desc {
+  font-size: 0.9rem;
+  color: #333333;
+  font-weight: 500;
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -221,6 +739,54 @@
 
 /* Responsive Design */
 @media (max-width: 1024px) {
+  .wall {
+    height: 100px; /* Shorter walls for tablets */
+  }
+  
+  .home-logo {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .main-title {
+    font-size: 2rem;
+  }
+  
+  .about-section {
+    padding-top: 100px; /* Reduce space for tablets */
+    width: 100%; /* Full width on tablets too */
+    max-width: 95%; /* Adjust max width for tablets */
+  }
+  
+  .about-subtitle {
+    font-size: 1.6rem; /* Responsive subtitle size */
+  }
+  
+  .features-list {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem; /* Responsive gap */
+  }
+  
+  .feature-item {
+    padding: 1.5rem; /* Responsive padding */
+  }
+  
+        .nav-buttons {
+          margin-bottom: 1.5rem; /* Responsive margin */
+          padding: 0.8rem 0; /* Remove side padding for full width */
+          width: 100%; /* Full width on tablets */
+          border-radius: 0; /* Remove rounded corners for full width */
+        }
+  
+  .nav-buttons .btn {
+    padding: 0.6rem 1.2rem; /* Button area on tablets */
+    font-size: 1.1rem; /* Bigger text on tablets */
+    font-weight: 600;
+    min-width: 90px;
+    box-shadow: none; /* Remove any shadow */
+    border-radius: 6px; /* Rounded corners */
+  }
+  
   .colored-circles {
     top: 15px;
     gap: 12px;
@@ -251,6 +817,69 @@
 }
 
 @media (max-width: 768px) {
+  .wall {
+    height: 80px; /* Shorter walls for mobile */
+  }
+  
+  .title-section {
+    gap: 1rem; /* Smaller gap on mobile */
+    margin-bottom: 2rem; /* Smaller margin on mobile */
+    padding: 1rem 0; /* Smaller padding on mobile */
+  }
+  
+  .home-logo {
+    width: 80px; /* Smaller logo on mobile */
+    height: 80px; /* Smaller logo on mobile */
+  }
+  
+  .main-title {
+    font-size: 2rem; /* Smaller title on mobile */
+  }
+  
+  .about-section {
+    padding-top: 80px; /* Reduce space for mobile */
+    width: 100%; /* Full width on mobile too */
+    max-width: 95%; /* Adjust max width for mobile */
+    padding-left: 1rem; /* Reduce side padding on mobile */
+    padding-right: 1rem;
+  }
+  
+  .about-subtitle {
+    font-size: 1.4rem; /* Smaller subtitle on mobile */
+    margin: 2rem 0 1rem 0; /* Reduce margins on mobile */
+  }
+  
+  .features-list {
+    grid-template-columns: 1fr; /* Single column on mobile */
+    gap: 1rem; /* Smaller gap on mobile */
+  }
+  
+  .feature-item {
+    padding: 1rem; /* Smaller padding on mobile */
+  }
+  
+  .feature-item h4 {
+    font-size: 1.2rem; /* Smaller feature titles on mobile */
+  }
+  
+        .nav-buttons {
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 1rem; /* Responsive margin */
+          padding: 0.6rem 0; /* Remove side padding for full width */
+          width: 100%; /* Full width on mobile */
+          border-radius: 0; /* Remove rounded corners for full width */
+        }
+  
+  .nav-buttons .btn {
+    padding: 0.5rem 1rem; /* Button area on mobile */
+    font-size: 1rem; /* Bigger text on mobile */
+    font-weight: 600;
+    min-width: 80px;
+    box-shadow: none; /* Remove any shadow */
+    border-radius: 6px; /* Rounded corners */
+  }
+  
   .colored-circles {
     top: 10px;
     gap: 10px;
@@ -294,6 +923,14 @@
 }
 
 @media (max-width: 480px) {
+  .wall {
+    height: 100px; /* Smallest header on very small screens */
+  }
+  
+  .content-section {
+    margin-top: 100px; /* Adjust margin for smallest header */
+  }
+  
   .colored-circles {
     top: 8px;
     gap: 8px;

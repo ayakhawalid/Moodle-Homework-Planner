@@ -122,11 +122,8 @@ const SystemAnalytics = () => {
 
   const [activityData, setActivityData] = useState({
     series: [{
-      name: 'Logins',
-      data: [44, 55, 57, 56, 61, 58, 63]
-    }, {
-      name: 'Assignments Submitted',
-      data: [76, 85, 101, 98, 87, 105, 91]
+      name: 'New Users',
+      data: [0, 0, 0, 0, 0, 0, 0]
     }],
     options: {
       chart: {
@@ -136,7 +133,7 @@ const SystemAnalytics = () => {
           show: false
         }
       },
-      colors: ['#95E1D3', '#D6F7AD'],
+      colors: ['#95E1D3'],
       plotOptions: {
         bar: {
           horizontal: false,
@@ -222,9 +219,14 @@ const SystemAnalytics = () => {
           if (overview?.weeklyActivity?.labels) {
             setActivityData(prev => ({
               ...prev,
-              options: { ...prev.options, xaxis: { ...prev.options.xaxis, categories: overview.weeklyActivity.labels } },
+              options: { 
+                ...prev.options, 
+                xaxis: { 
+                  ...prev.options.xaxis, 
+                  categories: overview.weeklyActivity.labels 
+                } 
+              },
               series: [
-                { name: 'Logins', data: overview.weeklyActivity.logins || [] },
                 { name: 'New Users', data: overview.weeklyActivity.newUsers || [] }
               ]
             }));
@@ -319,7 +321,7 @@ const SystemAnalytics = () => {
             <div className="dashboard-card">
               <div className="card-content">
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                  Weekly Activity Overview
+                  New User Registrations (Last 7 Days)
                 </Typography>
                 <Chart
                   options={activityData.options}

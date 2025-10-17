@@ -1,0 +1,194 @@
+/* Falling Leaves Section - Original Centered Position */
+.falling-leaves-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 3rem 0;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 10;
+  overflow: hidden; /* Hide leaves that fall outside */
+  height: 300px; /* Give the section a specific height for leaves to fall */
+}
+
+/* Falling Leaves Animation */
+.falling-leaves {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Don't interfere with interactions */
+  z-index: 5; /* Below the logo */
+  overflow: hidden; /* Hide leaves that fall outside */
+}
+
+.leaf {
+  position: absolute;
+  font-size: 16px;
+  color: #4ade80; /* Green color like the logo */
+  animation: fall 6s linear infinite;
+  opacity: 0.8;
+  top: -100px; /* Start from different heights */
+  transform: rotate(var(--random-rotation, 0deg));
+}
+
+.leaf-1 { --random-rotation: 15deg; top: -80px; }
+.leaf-2 { --random-rotation: -10deg; top: -120px; }
+.leaf-3 { --random-rotation: 25deg; top: -90px; }
+.leaf-4 { --random-rotation: -20deg; top: -110px; }
+.leaf-5 { --random-rotation: 5deg; top: -85px; }
+.leaf-6 { --random-rotation: 30deg; top: -95px; }
+.leaf-7 { --random-rotation: -15deg; top: -105px; }
+.leaf-8 { --random-rotation: 20deg; top: -88px; }
+.leaf-9 { --random-rotation: -25deg; top: -115px; }
+.leaf-10 { --random-rotation: 10deg; top: -92px; }
+.leaf-11 { --random-rotation: 35deg; top: -98px; }
+.leaf-12 { --random-rotation: -30deg; top: -108px; }
+.leaf-13 { --random-rotation: 12deg; top: -87px; }
+.leaf-14 { --random-rotation: -18deg; top: -112px; }
+.leaf-15 { --random-rotation: 28deg; top: -93px; }
+.leaf-16 { --random-rotation: -22deg; top: -107px; }
+.leaf-17 { --random-rotation: 18deg; top: -89px; }
+.leaf-18 { --random-rotation: -12deg; top: -118px; }
+.leaf-19 { --random-rotation: 32deg; top: -94px; }
+.leaf-20 { --random-rotation: -28deg; top: -102px; }
+
+.leaf-1 {
+  left: 15%;
+  animation-delay: 0s;
+  animation-duration: 3s;
+}
+
+.leaf-2 {
+  left: 85%;
+  animation-delay: 0.5s;
+  animation-duration: 3.5s;
+}
+
+.leaf-3 {
+  left: 45%;
+  animation-delay: 1s;
+  animation-duration: 4s;
+}
+
+.leaf-4 {
+  left: 70%;
+  animation-delay: 1.5s;
+  animation-duration: 3.25s;
+}
+
+.leaf-5 {
+  left: 25%;
+  animation-delay: 2s;
+  animation-duration: 3.75s;
+}
+
+.leaf-6 {
+  left: 80%;
+  animation-delay: 2.5s;
+  animation-duration: 4.25s;
+}
+
+.leaf-7 {
+  left: 30%;
+  animation-delay: 3s;
+  animation-duration: 3.5s;
+}
+
+.leaf-8 {
+  left: 65%;
+  animation-delay: 3.25s;
+  animation-duration: 4s;
+}
+
+.leaf-9 {
+  left: 10%;
+  animation-delay: 3.5s;
+  animation-duration: 3.75s;
+}
+
+.leaf-10 {
+  left: 75%;
+  animation-delay: 3.75s;
+  animation-duration: 4.5s;
+}
+
+.leaf-11 {
+  left: 40%;
+  animation-delay: 4s;
+  animation-duration: 3.25s;
+}
+
+.leaf-12 {
+  left: 90%;
+  animation-delay: 4.25s;
+  animation-duration: 3.75s;
+}
+
+.leaf-13 {
+  left: 20%;
+  animation-delay: 4.5s;
+  animation-duration: 4s;
+}
+
+.leaf-14 {
+  left: 50%;
+  animation-delay: 4.75s;
+  animation-duration: 3.5s;
+}
+
+.leaf-15 {
+  left: 85%;
+  animation-delay: 5s;
+  animation-duration: 4.25s;
+}
+
+.leaf-16 {
+  left: 35%;
+  animation-delay: 5.25s;
+  animation-duration: 3.75s;
+}
+
+.leaf-17 {
+  left: 5%;
+  animation-delay: 5.5s;
+  animation-duration: 4s;
+}
+
+.leaf-18 {
+  left: 60%;
+  animation-delay: 5.75s;
+  animation-duration: 3.5s;
+}
+
+.leaf-19 {
+  left: 15%;
+  animation-delay: 6s;
+  animation-duration: 4.25s;
+}
+
+.leaf-20 {
+  left: 55%;
+  animation-delay: 6.25s;
+  animation-duration: 3.75s;
+}
+
+@keyframes fall {
+  0% {
+    top: -50px;
+    transform: rotate(0deg) translateX(0px);
+    opacity: 0.8;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    top: 200px;
+    transform: rotate(360deg) translateX(20px);
+    opacity: 0;
+  }
+}

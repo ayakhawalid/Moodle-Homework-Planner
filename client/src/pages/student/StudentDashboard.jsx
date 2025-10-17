@@ -37,6 +37,15 @@ function StudentDashboard() {
         const response = await apiService.studentDashboard.getOverview();
         setDashboardData(response.data);
         setError(null);
+        
+        // Debug logging for dashboard data
+        console.log('=== STUDENT DASHBOARD DATA DEBUG ===');
+        console.log('Dashboard data received:', response.data);
+        console.log('Homework data:', response.data.homework);
+        console.log('Pending tasks (upcoming):', response.data.homework?.upcoming);
+        console.log('Completed homework:', response.data.homework?.completed);
+        console.log('Total homework:', response.data.homework?.total);
+        console.log('=== END STUDENT DASHBOARD DATA DEBUG ===');
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError('Failed to load dashboard data');
@@ -48,6 +57,34 @@ function StudentDashboard() {
     if (syncStatus === 'synced') {
       fetchDashboardData();
     }
+  }, [syncStatus]);
+
+  // Refresh data when window regains focus (e.g., returning from homework management)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (syncStatus === 'synced') {
+        const fetchDashboardData = async () => {
+          try {
+            const response = await apiService.studentDashboard.getOverview();
+            setDashboardData(response.data);
+            
+            // Debug logging for refreshed dashboard data
+            console.log('=== STUDENT DASHBOARD REFRESH DEBUG ===');
+            console.log('Refreshed dashboard data:', response.data);
+            console.log('Refreshed homework data:', response.data.homework);
+            console.log('Refreshed pending tasks (upcoming):', response.data.homework?.upcoming);
+            console.log('Refreshed completed homework:', response.data.homework?.completed);
+            console.log('=== END STUDENT DASHBOARD REFRESH DEBUG ===');
+          } catch (err) {
+            console.error('Error refreshing dashboard data:', err);
+          }
+        };
+        fetchDashboardData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [syncStatus]);
 
   // Prepare study progress data for chart
@@ -118,14 +155,22 @@ function StudentDashboard() {
 
         {/* Statistics Cards */}
         {!loading && !error && dashboardData && (
-          <Grid container spacing={3} mb={4}>
+          <>
+            {/* Debug: Log the actual data being used */}
+            {console.log('=== FRONTEND DASHBOARD DEBUG ===')}
+            {console.log('dashboardData.homework:', dashboardData.homework)}
+            {console.log('Pending Tasks (upcoming):', dashboardData.homework?.upcoming)}
+            {console.log('Completed:', dashboardData.homework?.completed)}
+            {console.log('Total:', dashboardData.homework?.total)}
+            {console.log('=== END FRONTEND DASHBOARD DEBUG ===')}
+            
+            <Grid container spacing={3} mb={4}>
             <Grid item xs={12} sm={6} md={3}>
               <StatCard
                 title="Study Hours"
                 value={formatStudyTime(dashboardData.study_progress?.weekly_hours || 0)}
                 icon={<TimerIcon sx={{ fontSize: 40 }} />}
                 color="#1976d2"
-                trend={dashboardData.study_progress?.daily_average || 0}
                 subtitle="This week"
               />
             </Grid>
@@ -144,7 +189,6 @@ function StudentDashboard() {
                 value={dashboardData.homework?.completed || 0}
                 icon={<CheckCircleIcon sx={{ fontSize: 40 }} />}
                 color="#4caf50"
-                trend={dashboardData.homework?.average_grade || 0}
                 subtitle="This month"
               />
             </Grid>
@@ -158,6 +202,7 @@ function StudentDashboard() {
               />
             </Grid>
           </Grid>
+          </>
         )}
 
         {/* All Dashboard Cards - 4 Cards Per Row */}
@@ -342,7 +387,7 @@ function StudentDashboard() {
                             <small style={{color: textColor, fontSize: '0.9em'}}>
                               {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 
                                exam.days_until_due === 0 ? 'Today' : 
-                               `${Math.abs(exam.days_until_due)} days overdue`}
+                               `${Math.abs(exam.days_until_due)} days past due`}
                             </small>
                           </div>
                         );

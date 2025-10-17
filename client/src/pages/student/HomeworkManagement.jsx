@@ -424,16 +424,18 @@ const HomeworkManagement = () => {
                   }}
                   size="medium"
                 />
-                {hw.claimed_grade && (
+                {/* Show actual grade if available, otherwise show claimed grade */}
+                {(hw.actual_grade || hw.claimed_grade) && (
                   <Chip
-                    label={`${hw.claimed_grade}%`}
+                    label={`${hw.actual_grade || hw.claimed_grade}%`}
                     sx={{
-                      backgroundColor: '#D6F7AD',
+                      backgroundColor: hw.actual_grade ? '#95E1D3' : '#D6F7AD',
                       color: '#333',
                       fontWeight: 700,
                       fontSize: '0.875rem'
                     }}
                     size="medium"
+                    title={hw.actual_grade ? 'Verified Grade' : 'Claimed Grade'}
                   />
                 )}
                 {hw.is_late && (

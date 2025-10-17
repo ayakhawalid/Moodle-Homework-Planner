@@ -22,6 +22,13 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     }
     
     const studentId = user._id;
+    console.log('=== USER LOOKUP DEBUG ===');
+    console.log('Auth0 ID:', auth0Id);
+    console.log('Found user:', user._id);
+    console.log('Student ID:', studentId);
+    console.log('Student ID type:', typeof studentId);
+    console.log('Student ID toString:', studentId.toString());
+    console.log('=== END USER LOOKUP DEBUG ===');
     
     // Get student's enrolled courses
     const courses = await Course.find({ 
@@ -117,9 +124,25 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     });
     
     // Get student's grades
+    console.log('=== GRADE QUERY DEBUG ===');
+    console.log('Querying grades for student_id:', studentId);
+    console.log('Student ID type:', typeof studentId);
+    console.log('Student ID toString:', studentId.toString());
+    
+    // Let's also check if there are ANY grades in the database
+    const allGrades = await Grade.find({}).limit(5);
+    console.log('Sample grades in database:', allGrades.map(g => ({
+      _id: g._id,
+      student_id: g.student_id,
+      homework_id: g.homework_id,
+      homework_type: g.homework_type
+    })));
+    
     const grades = await Grade.find({ student_id: studentId })
-      .populate('homework_id', 'title due_date points_possible')
-      .populate('exam_id', 'exam_title due_date points_possible');
+      .populate('exam_id', 'exam_title due_date points_possible')
+      .select('homework_id exam_id completion_status grade homework_type graded_at');
+    console.log('Grade query result count:', grades.length);
+    console.log('=== END GRADE QUERY DEBUG ===');
     
     // Get exams for enrolled courses
     const exams = await Exam.find({ 
@@ -146,59 +169,127 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     console.log('Found study progress records:', studyProgress.length);
     console.log('Study progress data:', studyProgress);
     console.log('=== END DASHBOARD OVERVIEW STUDY PROGRESS DEBUG ===');
-    
+
     // Calculate statistics
     const totalCourses = courses.length;
     const totalHomework = allHomework.length;
     const totalExams = exams.length;
-    // Count completed homework from both sources:
-    // 1. Traditional homework with grades in Grade table
-    const traditionalCompletedHomework = grades.filter(grade => grade.homework_id).length;
     
-    // 2. StudentHomework with completion_status: 'completed'
-    const studentCompletedHomework = allHomework.filter(hw => hw.completion_status === 'completed').length;
+    // Debug: Log grades data
+    console.log('=== DASHBOARD GRADES DEBUG ===');
+    console.log('Total grades found:', grades.length);
+    console.log('Grades data:', grades.map(g => ({
+      homework_id: g.homework_id?._id,
+      homework_id_string: g.homework_id?.toString(),
+      homework_type: g.homework_type,
+      completion_status: g.completion_status,
+      grade: g.grade
+    })));
+    console.log('All homework IDs we\'re looking for:', allHomework.map(hw => ({
+      id: hw._id.toString(),
+      title: hw.title,
+      uploader_role: hw.uploader_role
+    })));
+    console.log('=== END GRADES DEBUG ===');
+
+    // Create a map of homework_id to completion_status (same logic as studentHomework endpoint)
+    const completionStatusMap = new Map();
+    grades.forEach(grade => {
+      // Only process grades that have a homework_id (skip exam grades)
+      if (grade.homework_id) {
+        // Use a composite key to handle different homework types
+        const key = `${grade.homework_id.toString()}_${grade.homework_type}`;
+        completionStatusMap.set(key, grade.completion_status);
+        // Also set a general key for backward compatibility
+        completionStatusMap.set(grade.homework_id.toString(), grade.completion_status);
+        console.log(`Added to completionStatusMap: ${grade.homework_id.toString()} -> ${grade.completion_status}`);
+      }
+    });
+    console.log('CompletionStatusMap contents:', Object.fromEntries(completionStatusMap));
     
-    const completedHomework = traditionalCompletedHomework + studentCompletedHomework;
+    // Calculate completed homework counts using the same logic as studentHomework endpoint
+    const completedHomework = allHomework.filter(hw => {
+      // For traditional homework, check Grade table
+      if (hw.uploader_role === 'lecturer') {
+        const completionStatus = completionStatusMap.get(hw._id.toString()) || 'not_started';
+        return completionStatus === 'completed' || completionStatus === 'graded';
+      }
+      
+      // For student-created homework, check both Grade table and homework's own completion_status
+      const gradeCompletionStatus = completionStatusMap.get(hw._id.toString());
+      const homeworkCompletionStatus = hw.completion_status;
+      
+      // If there's a Grade entry, use that status
+      if (gradeCompletionStatus) {
+        return gradeCompletionStatus === 'completed' || gradeCompletionStatus === 'graded';
+      }
+      
+      // If no Grade entry, check the homework's own completion_status
+      return homeworkCompletionStatus === 'completed' || homeworkCompletionStatus === 'graded';
+    }).length;
+    
+    // Pending homework = Total homework - Completed homework (simple subtraction)
+    const pendingHomework = totalHomework - completedHomework;
+    
+    // Debug: Simple calculation check
+    console.log('=== SIMPLE CALCULATION DEBUG ===');
+    console.log('Total homework:', totalHomework);
+    console.log('Completed homework:', completedHomework);
+    console.log('Pending homework (total - completed):', pendingHomework);
+    console.log('=== END SIMPLE CALCULATION DEBUG ===');
+    
+    // Upcoming homework = Pending homework that is not overdue (same logic as studentHomework endpoint)
     const upcomingHomework = allHomework.filter(hw => {
       const dueDate = new Date(hw.due_date);
       const today = new Date();
       const isUpcoming = dueDate > today;
       
-      // Check if homework is completed from both sources:
-      // 1. Traditional homework with grades in Grade table
-      const isTraditionalCompleted = grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id));
+      if (!isUpcoming) return false;
       
-      // 2. StudentHomework with completion_status: 'completed'
-      const isStudentHomeworkCompleted = hw.completion_status === 'completed';
+      // Check completion status using the same logic as studentHomework endpoint
+      const completionStatus = completionStatusMap.get(hw._id.toString()) || 'not_started';
+      const isCompleted = completionStatus === 'completed' || completionStatus === 'graded';
       
-      return isUpcoming && !isTraditionalCompleted && !isStudentHomeworkCompleted;
+      return !isCompleted;
     }).length;
     
-    // Debug logging for upcoming homework calculation
-    console.log('Upcoming homework calculation:', {
-      total_homework: allHomework.length,
-      upcoming_count: upcomingHomework,
-      traditional_completed: traditionalCompletedHomework,
-      student_completed: studentCompletedHomework,
-      total_completed: completedHomework,
-      homework_breakdown: allHomework.map(hw => ({
-        id: hw._id,
-        title: hw.title,
-        due_date: hw.due_date,
-        is_upcoming: new Date(hw.due_date) > new Date(),
-        has_grade: grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id)),
-        completion_status: hw.completion_status,
-        is_completed: grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id)) || hw.completion_status === 'completed'
-      }))
+    // Debug logging for homework calculation
+    console.log('Homework calculation:', {
+      total_homework: totalHomework,
+      completed_homework: completedHomework,
+      pending_homework: pendingHomework,
+      upcoming_homework: upcomingHomework,
+      homework_breakdown: allHomework.map(hw => {
+        const homeworkType = hw.uploader_role === 'lecturer' ? 'traditional' : 'student';
+        const gradeEntry = grades.find(grade => 
+          grade.homework_id && 
+          grade.homework_id.equals(hw._id) &&
+          grade.homework_type === homeworkType
+        );
+        
+        const isCompletedFromGrade = gradeEntry && 
+          (gradeEntry.completion_status === 'completed' || gradeEntry.completion_status === 'graded');
+        const isCompletedFromHomework = hw.completion_status === 'completed';
+        const isCompleted = isCompletedFromGrade || isCompletedFromHomework;
+        
+        return {
+          id: hw._id,
+          title: hw.title,
+          due_date: hw.due_date,
+          is_upcoming: new Date(hw.due_date) > new Date(),
+          has_grade_entry: !!gradeEntry,
+          grade_completion_status: gradeEntry?.completion_status || 'none',
+          homework_completion_status: hw.completion_status,
+          is_completed: isCompleted,
+          homework_type: homeworkType
+        };
+      })
     });
     
-    const overdueHomework = allHomework.filter(hw => new Date(hw.due_date) < new Date() && 
-      !grades.some(grade => grade.homework_id && grade.homework_id._id.equals(hw._id))).length;
+    // Removed overdue calculation - students can mark homework as completed/graded after due date
     
     // Calculate exam statistics
     const upcomingExams = exams.filter(exam => new Date(exam.due_date) > new Date());
-    const overdueExams = exams.filter(exam => new Date(exam.due_date) < new Date() && 
-      !grades.some(grade => grade.exam_id && grade.exam_id.equals(exam._id)));
     
     // Calculate average grade (null if no grades to avoid showing 0% trend)
     const averageGrade = grades.length > 0 
@@ -238,17 +329,39 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
       homework: {
         total: totalHomework,
         completed: completedHomework,
-        upcoming: upcomingHomework,
-        overdue: overdueHomework,
+        upcoming: pendingHomework, // This represents pending tasks (not completed)
         average_grade: averageGrade !== null ? Math.round(averageGrade * 100) / 100 : null,
         upcoming_list: allHomework
           .filter(hw => {
             const dueDate = new Date(hw.due_date);
             const today = new Date();
-            // Use Math.floor for proper negative number handling
             const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
-            return daysUntilDue >= 0 && 
-                   !grades.some(grade => grade.homework_id && grade.homework_id.equals(hw._id));
+            
+            // Only show upcoming homework that is not completed
+            if (daysUntilDue < 0) return false;
+            
+            // Check completion status using the same logic as studentHomework endpoint
+            let isCompleted = false;
+            
+            // For traditional homework, check Grade table
+            if (hw.uploader_role === 'lecturer') {
+              const completionStatus = completionStatusMap.get(hw._id.toString()) || 'not_started';
+              isCompleted = completionStatus === 'completed' || completionStatus === 'graded';
+            } else {
+              // For student-created homework, check both Grade table and homework's own completion_status
+              const gradeCompletionStatus = completionStatusMap.get(hw._id.toString());
+              const homeworkCompletionStatus = hw.completion_status;
+              
+              // If there's a Grade entry, use that status
+              if (gradeCompletionStatus) {
+                isCompleted = gradeCompletionStatus === 'completed' || gradeCompletionStatus === 'graded';
+              } else {
+                // If no Grade entry, check the homework's own completion_status
+                isCompleted = homeworkCompletionStatus === 'completed' || homeworkCompletionStatus === 'graded';
+              }
+            }
+            
+            return !isCompleted;
           })
           .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
           .slice(0, 5)
@@ -263,7 +376,6 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
       exams: {
         total: totalExams,
         upcoming: upcomingExams.length,
-        overdue: overdueExams.length,
         upcoming_list: upcomingExams.slice(0, 3).map(exam => ({
           _id: exam._id,
           exam_title: exam.exam_title,
@@ -478,36 +590,54 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
       deadline_status: hw.deadline_verification_status
     })));
     
-    // Get student's grades for traditional homework only
-    const traditionalHomeworkIds = traditionalHomework.map(hw => hw._id);
+    // Get student's grades for all homework
+    const allHomeworkIds = allHomework.map(hw => hw._id);
     const grades = await Grade.find({ 
       student_id: studentId,
-      homework_id: { $in: traditionalHomeworkIds }
-    });
+      homework_id: { $in: allHomeworkIds }
+    }).select('homework_id exam_id completion_status grade homework_type graded_at');
     
+    // Debug: Log grades data for homework planner
+    console.log('=== HOMEWORK PLANNER GRADES DEBUG ===');
+    console.log('Total grades found:', grades.length);
+    console.log('Grades data:', grades.map(g => ({
+      homework_id: g.homework_id,
+      homework_type: g.homework_type,
+      completion_status: g.completion_status,
+      grade: g.grade
+    })));
+    console.log('=== END HOMEWORK PLANNER GRADES DEBUG ===');
+
     // Process homework with submission status
     const processedHomework = allHomework.map(hw => {
-      const grade = grades.find(g => g.homework_id && g.homework_id.equals(hw._id));
+      // Find the correct grade entry with homework_type filtering
+      const homeworkType = hw.uploader_role === 'lecturer' ? 'traditional' : 'student';
+      const grade = grades.find(g => 
+        g.homework_id && 
+        g.homework_id.equals(hw._id) &&
+        g.homework_type === homeworkType
+      );
+      
       const isSubmitted = !!grade;
       const isGraded = isSubmitted && grade.grade !== null;
       
-      // Check completion status from both sources:
-      // 1. Traditional homework with grades
-      const isTraditionalCompleted = isGraded;
+      // Check completion status from Grade table - BOTH GRADED AND COMPLETED COUNT AS COMPLETED
+      const isCompletedFromGrade = grade && 
+        (grade.completion_status === 'completed' || grade.completion_status === 'graded');
       
-      // 2. StudentHomework with completion_status: 'completed'
-      const isStudentHomeworkCompleted = hw.completion_status === 'completed';
+      // For student homework, also check the homework's own completion_status as fallback
+      const isCompletedFromHomework = hw.completion_status === 'completed';
       
-      const isCompleted = isTraditionalCompleted || isStudentHomeworkCompleted;
+      const isCompleted = isCompletedFromGrade || isCompletedFromHomework;
       const isOverdue = new Date() > hw.due_date && !isCompleted;
       
-      let status = 'pending';
+      let status = 'not_started';
       if (isCompleted) {
         status = 'graded'; // Use 'graded' for consistency with existing logic
       } else if (isSubmitted) {
-        status = 'submitted';
+        status = 'in_progress'; // If submitted but not completed, it's in progress
       } else if (isOverdue) {
-        status = 'overdue';
+        status = 'not_started'; // Overdue homework is still not_started status
       }
       
       return {
@@ -525,7 +655,6 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
         status: status,
         is_submitted: isSubmitted,
         is_graded: isGraded,
-        is_overdue: isOverdue,
         grade: isGraded ? grade.grade : null,
         days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
       };
@@ -534,9 +663,10 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
     // Filter based on status
     let filteredHomework = processedHomework;
     if (status === 'pending') {
-      filteredHomework = processedHomework.filter(hw => hw.status === 'pending');
-    } else if (status === 'overdue') {
-      filteredHomework = processedHomework.filter(hw => hw.status === 'overdue');
+      filteredHomework = processedHomework.filter(hw => 
+        hw.status !== 'graded' && hw.status !== 'completed'
+      );
+    // Removed overdue filtering - students can mark homework as completed/graded after due date
     } else if (status === 'upcoming') {
       const days = parseInt(upcoming_days);
       const futureDate = new Date();
@@ -549,17 +679,18 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
       );
     }
     
-    // Get summary statistics
+    // Get summary statistics using the correct logic - BOTH GRADED AND COMPLETED COUNT AS COMPLETED
     const totalHomework = processedHomework.length;
-    const completedHomework = processedHomework.filter(hw => hw.status === 'graded').length;
-    const pendingHomework = processedHomework.filter(hw => hw.status === 'pending').length;
-    const overdueHomework = processedHomework.filter(hw => hw.status === 'overdue').length;
+    const completedHomework = processedHomework.filter(hw => 
+      hw.status === 'graded' || hw.status === 'completed'
+    ).length;
+    const pendingHomework = totalHomework - completedHomework; // Subtract both completed AND graded from total
+    // Removed overdue calculation - students can mark homework as completed/graded after due date
     
     const homeworkSummary = {
       total: totalHomework,
       completed: completedHomework,
       pending: pendingHomework,
-      overdue: overdueHomework,
       completion_rate: totalHomework > 0 ? Math.round((completedHomework / totalHomework) * 100) : 0
     };
     
@@ -1223,7 +1354,6 @@ router.get('/exams', checkJwt, extractUser, requireStudent, async (req, res) => 
         status: status,
         is_completed: isCompleted,
         is_graded: isGraded,
-        is_overdue: isOverdue,
         grade: isGraded ? grade.grade : null,
         days_until_due: Math.floor((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
       };
@@ -1233,8 +1363,7 @@ router.get('/exams', checkJwt, extractUser, requireStudent, async (req, res) => 
     let filteredExams = processedExams;
     if (status === 'upcoming') {
       filteredExams = processedExams.filter(exam => exam.status === 'upcoming');
-    } else if (status === 'overdue') {
-      filteredExams = processedExams.filter(exam => exam.status === 'overdue');
+    // Removed overdue filtering - students can mark exams as completed/graded after due date
     } else if (status === 'completed') {
       filteredExams = processedExams.filter(exam => exam.status === 'completed' || exam.status === 'graded');
     }
@@ -1243,13 +1372,12 @@ router.get('/exams', checkJwt, extractUser, requireStudent, async (req, res) => 
     const totalExams = processedExams.length;
     const completedExams = processedExams.filter(exam => exam.status === 'graded').length;
     const upcomingExams = processedExams.filter(exam => exam.status === 'upcoming').length;
-    const overdueExams = processedExams.filter(exam => exam.status === 'overdue').length;
+    // Removed overdue calculation - students can mark exams as completed/graded after due date
     
     const examsSummary = {
       total: totalExams,
       completed: completedExams,
       upcoming: upcomingExams,
-      overdue: overdueExams,
       completion_rate: totalExams > 0 ? Math.round((completedExams / totalExams) * 100) : 0
     };
     

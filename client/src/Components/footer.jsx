@@ -7,6 +7,7 @@ function Footer() {
   return (
     <div className="footer">
       <div className="socialMedia">
+        <span className="media-text">MEDIA</span>
         <a
           href="https://www.instagram.com/moodle.planner?igsh=cTg2N2lybWp1b2tl"
           target="_blank"
@@ -16,7 +17,6 @@ function Footer() {
           <InstagramIcon/>
         </a>
       </div>
-      <p> &copy; 2025 HaifaUniversityPlanner.com</p>
     </div>
   );
 }

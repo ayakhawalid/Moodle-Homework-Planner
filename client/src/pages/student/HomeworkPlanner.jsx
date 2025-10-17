@@ -33,6 +33,26 @@ function HomeworkPlanner() {
     }
   }, [syncStatus]);
 
+  // Refresh data when window regains focus (e.g., returning from homework management)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (syncStatus === 'synced') {
+        const fetchHomeworkData = async () => {
+          try {
+            const response = await apiService.studentDashboard.getHomeworkPlanner();
+            setHomeworkData(response.data);
+          } catch (err) {
+            console.error('Error refreshing homework data:', err);
+          }
+        };
+        fetchHomeworkData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [syncStatus]);
+
   return (
     <DashboardLayout userRole="student">
       <Box>
@@ -114,14 +134,14 @@ function HomeworkPlanner() {
               <p>View your upcoming assignment deadlines to prioritize your work effectively.</p>
               <div style={{marginTop: '15px'}}>
                 {(() => {
-                  // Filter for upcoming homework (not overdue, not completed)
+                  // Filter for upcoming homework (not completed)
                   const upcomingHomework = homeworkData.homework?.filter(hw => {
                     const dueDate = new Date(hw.due_date);
                     const today = new Date();
                     const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
                     
-                    // Show all upcoming homework (not overdue, not completed)
-                    return daysUntilDue >= 0 && hw.status !== 'graded';
+                    // Show all homework that is not completed (regardless of due date)
+                    return hw.status !== 'graded';
                   }).sort((a, b) => new Date(a.due_date) - new Date(b.due_date)) || [];
                   
                   return upcomingHomework.length > 0 ? (

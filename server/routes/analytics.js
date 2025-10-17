@@ -4,7 +4,7 @@ const { checkJwt, extractUser, requireAdminOrReadStats } = require('../middlewar
 const User = require('../models/User');
 
 // GET /api/analytics/overview
-// Returns user growth over last 12 months and weekly activity for last 7 days
+// Returns user growth over last 12 months and new user registrations for last 7 days
 router.get('/overview', checkJwt, extractUser, requireAdminOrReadStats, async (req, res) => {
   try {
     // User growth over last 12 months by month
@@ -35,23 +35,16 @@ router.get('/overview', checkJwt, extractUser, requireAdminOrReadStats, async (r
       monthCounts.push(found ? found.count : 0);
     }
 
-    // Weekly activity: last 7 days: logins (last_login) and new users (createdAt)
+    // Weekly activity: last 7 days: new users (createdAt) only
     const startWeek = new Date(now);
     startWeek.setDate(now.getDate() - 6);
-
-    const dailyLogins = await User.aggregate([
-      { $match: { last_login: { $gte: startWeek } } },
-      {
-        $group: {
-          _id: { y: { $year: '$last_login' }, m: { $month: '$last_login' }, d: { $dayOfMonth: '$last_login' } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id.y': 1, '_id.m': 1, '_id.d': 1 } }
-    ]);
+    startWeek.setHours(0, 0, 0, 0);
+    
+    const endWeek = new Date(now);
+    endWeek.setHours(23, 59, 59, 999);
 
     const dailySignups = await User.aggregate([
-      { $match: { createdAt: { $gte: startWeek } } },
+      { $match: { createdAt: { $gte: startWeek, $lte: endWeek } } },
       {
         $group: {
           _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' }, d: { $dayOfMonth: '$createdAt' } },
@@ -61,25 +54,30 @@ router.get('/overview', checkJwt, extractUser, requireAdminOrReadStats, async (r
       { $sort: { '_id.y': 1, '_id.m': 1, '_id.d': 1 } }
     ]);
 
+    // Generate proper week structure (last 7 days in chronological order)
     const dayLabels = [];
-    const loginCounts = [];
     const signupCounts = [];
-    for (let i = 6; i >= 0; i--) {
+    
+    // Generate 7 days starting from today going backwards
+    for (let i = 0; i < 7; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       const y = d.getFullYear();
       const m = d.getMonth() + 1;
       const day = d.getDate();
-      dayLabels.push(d.toLocaleString('default', { weekday: 'short' }));
-      const loginDay = dailyLogins.find(x => x._id.y === y && x._id.m === m && x._id.d === day);
+      
+      const dayLabel = d.toLocaleString('default', { weekday: 'short' });
+      dayLabels.push(dayLabel); // Add to end to show today first
+      
+      // Find data for this specific day
       const signupDay = dailySignups.find(x => x._id.y === y && x._id.m === m && x._id.d === day);
-      loginCounts.push(loginDay ? loginDay.count : 0);
-      signupCounts.push(signupDay ? signupDay.count : 0);
+      
+      signupCounts.push(signupDay ? signupDay.count : 0); // Add to end to show today first
     }
 
     res.json({
       userGrowth: { labels: monthLabels, counts: monthCounts },
-      weeklyActivity: { labels: dayLabels, logins: loginCounts, newUsers: signupCounts }
+      weeklyActivity: { labels: dayLabels, newUsers: signupCounts }
     });
   } catch (e) {
     console.error('Analytics overview error:', e);

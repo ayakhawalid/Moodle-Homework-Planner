@@ -88,6 +88,16 @@ function ClassesPlanner() {
     fetchClassesData();
   }, [currentWeek]);
 
+  // Refresh data when window regains focus (e.g., returning from other pages)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchClassesData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [currentWeek]);
+
   // Navigate to previous week
   const goToPreviousWeek = () => {
     const newWeek = new Date(currentWeek);
