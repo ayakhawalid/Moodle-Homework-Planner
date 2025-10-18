@@ -1018,4 +1018,163 @@ router.get('/courses-info', checkJwt, extractUser, requireLecturer, async (req, 
   }
 });
 
+// GET /api/lecturer-dashboard/homework-checker - Get homework for grading
+router.get('/homework-checker', checkJwt, extractUser, requireLecturer, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const { status = 'pending', course_id } = req.query;
+    
+    // First, find the user in our database using the Auth0 ID
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+    
+    const lecturerId = user._id;
+    
+    // Get lecturer's courses
+    const courses = await Course.find({ lecturer_id: lecturerId, is_active: true });
+    const courseIds = courses.map(course => course._id);
+    
+    // Build filter for homework
+    let filter = { 
+      course_id: { $in: courseIds }, 
+      is_active: true 
+    };
+    
+    if (course_id) {
+      filter.course_id = course_id;
+    }
+    
+    // Build filter for student homework (same logic as traditional homework)
+    let studentHomeworkFilter = {
+      course_id: { $in: courseIds }
+    };
+    
+    if (course_id) {
+      studentHomeworkFilter.course_id = course_id;
+    }
+    
+    // Get homework with submission status from BOTH tables
+    const traditionalHomework = await Homework.find(filter)
+      .populate('course_id', 'course_name course_code')
+      .populate({
+        path: 'grades',
+        populate: {
+          path: 'student_id',
+          select: 'name email full_name'
+        }
+      })
+      .sort({ due_date: 1 });
+    
+    const studentHomework = await StudentHomework.find(studentHomeworkFilter)
+      .populate('course_id', 'course_name course_code')
+      .populate('uploaded_by', 'name email')
+      .sort({ claimed_deadline: 1 });
+    
+    // Convert student homework to match traditional format for processing
+    const convertedStudentHomework = studentHomework.map(hw => ({
+      _id: hw._id,
+      title: hw.title,
+      description: hw.description,
+      course_id: hw.course_id._id,
+      course: {
+        _id: hw.course_id._id,
+        name: hw.course_id.course_name,
+        code: hw.course_id.course_code
+      },
+      due_date: hw.claimed_deadline,
+      is_active: true,
+      grades: [], // Student homework doesn't have grades in the traditional sense
+      uploader_role: hw.uploader_role
+    }));
+    
+    // Combine both types
+    const allHomework = [...traditionalHomework, ...convertedStudentHomework];
+    
+    console.log(`Homework checker - Traditional: ${traditionalHomework.length}, Student: ${studentHomework.length}, Total: ${allHomework.length}`);
+    
+    // Process homework based on status
+    const processedHomework = allHomework.map(hw => {
+      const submissions = hw.grades || [];
+      const totalStudents = courses.find(c => c._id.equals(hw.course_id._id))?.students?.length || 0;
+      const submittedCount = submissions.length;
+      const gradedCount = submissions.filter(sub => sub.grade !== null).length;
+      const pendingCount = submittedCount - gradedCount;
+      
+      let homeworkStatus = 'pending';
+      if (submittedCount === 0) {
+        homeworkStatus = 'no_submissions';
+      } else if (gradedCount === submittedCount) {
+        homeworkStatus = 'fully_graded';
+      } else if (gradedCount > 0) {
+        homeworkStatus = 'partially_graded';
+      }
+      
+      return {
+        _id: hw._id,
+        title: hw.title,
+        description: hw.description,
+        due_date: hw.due_date,
+        assigned_date: hw.assigned_date,
+        points_possible: hw.points_possible,
+        course: {
+          _id: hw.course_id._id,
+          name: hw.course_id.course_name,
+          code: hw.course_id.course_code
+        },
+        statistics: {
+          total_students: totalStudents,
+          submitted: submittedCount,
+          graded: gradedCount,
+          pending: pendingCount,
+          submission_rate: totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0
+        },
+        status: homeworkStatus,
+        is_overdue: new Date() > hw.due_date,
+        days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+      };
+    });
+    
+    // Filter based on status
+    let filteredHomework = processedHomework;
+    if (status === 'pending') {
+      filteredHomework = processedHomework.filter(hw => 
+        hw.status === 'pending' || hw.status === 'partially_graded'
+      );
+    } else if (status === 'overdue') {
+      filteredHomework = processedHomework.filter(hw => hw.is_overdue);
+    } else if (status === 'all') {
+      filteredHomework = processedHomework;
+    }
+    
+    // Get grading progress summary
+    const totalHomework = processedHomework.length;
+    const fullyGraded = processedHomework.filter(hw => hw.status === 'fully_graded').length;
+    const partiallyGraded = processedHomework.filter(hw => hw.status === 'partially_graded').length;
+    const pendingGrading = processedHomework.filter(hw => hw.status === 'pending').length;
+    
+    const gradingProgress = {
+      total: totalHomework,
+      fully_graded: fullyGraded,
+      partially_graded: partiallyGraded,
+      pending: pendingGrading,
+      completion_rate: totalHomework > 0 ? Math.round((fullyGraded / totalHomework) * 100) : 0
+    };
+    
+    res.json({
+      homework: filteredHomework,
+      grading_progress: gradingProgress,
+      courses: courses.map(course => ({
+        _id: course._id,
+        name: course.course_name,
+        code: course.course_code
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching homework checker data:', error);
+    res.status(500).json({ error: 'Failed to fetch homework checker data' });
+  }
+});
+
 module.exports = router;

@@ -75,7 +75,7 @@ const HomeworkManagement = () => {
     if (isAuthenticated) {
       fetchData();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, searchCourse]);
 
   const fetchData = async () => {
     try {
@@ -85,8 +85,9 @@ const HomeworkManagement = () => {
       const coursesResponse = await apiService.courses.getAll();
       setCourses(coursesResponse.data);
       
-      // Fetch all homework (traditional homework)
-      const homeworkResponse = await apiService.homework.getAll();
+      // Fetch all homework (traditional homework) with course filter
+      const homeworkParams = searchCourse ? { course_id: searchCourse } : {};
+      const homeworkResponse = await apiService.homework.getAll(homeworkParams);
       const homeworkData = homeworkResponse.data || [];
       console.log('Homework data:', homeworkData.map(hw => ({ id: hw._id, title: hw.title })));
       setHomework(homeworkData);
@@ -98,7 +99,12 @@ const HomeworkManagement = () => {
         const allHomeworkData = studentHwResponse.data?.homework || [];
         
         // Filter to only show student-created homework (exclude lecturer-created homework)
-        const studentHwData = allHomeworkData.filter(hw => hw.uploader_role === 'student');
+        let studentHwData = allHomeworkData.filter(hw => hw.uploader_role === 'student');
+        
+        // Apply course filter on frontend for student homework (since API doesn't support course filtering yet)
+        if (searchCourse) {
+          studentHwData = studentHwData.filter(hw => (hw.course?._id || hw.course_id) === searchCourse);
+        }
         
         console.log('Student homework data:', studentHwData.map(hw => ({ id: hw._id, title: hw.title, role: hw.uploader_role })));
         setStudentHomework(studentHwData);
@@ -297,14 +303,11 @@ const HomeworkManagement = () => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Filter homework by course
-  const filteredHomework = searchCourse 
-    ? homework.filter(hw => (hw.course_id?._id || hw.course_id) === searchCourse)
-    : homework;
+  // Traditional homework is now filtered on the server side
+  const filteredHomework = homework;
 
-  const filteredStudentHomework = searchCourse
-    ? studentHomework.filter(hw => (hw.course_id || hw.course?.id) === searchCourse)
-    : studentHomework;
+  // Student homework is filtered on the frontend (since API doesn't support course filtering yet)
+  const filteredStudentHomework = studentHomework;
 
   if (loading) {
     return (

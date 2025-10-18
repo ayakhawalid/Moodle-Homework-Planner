@@ -744,6 +744,45 @@ body, html {
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Mini Four Walls Section */
+.mini-walls-section {
+  position: relative;
+  height: 200px; /* Small section after statuses */
+  width: 100vw; /* Full viewport width */
+  margin: 2rem -2rem 0 -2rem; /* Break out of container margins */
+  padding: 0;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.mini-wall {
+  position: absolute;
+  width: 25vw;
+  height: 100%;
+  z-index: 5;
+}
+
+.mini-wall-1 {
+  left: 0;
+  background: linear-gradient(135deg, #FF7F7F, #FF6B6B); /* Coral - Not Started */
+}
+
+.mini-wall-2 {
+  left: 25vw;
+  background: linear-gradient(135deg, #FCE38A, #F9D56E); /* Yellow - In Progress */
+}
+
+.mini-wall-3 {
+  left: 50vw;
+  background: linear-gradient(135deg, #D6F7AD, #C8F299); /* Green - Completed */
+}
+
+.mini-wall-4 {
+  left: 75vw;
+  background: linear-gradient(135deg, #95E1D3, #7DD3C0); /* Teal - Graded */
+}
+
+
 /* Media Section - Replaces Footer */
 .media-section {
   display: flex;
@@ -752,7 +791,7 @@ body, html {
   justify-content: center;
   padding: 3rem 2rem;
   background-color: #121619;
-  margin: 4rem -2rem 0 -2rem; /* Extend to full width by negating about-section padding */
+  margin: 0 -2rem 0 -2rem; /* Extend to full width by negating about-section padding */
   width: 100vw; /* Full viewport width */
   position: relative;
   left: 50%;
