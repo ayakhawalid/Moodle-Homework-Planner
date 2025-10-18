@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUserSyncContext } from '../contexts/UserSyncContext'
@@ -9,6 +9,27 @@ function Home() {
   const navigate = useNavigate()
   const { isLoading, isAuthenticated, userRole } = useAuth()
   const { syncStatus } = useUserSyncContext()
+  
+  // Slideshow state
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const screenshots = [
+    { src: '/src/assets/Screenshot (823).png', alt: 'Dashboard Overview' },
+    { src: '/src/assets/Screenshot (824).png', alt: 'Homework Management' },
+    { src: '/src/assets/Screenshot (825).png', alt: 'Progress Tracking' }
+  ]
+
+  // Slideshow functions
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % screenshots.length)
+  }
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + screenshots.length) % screenshots.length)
+  }
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index)
+  }
 
   // Redirect authenticated users immediately
   useEffect(() => {
@@ -72,8 +93,20 @@ function Home() {
           Manage homework, track progress, and collaborate effectively in your academic journey.
         </p>
         
-        {/* Falling Leaves Component */}
-        <FallingLeaves />
+        <div className="center-btn-container">
+          <button 
+            className="get-started-btn center-btn"
+            onClick={() => navigate('/login?mode=signup')}
+          >
+            GET STARTED
+          </button>
+          
+          <img 
+            src="/src/assets/—Pngtree—hand drawn scribble curved arrow_21731770.png" 
+            alt="Pointing Arrow" 
+            className="pointing-arrow"
+          />
+        </div>
             
             <h2 className="about-title">About</h2>
             
@@ -82,11 +115,12 @@ function Home() {
               <div className="magazine-image">
                 <img src="/favicon.svg" alt="Moodle Homework Planner Logo" className="magazine-logo" />
               </div>
-              <div className="magazine-content">
-                <p className="about-text magazine-text">
-                  The Moodle Homework Planner is a community-driven academic management platform that empowers students to take control of their learning journey. Managed by students and lecturers, our platform provides an intuitive way to organize homework, track progress, and collaborate with peers in a supportive academic environment.
-                </p>
-              </div>
+                  <div className="magazine-content">
+                    
+                    <p className="about-text magazine-text">
+                      The Moodle Homework Planner is a community-driven academic management platform that empowers students to take control of their learning journey. Managed by students and lecturers, our platform provides an intuitive way to organize homework, track progress, and collaborate with peers in a supportive academic environment.
+                    </p>
+                  </div>
             </div>
             
             <h3 className="about-subtitle">What Makes Us Different</h3>
@@ -122,6 +156,49 @@ function Home() {
               </div>
             </div>
             
+            {/* App Preview Slideshow Section */}
+            <div className="app-preview-section">
+              <h3 className="preview-title">See It In Action</h3>
+              <p className="preview-description">
+                Get a glimpse of how our platform looks and works in practice.
+              </p>
+              
+              <div className="slideshow-container">
+                <div className="slideshow-wrapper">
+                  <button className="slide-btn prev-btn" onClick={prevSlide}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="15,18 9,12 15,6"></polyline>
+                    </svg>
+                  </button>
+                  
+                  <div className="slide-container">
+                    <img 
+                      src={screenshots[currentSlide].src}
+                      alt={screenshots[currentSlide].alt}
+                      className="preview-image"
+                    />
+                  </div>
+                  
+                  <button className="slide-btn next-btn" onClick={nextSlide}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="9,18 15,12 9,6"></polyline>
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Slide indicators */}
+                <div className="slide-indicators">
+                  {screenshots.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`indicator ${index === currentSlide ? 'active' : ''}`}
+                      onClick={() => goToSlide(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            
             <h3 className="about-subtitle">How It Works</h3>
             <p className="about-text">
               Getting started is simple! Sign up, add your courses, and begin creating your homework assignments. Set your own deadlines, track your progress through our four-stage system (Not Started, In Progress, Completed, Graded), and choose peers for specific assignments when you need collaboration.
@@ -130,6 +207,9 @@ function Home() {
             <p className="about-text">
               Our platform grows with your needs. Whether you're managing a heavy course load or looking for homework peers, you'll find the tools and community support to make your academic journey smoother and more enjoyable.
             </p>
+            
+            {/* Falling Leaves Component */}
+            <FallingLeaves />
             
             <div className="status-system">
               <h3 className="status-title">Status Tracking System</h3>
