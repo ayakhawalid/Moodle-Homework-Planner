@@ -42,28 +42,128 @@ The Moodle Homework Planner uses MongoDB as its database. This document provides
 
 ## Entity Relationship Diagram
 
+### Complete Database Schema Graph
+
 ```mermaid
-erDiagram
-    User ||--o{ Course : "teaches (lecturer)"
-    User ||--o{ Course : "enrolled in (students)"
-    User ||--o{ Grade : "receives"
-    User ||--o{ StudyProgress : "tracks"
-    User ||--o{ RoleRequest : "submits"
-    User ||--o{ StudentHomework : "uploads"
-    User ||--o{ Partner : "student1"
-    User ||--o{ Partner : "student2"
+graph TB
+    %% Core Entities
+    User[👤 User<br/>auth0_id, email, name<br/>role: student/lecturer/admin]
+    Course[📚 Course<br/>course_name, course_code<br/>lecturer_id, students[]]
+    Homework[📝 Homework<br/>title, description<br/>due_date, course_id]
+    StudentHW[📋 StudentHomework<br/>title, claimed_deadline<br/>uploader_role, course_id]
+    Grade[🎯 Grade<br/>student_id, homework_id<br/>completion_status, grade]
+    Partner[🤝 Partner<br/>student1_id, student2_id<br/>homework_id, homework_type]
     
-    Course ||--o{ Class : "has"
-    Course ||--o{ Homework : "has"
-    Course ||--o{ Exam : "has"
-    Course ||--o{ StudentHomework : "belongs to"
+    %% Secondary Entities
+    Class[🏫 Class<br/>class_title, class_date<br/>start_time, end_time]
+    Exam[📊 Exam<br/>exam_title, due_date<br/>exam_type, course_id]
+    StudyProgress[📈 StudyProgress<br/>date, hours_studied<br/>tasks_completed]
+    RoleRequest[📋 RoleRequest<br/>desired_role, status<br/>user, note]
     
-    Homework ||--o{ Grade : "graded"
-    Homework ||--o{ Partner : "allows partnerships"
+    %% User Relationships (One-to-Many)
+    User -->|"teaches"| Course
+    User -->|"receives"| Grade
+    User -->|"tracks"| StudyProgress
+    User -->|"submits"| RoleRequest
+    User -->|"uploads"| StudentHW
+    User -->|"student1"| Partner
+    User -->|"student2"| Partner
+    User -->|"graded by"| Grade
     
-    Exam ||--o{ Grade : "graded"
+    %% Course Relationships (One-to-Many)
+    Course -->|"has classes"| Class
+    Course -->|"has homework"| Homework
+    Course -->|"has exams"| Exam
+    Course -->|"belongs to"| StudentHW
     
-    Grade }o--|| User : "graded by (lecturer)"
+    %% Homework Relationships (One-to-Many)
+    Homework -->|"graded"| Grade
+    Homework -->|"allows partnerships"| Partner
+    
+    %% StudentHomework Relationships (One-to-Many)
+    StudentHW -->|"graded"| Grade
+    StudentHW -->|"allows partnerships"| Partner
+    
+    %% Exam Relationships (One-to-Many)
+    Exam -->|"graded"| Grade
+    
+    %% Many-to-Many Relationships (Junction Tables)
+    User -.->|"enrolled in<br/>(via Course.students[])"| Course
+    User -.->|"grades homework<br/>(via Grade table)"| Homework
+    User -.->|"grades student homework<br/>(via Grade table)"| StudentHW
+    User -.->|"grades exams<br/>(via Grade table)"| Exam
+    User -.->|"partners with<br/>(via Partner table)"| User
+    
+    %% Styling
+    classDef coreEntity fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    classDef secondaryEntity fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef junctionEntity fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    
+    class User,Course,Homework,StudentHW coreEntity
+    class Class,Exam,StudyProgress,RoleRequest secondaryEntity
+    class Grade,Partner junctionEntity
+```
+
+### Simplified Relationship Overview
+
+```mermaid
+graph LR
+    %% Core Flow
+    subgraph "👥 Users"
+        S[👨‍🎓 Student]
+        L[👨‍🏫 Lecturer]
+        A[👨‍💼 Admin]
+    end
+    
+    subgraph "📚 Academic Structure"
+        C[📖 Course]
+        H[📝 Traditional Homework]
+        SH[📋 Student Homework]
+        E[📊 Exam]
+        CL[🏫 Class]
+    end
+    
+    subgraph "🎯 Tracking & Assessment"
+        G[🎯 Grade]
+        P[🤝 Partner]
+        SP[📈 Study Progress]
+    end
+    
+    subgraph "⚙️ System Management"
+        RR[📋 Role Request]
+    end
+    
+    %% Main relationships
+    L -->|"teaches"| C
+    S -->|"enrolled in"| C
+    C -->|"contains"| H
+    C -->|"contains"| SH
+    C -->|"contains"| E
+    C -->|"contains"| CL
+    
+    S -->|"uploads"| SH
+    S -->|"receives grades for"| G
+    H -->|"graded via"| G
+    SH -->|"graded via"| G
+    E -->|"graded via"| G
+    
+    S -->|"partners on"| P
+    H -->|"enables"| P
+    SH -->|"enables"| P
+    
+    S -->|"tracks"| SP
+    S -->|"requests role change"| RR
+    
+    %% Styling
+    classDef user fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    classDef academic fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef tracking fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef system fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    
+    class S,L,A user
+    class C,H,SH,E,CL academic
+    class G,P,SP tracking
+    class RR system
 ```
 
 ---
@@ -338,7 +438,7 @@ erDiagram
 
 **Collection:** `grades`
 
-**Purpose:** Stores individual student progress and grades for homework and exams. Each student gets a Grade entry for every homework/exam they're enrolled in.
+**Purpose:** Stores individual student progress and grades for homework and exams. Each student gets a Grade entry for every homework/exam they're enrolled in. This collection implements many-to-many relationships between Students and Homework/Exams.
 
 #### Schema Fields
 
@@ -653,12 +753,36 @@ erDiagram
 |----------|----------|-------------------------|-------------|
 | User (student) | Course | `Course.students` array | Students enrolled in courses |
 | User | User | Partner collection | Students partner on homework |
+| User (student) | Homework | Grade collection | Students have grades for homework |
+| User (student) | StudentHomework | Grade collection | Students have grades for student-created homework |
+| User (student) | Exam | Grade collection | Students have grades for exams |
 
 ### Polymorphic Relationships
 
 | Child | Parents | Implementation | Description |
 |-------|---------|----------------|-------------|
 | Grade | Homework OR Exam | `homework_id` XOR `exam_id` | Grade belongs to either homework or exam |
+| Grade | Homework OR StudentHomework | `homework_id` with `homework_type` | Grade can belong to traditional or student-created homework |
+| Partner | Homework OR StudentHomework | `homework_id` with `homework_type` | Partnership can be for traditional or student-created homework |
+
+### Many-to-Many Implementation Details
+
+#### Student-Course Enrollment
+- **Implementation**: Array field `students` in Course collection
+- **Access Pattern**: `Course.students` contains array of User ObjectIds
+- **Query Example**: `Course.find({ students: studentId })`
+
+#### Student-Homework Grades  
+- **Implementation**: Grade collection as junction table
+- **Key Fields**: `student_id`, `homework_id`, `homework_type`
+- **Access Pattern**: Each student gets one Grade entry per homework
+- **Query Example**: `Grade.find({ student_id: studentId, homework_type: 'traditional' })`
+
+#### Student Partnerships
+- **Implementation**: Partner collection as junction table  
+- **Key Fields**: `student1_id`, `student2_id`, `homework_id`, `homework_type`
+- **Access Pattern**: Each partnership creates one Partner entry
+- **Query Example**: `Partner.find({ $or: [{ student1_id: studentId }, { student2_id: studentId }] })`
 
 ---
 

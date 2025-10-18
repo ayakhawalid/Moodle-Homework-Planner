@@ -201,11 +201,15 @@ function Home() {
             
             <h3 className="about-subtitle">How It Works</h3>
             <p className="about-text">
-              Getting started is simple! Sign up, add your courses, and begin creating your homework assignments. Set your own deadlines, track your progress through our four-stage system (Not Started, In Progress, Completed, Graded), and choose peers for specific assignments when you need collaboration.
+              Getting started is simple! Sign up, enroll in your courses, and begin creating your homework assignments. Set your own deadlines, track your progress through our four-stage system (Not Started, In Progress, Completed, Graded), and choose peers for specific assignments when you need collaboration.
             </p>
             
             <p className="about-text">
               Our platform grows with your needs. Whether you're managing a heavy course load or looking for homework peers, you'll find the tools and community support to make your academic journey smoother and more enjoyable.
+            </p>
+            
+            <p className="about-text">
+              For lecturers, our platform provides powerful tools to manage course content, track student progress, and facilitate collaborative learning. Create assignments, monitor completion rates, and engage with students through our intuitive interface designed specifically for academic environments.
             </p>
             
             {/* Falling Leaves Component */}
@@ -250,6 +254,14 @@ function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Mini Four Walls Section */}
+            <div className="mini-walls-section">
+              <div className="mini-wall mini-wall-1"></div>
+              <div className="mini-wall mini-wall-2"></div>
+              <div className="mini-wall mini-wall-3"></div>
+              <div className="mini-wall mini-wall-4"></div>
             </div>
             
             {/* Media Section - Replaces Footer */}
