@@ -42,128 +42,46 @@ The Moodle Homework Planner uses MongoDB as its database. This document provides
 
 ## Entity Relationship Diagram
 
-### Complete Database Schema Graph
+### Database Relationships
 
 ```mermaid
 graph TB
-    %% Core Entities
-    User[👤 User<br/>auth0_id, email, name<br/>role: student/lecturer/admin]
-    Course[📚 Course<br/>course_name, course_code<br/>lecturer_id, students[]]
-    Homework[📝 Homework<br/>title, description<br/>due_date, course_id]
-    StudentHW[📋 StudentHomework<br/>title, claimed_deadline<br/>uploader_role, course_id]
-    Grade[🎯 Grade<br/>student_id, homework_id<br/>completion_status, grade]
-    Partner[🤝 Partner<br/>student1_id, student2_id<br/>homework_id, homework_type]
+    User[User]
+    Course[Course]
+    Homework[Homework]
+    StudentHomework[StudentHomework]
+    Grade[Grade]
+    Partner[Partner]
+    Class[Class]
+    Exam[Exam]
+    StudyProgress[StudyProgress]
+    RoleRequest[RoleRequest]
     
-    %% Secondary Entities
-    Class[🏫 Class<br/>class_title, class_date<br/>start_time, end_time]
-    Exam[📊 Exam<br/>exam_title, due_date<br/>exam_type, course_id]
-    StudyProgress[📈 StudyProgress<br/>date, hours_studied<br/>tasks_completed]
-    RoleRequest[📋 RoleRequest<br/>desired_role, status<br/>user, note]
+    User --> Course
+    User --> Grade
+    User --> StudyProgress
+    User --> RoleRequest
+    User --> StudentHomework
+    User --> Partner
     
-    %% User Relationships (One-to-Many)
-    User -->|"teaches"| Course
-    User -->|"receives"| Grade
-    User -->|"tracks"| StudyProgress
-    User -->|"submits"| RoleRequest
-    User -->|"uploads"| StudentHW
-    User -->|"student1"| Partner
-    User -->|"student2"| Partner
-    User -->|"graded by"| Grade
+    Course --> Class
+    Course --> Homework
+    Course --> Exam
+    Course --> StudentHomework
     
-    %% Course Relationships (One-to-Many)
-    Course -->|"has classes"| Class
-    Course -->|"has homework"| Homework
-    Course -->|"has exams"| Exam
-    Course -->|"belongs to"| StudentHW
+    Homework --> Grade
+    Homework --> Partner
     
-    %% Homework Relationships (One-to-Many)
-    Homework -->|"graded"| Grade
-    Homework -->|"allows partnerships"| Partner
+    StudentHomework --> Grade
+    StudentHomework --> Partner
     
-    %% StudentHomework Relationships (One-to-Many)
-    StudentHW -->|"graded"| Grade
-    StudentHW -->|"allows partnerships"| Partner
+    Exam --> Grade
     
-    %% Exam Relationships (One-to-Many)
-    Exam -->|"graded"| Grade
-    
-    %% Many-to-Many Relationships (Junction Tables)
-    User -.->|"enrolled in<br/>(via Course.students[])"| Course
-    User -.->|"grades homework<br/>(via Grade table)"| Homework
-    User -.->|"grades student homework<br/>(via Grade table)"| StudentHW
-    User -.->|"grades exams<br/>(via Grade table)"| Exam
-    User -.->|"partners with<br/>(via Partner table)"| User
-    
-    %% Styling
-    classDef coreEntity fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    classDef secondaryEntity fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef junctionEntity fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    
-    class User,Course,Homework,StudentHW coreEntity
-    class Class,Exam,StudyProgress,RoleRequest secondaryEntity
-    class Grade,Partner junctionEntity
-```
-
-### Simplified Relationship Overview
-
-```mermaid
-graph LR
-    %% Core Flow
-    subgraph "👥 Users"
-        S[👨‍🎓 Student]
-        L[👨‍🏫 Lecturer]
-        A[👨‍💼 Admin]
-    end
-    
-    subgraph "📚 Academic Structure"
-        C[📖 Course]
-        H[📝 Traditional Homework]
-        SH[📋 Student Homework]
-        E[📊 Exam]
-        CL[🏫 Class]
-    end
-    
-    subgraph "🎯 Tracking & Assessment"
-        G[🎯 Grade]
-        P[🤝 Partner]
-        SP[📈 Study Progress]
-    end
-    
-    subgraph "⚙️ System Management"
-        RR[📋 Role Request]
-    end
-    
-    %% Main relationships
-    L -->|"teaches"| C
-    S -->|"enrolled in"| C
-    C -->|"contains"| H
-    C -->|"contains"| SH
-    C -->|"contains"| E
-    C -->|"contains"| CL
-    
-    S -->|"uploads"| SH
-    S -->|"receives grades for"| G
-    H -->|"graded via"| G
-    SH -->|"graded via"| G
-    E -->|"graded via"| G
-    
-    S -->|"partners on"| P
-    H -->|"enables"| P
-    SH -->|"enables"| P
-    
-    S -->|"tracks"| SP
-    S -->|"requests role change"| RR
-    
-    %% Styling
-    classDef user fill:#bbdefb,stroke:#1976d2,stroke-width:2px
-    classDef academic fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    classDef tracking fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-    classDef system fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    
-    class S,L,A user
-    class C,H,SH,E,CL academic
-    class G,P,SP tracking
-    class RR system
+    User -.-> Course
+    User -.-> Homework
+    User -.-> StudentHomework
+    User -.-> Exam
+    User -.-> User
 ```
 
 ---
