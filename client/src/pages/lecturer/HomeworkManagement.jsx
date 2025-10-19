@@ -40,6 +40,7 @@ import {
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
 import '../../styles/DashboardLayout.css';
+import '../../styles/HomeworkCard.css';
 
 const HomeworkManagement = () => {
   const { isAuthenticated } = useAuth0();
@@ -101,12 +102,31 @@ const HomeworkManagement = () => {
         // Filter to only show student-created homework (exclude lecturer-created homework)
         let studentHwData = allHomeworkData.filter(hw => hw.uploader_role === 'student');
         
+        console.log('All student homework before filtering:', studentHwData.map(hw => ({ 
+          id: hw._id, 
+          title: hw.title, 
+          course: hw.course,
+          courseId: hw.course?._id
+        })));
+        
         // Apply course filter on frontend for student homework (since API doesn't support course filtering yet)
         if (searchCourse) {
-          studentHwData = studentHwData.filter(hw => (hw.course?._id || hw.course_id) === searchCourse);
+          console.log('Filtering by course:', searchCourse, 'Type:', typeof searchCourse);
+          studentHwData = studentHwData.filter(hw => {
+            const courseId = hw.course?._id;
+            const matches = courseId === searchCourse;
+            console.log(`Homework "${hw.title}" course._id: ${courseId} (${typeof courseId}), searchCourse: ${searchCourse} (${typeof searchCourse}), matches: ${matches}`);
+            return matches;
+          });
         }
         
-        console.log('Student homework data:', studentHwData.map(hw => ({ id: hw._id, title: hw.title, role: hw.uploader_role })));
+        console.log('Student homework data:', studentHwData.map(hw => ({ 
+          id: hw._id, 
+          title: hw.title, 
+          role: hw.uploader_role,
+          course: hw.course,
+          courseId: hw.course?._id
+        })));
         setStudentHomework(studentHwData);
       } catch (err) {
         console.error('Error fetching student homework:', err);
@@ -303,8 +323,10 @@ const HomeworkManagement = () => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Traditional homework is now filtered on the server side
-  const filteredHomework = homework;
+  // Traditional homework is filtered on the server side, but add frontend filtering as backup
+  const filteredHomework = searchCourse 
+    ? homework.filter(hw => (hw.course_id?._id || hw.course_id) === searchCourse)
+    : homework;
 
   // Student homework is filtered on the frontend (since API doesn't support course filtering yet)
   const filteredStudentHomework = studentHomework;
@@ -321,7 +343,8 @@ const HomeworkManagement = () => {
 
   return (
     <DashboardLayout userRole="lecturer">
-      <Box sx={{ p: 3 }}>
+      <div className="white-page-background">
+        <Box sx={{ p: 3 }}>
         {/* Header */}
         <Box mb={4}>
           <Typography variant="h3" component="h1" sx={{ 
@@ -451,181 +474,151 @@ const HomeworkManagement = () => {
 
         {/* Tab Content */}
         {tabValue === 0 && (
-          <Grid container spacing={4} rowSpacing={6}>
+          <div className="homework-grid">
             {filteredHomework.length === 0 ? (
-              <Grid item xs={12}>
-                <div className="dashboard-card" style={{ 
-                  padding: '40px', 
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <AssignmentIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
-                  <Typography variant="h6" color="textSecondary">
-                    No homework assignments yet
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Create your first homework assignment to get started
-                  </Typography>
-                </div>
-              </Grid>
+              <div className="dashboard-card" style={{ 
+                padding: '40px', 
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <AssignmentIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
+                <Typography variant="h6" color="textSecondary">
+                  No homework assignments yet
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Create your first homework assignment to get started
+                </Typography>
+              </div>
             ) : (
               filteredHomework.map((hw) => {
                 const isOverdue = new Date(hw.due_date) < new Date();
                 
                 return (
-                  <Grid item xs={12} md={6} lg={4} key={hw._id || `hw-${Math.random()}`}>
-                    <div className="dashboard-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '20px', marginBottom: '16px' }}>
-                      <div className="card-content" style={{ flexGrow: 1 }}>
-                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                          <Typography variant="h6" component="h2" sx={{ flexGrow: 1, fontWeight: 600 }}>
-                            {hw.title}
-                          </Typography>
-                        </Box>
+                  <div className="homework-item" key={hw._id || `hw-${Math.random()}`}>
+                    <div className="homework-card lecturer-homework">
+                      {/* Notebook Edge - Simple line for lecturer */}
+                      <div className="notebook-edge lecturer-edge">
+                        <div className="lecturer-indicator"></div>
+                      </div>
 
-                        {/* Course Info */}
-                        <Box display="flex" alignItems="center" mb={1}>
+                      {/* Homework Content */}
+                      <div className="homework-content">
+                        <div className="homework-title">{hw.title}</div>
+                        <div className="homework-course">
                           <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
-                          <Typography variant="body2" color="text.secondary">
-                            {hw.course_id?.course_name || 'Unknown Course'} ({hw.course_id?.course_code || 'N/A'})
-                          </Typography>
-                        </Box>
-
+                          {hw.course_id?.course_name || 'Unknown Course'} ({hw.course_id?.course_code || 'N/A'})
+                        </div>
+                        
                         {/* Due Date */}
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: isOverdue ? '#F38181' : '#D6F7AD' }} />
-                          <Typography variant="body2" color={isOverdue ? 'error' : 'text.secondary'}>
-                            Due: {formatDate(hw.due_date)}
+                        <div className="deadline-box">
+                          <ScheduleIcon sx={{ fontSize: 20, color: '#4a5568' }} />
+                          <span className="deadline-text">
+                            {formatDate(hw.due_date)}
                             {isOverdue && ' (Overdue)'}
-                          </Typography>
-                        </Box>
+                          </span>
+                        </div>
 
                         {/* Description */}
                         {hw.description && (
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            {hw.description}
-                          </Typography>
+                          <div className="homework-description">{hw.description}</div>
                         )}
 
                         {/* Partner Settings */}
                         {hw.allow_partners && (
-                          <Chip
-                            label="Allows Partners"
-                            sx={{
-                              backgroundColor: 'rgba(149, 225, 211, 0.3)',
-                              color: '#333',
-                              border: '1px solid #95E1D3',
-                              mb: 2
-                            }}
-                            size="small"
-                          />
+                          <div className="partner-indicator">
+                            <Chip
+                              label="Allows Partners"
+                              sx={{
+                                backgroundColor: 'rgba(149, 225, 211, 0.3)',
+                                color: '#333',
+                                border: '1px solid #95E1D3',
+                                fontSize: '0.75rem'
+                              }}
+                              size="small"
+                            />
+                          </div>
                         )}
-
-                        <Divider sx={{ my: 2 }} />
-
-                        {/* Action Buttons */}
-                        <Box display="flex" gap={1}>
-                          <Button
-                            fullWidth
-                            variant="outlined"
-                            startIcon={<EditIcon />}
-                            onClick={() => handleEditHomework(hw)}
-                            size="small"
-                            sx={{
-                              borderColor: '#95E1D3',
-                              color: '#333',
-                              '&:hover': { 
-                                borderColor: '#7dd3c0', 
-                                backgroundColor: 'rgba(149, 225, 211, 0.1)' 
-                              }
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            fullWidth
-                            variant="outlined"
-                            color="error"
-                            startIcon={<DeleteIcon />}
-                            onClick={() => openDeleteDialog(hw)}
-                            size="small"
-                            sx={{
-                              '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' }
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </Box>
                       </div>
                     </div>
-                  </Grid>
+
+                    {/* Action Buttons */}
+                    <div className="homework-actions">
+                      <button
+                        className="action-button edit"
+                        onClick={() => handleEditHomework(hw)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="action-button delete"
+                        onClick={() => openDeleteDialog(hw)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 );
               })
             )}
-          </Grid>
+          </div>
         )}
 
         {/* Student Homework Tab */}
         {tabValue === 1 && (
-          <Grid container spacing={4} rowSpacing={6}>
+          <div className="homework-grid">
             {filteredStudentHomework.length === 0 ? (
-              <Grid item xs={12}>
-                <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
-                  <PeopleIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
-                  <Typography variant="h6" color="textSecondary">
-                    No student homework yet
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Student homework will appear here when students create homework entries
-                  </Typography>
-                </div>
-              </Grid>
+              <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
+                <PeopleIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
+                <Typography variant="h6" color="textSecondary">
+                  No student homework yet
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Student homework will appear here when students create homework entries
+                </Typography>
+              </div>
             ) : (
               filteredStudentHomework.map((hw) => (
-                <Grid item xs={12} md={6} lg={4} key={hw._id || `student-hw-${Math.random()}`}>
-                  <div className="dashboard-card" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '20px', marginBottom: '16px' }}>
-                    <div className="card-content" style={{ flexGrow: 1 }}>
-                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                        <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
-                          {hw.title}
-                        </Typography>
-                      </Box>
+                <div className="homework-item" key={hw._id || `student-hw-${Math.random()}`}>
+                  <div className="homework-card student-homework">
+                    {/* Notebook Edge - Simple line for student homework */}
+                    <div className="notebook-edge student-edge">
+                      <div className="student-indicator"></div>
+                    </div>
 
+                    {/* Homework Content */}
+                    <div className="homework-content">
+                      <div className="homework-title">{hw.title}</div>
+                      
                       {/* Student Info */}
-                      <Box display="flex" alignItems="center" mb={1}>
-                        <PeopleIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {hw.uploaded_by?.full_name || hw.uploaded_by?.name || 'Unknown Student'}
-                        </Typography>
-                      </Box>
+                      <div className="homework-course">
+                        <PeopleIcon sx={{ mr: 1, fontSize: 16, color: '#FCE38A' }} />
+                        {hw.uploaded_by?.full_name || hw.uploaded_by?.name || 'Unknown Student'}
+                      </div>
 
                       {/* Course Info */}
-                      <Box display="flex" alignItems="center" mb={1}>
+                      <div className="homework-course">
                         <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {hw.course?.name || 'Unknown Course'} ({hw.course?.code || 'N/A'})
-                        </Typography>
-                      </Box>
+                        {hw.course?.name || 'Unknown Course'} ({hw.course?.code || 'N/A'})
+                      </div>
 
                       {/* Deadline */}
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
-                        <Typography variant="body2" color="text.secondary">
+                      <div className="deadline-box">
+                        <ScheduleIcon sx={{ fontSize: 20, color: '#4a5568' }} />
+                        <span className="deadline-text">
                           Deadline: {new Date(hw.claimed_deadline).toLocaleDateString()}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
 
                       {/* Description */}
                       {hw.description && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          {hw.description}
-                        </Typography>
+                        <div className="homework-description">{hw.description}</div>
                       )}
 
-                      {/* Deadline Verification Status Only */}
-                      <Box display="flex" gap={1} mb={2} flexWrap="wrap">
+                      {/* Deadline Verification Status */}
+                      <div className="verification-indicator">
                         <Chip
                           label={`Deadline: ${formatStatus(hw.deadline_verification_status)}`}
                           sx={{
@@ -633,55 +626,36 @@ const HomeworkManagement = () => {
                                             'rgba(252, 227, 138, 0.3)',
                             color: '#333',
                             border: hw.deadline_verification_status === 'verified' ? '1px solid #95E1D3' : 
-                                    '1px solid #FCE38A'
+                                    '1px solid #FCE38A',
+                            fontSize: '0.75rem'
                           }}
                           size="small"
                         />
-                      </Box>
-
-                      <Divider sx={{ my: 2 }} />
-
-                      {/* Action Buttons - Lecturer can edit student homework */}
-                      <Box display="flex" gap={1}>
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          startIcon={<EditIcon />}
-                          onClick={() => handleEditStudentHomework(hw)}
-                          disabled={submitting}
-                          size="small"
-                          sx={{
-                            borderColor: '#95E1D3',
-                            color: '#333',
-                            '&:hover': { 
-                              borderColor: '#7dd3c0', 
-                              backgroundColor: 'rgba(149, 225, 211, 0.1)' 
-                            }
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          color="error"
-                          startIcon={<DeleteIcon />}
-                          onClick={() => handleDeleteStudentHomework(hw)}
-                          disabled={submitting}
-                          size="small"
-                          sx={{
-                            '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' }
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </Box>
+                      </div>
                     </div>
                   </div>
-                </Grid>
+
+                  {/* Action Buttons */}
+                  <div className="homework-actions">
+                    <button
+                      className="action-button edit"
+                      onClick={() => handleEditStudentHomework(hw)}
+                      disabled={submitting}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="action-button delete"
+                      onClick={() => handleDeleteStudentHomework(hw)}
+                      disabled={submitting}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
               ))
             )}
-          </Grid>
+          </div>
         )}
 
         {/* Create Homework Dialog */}
@@ -958,6 +932,7 @@ const HomeworkManagement = () => {
           </DialogActions>
         </Dialog>
       </Box>
+      </div>
     </DashboardLayout>
   );
 };

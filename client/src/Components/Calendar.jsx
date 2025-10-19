@@ -150,16 +150,35 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     let backgroundColor = '#95E1D3'; // Default light teal
 
     if (eventType === 'homework') {
-      if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
-        backgroundColor = '#95E1D3'; // Light teal for completed
-      } else if (daysUntilDue < 0) {
-        backgroundColor = '#F38181'; // Light coral for overdue
-      } else if (daysUntilDue <= 1) {
-        backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-      } else if (daysUntilDue <= 3) {
-        backgroundColor = '#FCE38A'; // Light yellow for warning
+      if (userRole === 'lecturer') {
+        // Lecturer-specific logic: focus on deadline urgency and assignment source
+        if (daysUntilDue < 0) {
+          backgroundColor = '#F38181'; // Light coral for overdue
+        } else if (daysUntilDue <= 1) {
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
+        } else if (daysUntilDue <= 3) {
+          backgroundColor = '#FCE38A'; // Light yellow for warning
+        } else {
+          // Differentiate between lecturer-created and student-created assignments
+          if (eventData?.uploader_role === 'lecturer') {
+            backgroundColor = '#D6F7AD'; // Light green for lecturer-created assignments
+          } else {
+            backgroundColor = '#95E1D3'; // Light teal for student-created assignments
+          }
+        }
       } else {
-        backgroundColor = '#D6F7AD'; // Light green for normal
+        // Student-specific logic: focus on completion status (four statuses)
+        if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
+          backgroundColor = '#95E1D3'; // Light teal for completed/graded
+        } else if (daysUntilDue < 0) {
+          backgroundColor = '#F38181'; // Light coral for overdue
+        } else if (daysUntilDue <= 1) {
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
+        } else if (daysUntilDue <= 3) {
+          backgroundColor = '#FCE38A'; // Light yellow for warning
+        } else {
+          backgroundColor = '#D6F7AD'; // Light green for normal/upcoming
+        }
       }
     } else if (eventType === 'class') {
       backgroundColor = '#D6F7AD'; // Light green for classes
@@ -237,16 +256,35 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     let textColor = '#333';
 
     if (eventType === 'homework') {
-      if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
-        backgroundColor = '#95E1D3'; // Light teal for completed
-      } else if (daysUntilDue < 0) {
-        backgroundColor = '#F38181'; // Light coral for overdue
-      } else if (daysUntilDue <= 1) {
-        backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-      } else if (daysUntilDue <= 3) {
-        backgroundColor = '#FCE38A'; // Light yellow for warning
+      if (userRole === 'lecturer') {
+        // Lecturer-specific logic: focus on deadline urgency and assignment source
+        if (daysUntilDue < 0) {
+          backgroundColor = '#F38181'; // Light coral for overdue
+        } else if (daysUntilDue <= 1) {
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
+        } else if (daysUntilDue <= 3) {
+          backgroundColor = '#FCE38A'; // Light yellow for warning
+        } else {
+          // Differentiate between lecturer-created and student-created assignments
+          if (eventData?.uploader_role === 'lecturer') {
+            backgroundColor = '#D6F7AD'; // Light green for lecturer-created assignments
+          } else {
+            backgroundColor = '#95E1D3'; // Light teal for student-created assignments
+          }
+        }
       } else {
-        backgroundColor = '#D6F7AD'; // Light green for normal
+        // Student-specific logic: focus on completion status (four statuses)
+        if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
+          backgroundColor = '#95E1D3'; // Light teal for completed/graded
+        } else if (daysUntilDue < 0) {
+          backgroundColor = '#F38181'; // Light coral for overdue
+        } else if (daysUntilDue <= 1) {
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
+        } else if (daysUntilDue <= 3) {
+          backgroundColor = '#FCE38A'; // Light yellow for warning
+        } else {
+          backgroundColor = '#D6F7AD'; // Light green for normal/upcoming
+        }
       }
     } else if (eventType === 'class') {
       backgroundColor = '#D6F7AD'; // Light green for classes
@@ -319,13 +357,16 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
       <div className="dashboard-card" style={{ marginBottom: '16px' }}>
         <div className="card-content">
           <Typography variant="h6" gutterBottom>
-            Homework Calendar
+            {userRole === 'lecturer' ? 'Lecturer Calendar' : 'Homework Calendar'}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            View all your homework deadlines and assignments in calendar format
+            {userRole === 'lecturer' 
+              ? 'Monitor assignment deadlines and track both lecturer-created and student-created homework across your courses'
+              : 'View all your homework deadlines and assignments in calendar format'
+            }
           </Typography>
           
-          {/* Debug Info */}
+          {/* Calendar Info */}
           <Box sx={{ mb: 2, p: 1, backgroundColor: 'rgba(149, 225, 211, 0.2)', borderRadius: 1 }}>
             <Typography variant="caption" display="block">
               Current Date: {new Date().toLocaleDateString()}
@@ -334,60 +375,117 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
               Current View: {currentView}
             </Typography>
             <Typography variant="caption" display="block">
-              Events Count: {calendarEvents.length}
+              Total Events: {calendarEvents.length}
             </Typography>
           </Box>
           
           {/* Legend */}
           <Grid container spacing={1} sx={{ mb: 2 }}>
-            <Grid item>
-              <Chip
-                icon={<AssignmentIcon />}
-                label="Completed"
-                size="small"
-                sx={{ 
-                  backgroundColor: '#95E1D3', 
-                  color: '#333',
-                  border: '1px solid #95E1D3'
-                }}
-              />
-            </Grid>
-            <Grid item>
-              <Chip
-                icon={<ScheduleIcon />}
-                label="Due Today/Tomorrow"
-                size="small"
-                sx={{ 
-                  backgroundColor: '#FCE38A', 
-                  color: '#333',
-                  border: '1px solid #FCE38A'
-                }}
-              />
-            </Grid>
-            <Grid item>
-              <Chip
-                icon={<ScheduleIcon />}
-                label="Overdue"
-                size="small"
-                sx={{ 
-                  backgroundColor: '#F38181', 
-                  color: '#333',
-                  border: '1px solid #F38181'
-                }}
-              />
-            </Grid>
-            <Grid item>
-              <Chip
-                icon={<AssignmentIcon />}
-                label="Upcoming"
-                size="small"
-                sx={{ 
-                  backgroundColor: '#D6F7AD', 
-                  color: '#333',
-                  border: '1px solid #D6F7AD'
-                }}
-              />
-            </Grid>
+            {userRole === 'lecturer' ? (
+              // Lecturer-specific legend
+              <>
+                <Grid item>
+                  <Chip
+                    icon={<ScheduleIcon />}
+                    label="Due Today/Tomorrow"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#FCE38A', 
+                      color: '#333',
+                      border: '1px solid #FCE38A'
+                    }}
+                  />
+                </Grid>
+                <Grid item>
+                  <Chip
+                    icon={<ScheduleIcon />}
+                    label="Overdue"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#F38181', 
+                      color: '#333',
+                      border: '1px solid #F38181'
+                    }}
+                  />
+                </Grid>
+                <Grid item>
+                  <Chip
+                    icon={<AssignmentIcon />}
+                    label="Lecturer Created"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#D6F7AD', 
+                      color: '#333',
+                      border: '1px solid #D6F7AD'
+                    }}
+                  />
+                </Grid>
+                <Grid item>
+                  <Chip
+                    icon={<AssignmentIcon />}
+                    label="Student Created"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#95E1D3', 
+                      color: '#333',
+                      border: '1px solid #95E1D3'
+                    }}
+                  />
+                </Grid>
+              </>
+            ) : (
+              // Student-specific legend
+              <>
+                <Grid item>
+                  <Chip
+                    icon={<AssignmentIcon />}
+                    label="Completed"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#95E1D3', 
+                      color: '#333',
+                      border: '1px solid #95E1D3'
+                    }}
+                  />
+                </Grid>
+                <Grid item>
+                  <Chip
+                    icon={<ScheduleIcon />}
+                    label="Due Today/Tomorrow"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#FCE38A', 
+                      color: '#333',
+                      border: '1px solid #FCE38A'
+                    }}
+                  />
+                </Grid>
+                <Grid item>
+                  <Chip
+                    icon={<ScheduleIcon />}
+                    label="Overdue"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#F38181', 
+                      color: '#333',
+                      border: '1px solid #F38181'
+                    }}
+                  />
+                </Grid>
+                <Grid item>
+                  <Chip
+                    icon={<AssignmentIcon />}
+                    label="Upcoming"
+                    size="small"
+                    sx={{ 
+                      backgroundColor: '#D6F7AD', 
+                      color: '#333',
+                      border: '1px solid #D6F7AD'
+                    }}
+                  />
+                </Grid>
+              </>
+            )}
           </Grid>
         </div>
       </div>

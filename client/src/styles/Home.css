@@ -296,20 +296,19 @@ body, html {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid #95E1D3;
-  background: transparent;
+  border: none;
+  background: rgba(149, 225, 211, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .indicator.active {
   background: linear-gradient(135deg, #95E1D3 0%, #7DD3C0 100%);
-  border-color: #7DD3C0;
   box-shadow: 0 2px 8px rgba(149, 225, 211, 0.3);
 }
 
 .indicator:hover {
-  border-color: #7DD3C0;
+  background: rgba(149, 225, 211, 0.5);
   transform: scale(1.2);
   box-shadow: 0 2px 8px rgba(149, 225, 211, 0.2);
 }
@@ -568,6 +567,8 @@ body, html {
   gap: 20px; /* Increased gap for more spacing */
   margin: 2rem 0; /* Add margin for spacing */
 }
+
+
 
 .circle {
   width: 32px; /* Even bigger circles */
@@ -1074,6 +1075,7 @@ body, html {
     margin-bottom: 2rem; /* Smaller margin on mobile */
     padding: 1rem 0; /* Smaller padding on mobile */
   }
+
   
   .home-logo {
     width: 80px; /* Smaller logo on mobile */

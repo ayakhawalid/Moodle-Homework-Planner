@@ -89,6 +89,7 @@ function Home() {
           <div className="circle circle-4"></div>
         </div>
         
+        {/* Main Description */}
         <p className="main-description">
           Manage homework, track progress, and collaborate effectively in your academic journey.
         </p>
@@ -124,6 +125,8 @@ function Home() {
             </div>
             
             <h3 className="about-subtitle">What Makes Us Different</h3>
+            
+
             <div className="features-list">
               <div className="feature-item">
                 <h4>Student-Centered Design</h4>
