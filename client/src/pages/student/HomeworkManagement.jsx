@@ -32,10 +32,12 @@ import {
   Schedule as ScheduleIcon,
   School as SchoolIcon,
   Delete as DeleteIcon,
-  PlayArrow as PlayArrowIcon
+  PlayArrow as PlayArrowIcon,
+  Edit as EditPenIcon
 } from '@mui/icons-material';
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
+import '../../styles/HomeworkCard.css';
 
 const HomeworkManagement = () => {
   const { isAuthenticated } = useAuth0();
@@ -46,6 +48,7 @@ const HomeworkManagement = () => {
   const [success, setSuccess] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [searchCourse, setSearchCourse] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -255,20 +258,56 @@ const HomeworkManagement = () => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const getCompletionStatusColor = (status) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'in_progress': return 'warning';
-      case 'not_started': return 'default';
-      case 'graded': return 'info';
-      default: return 'default';
+  const getNextStatus = (currentStatus) => {
+    switch (currentStatus) {
+      case 'not_started': return 'in_progress';
+      case 'in_progress': return 'completed';
+      case 'completed': return 'graded';
+      default: return null;
     }
   };
 
-  // Filter homework by course
-  const filteredHomework = searchCourse
-    ? homework.filter(hw => (hw.course?._id || hw.course_id) === searchCourse)
-    : homework;
+  const getStatusAction = (currentStatus) => {
+    switch (currentStatus) {
+      case 'completed': return 'Add Grade';
+      default: return null;
+    }
+  };
+
+  const handleStatusProgression = async (hw) => {
+    if (hw.completion_status !== 'completed') return;
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      setSelectedHomework(hw);
+      setClaimedGrade(hw.claimed_grade || '');
+      setCompleteDialogOpen(true);
+    } catch (err) {
+      console.error('Error opening grade dialog:', err);
+      setError(err.response?.data?.error || 'Failed to open grade dialog');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Filter homework by course and status
+  const filteredHomework = homework.filter(hw => {
+    const courseMatch = !searchCourse || (hw.course?._id || hw.course_id) === searchCourse;
+    
+    // Handle status filtering based on grade table logic
+    let statusMatch = true;
+    if (selectedStatus === 'not_started') {
+      // Not started homework doesn't appear in grade table
+      statusMatch = hw.completion_status === 'not_started';
+    } else if (selectedStatus) {
+      // For other statuses, check if they exist in the grade table
+      statusMatch = hw.completion_status === selectedStatus;
+    }
+    
+    return courseMatch && statusMatch;
+  });
 
   if (loading) {
     return (
@@ -280,7 +319,11 @@ const HomeworkManagement = () => {
 
   return (
     <DashboardLayout userRole="student">
-      <Box sx={{ p: 3 }}>
+      <div className="white-page-background">
+        <Box sx={{ 
+          p: 3,
+          minHeight: '100vh'
+        }}>
       <Box mb={4}>
         <Typography variant="h3" component="h1" sx={{ 
           fontWeight: '600',
@@ -328,6 +371,104 @@ const HomeworkManagement = () => {
           </Select>
         </FormControl>
       </Box>
+
+      {/* Status Filter Palette */}
+      <Box mb={3}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: '500', color: '#2c3e50' }}>
+          Filter by Status
+        </Typography>
+        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+          <Box
+            width={36}
+            height={36}
+            borderRadius="50%"
+            backgroundColor={selectedStatus === '' ? '#2d3748' : '#4a5568'}
+            border="2px solid #1a202c"
+            sx={{ 
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: selectedStatus === '' ? '0 0 0 4px rgba(45, 55, 72, 0.4)' : 'none',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                boxShadow: '0 0 0 3px rgba(74, 85, 104, 0.3)'
+              }
+            }}
+            onClick={() => setSelectedStatus('')}
+          />
+          
+          <Box
+            width={36}
+            height={36}
+            borderRadius="50%"
+            backgroundColor={selectedStatus === 'not_started' ? '#E53E3E' : '#F38181'}
+            border="2px solid #C53030"
+            sx={{ 
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: selectedStatus === 'not_started' ? '0 0 0 4px rgba(229, 62, 62, 0.4)' : 'none',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                boxShadow: '0 0 0 3px rgba(243, 129, 129, 0.3)'
+              }
+            }}
+            onClick={() => setSelectedStatus('not_started')}
+          />
+          
+          <Box
+            width={36}
+            height={36}
+            borderRadius="50%"
+            backgroundColor={selectedStatus === 'in_progress' ? '#D69E2E' : '#FCE38A'}
+            border="2px solid #B7791F"
+            sx={{ 
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: selectedStatus === 'in_progress' ? '0 0 0 4px rgba(214, 158, 46, 0.4)' : 'none',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                boxShadow: '0 0 0 3px rgba(252, 227, 138, 0.3)'
+              }
+            }}
+            onClick={() => setSelectedStatus('in_progress')}
+          />
+          
+          <Box
+            width={36}
+            height={36}
+            borderRadius="50%"
+            backgroundColor={selectedStatus === 'completed' ? '#38A169' : '#D6F7AD'}
+            border="2px solid #2F855A"
+            sx={{ 
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: selectedStatus === 'completed' ? '0 0 0 4px rgba(56, 161, 105, 0.4)' : 'none',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                boxShadow: '0 0 0 3px rgba(214, 247, 173, 0.3)'
+              }
+            }}
+            onClick={() => setSelectedStatus('completed')}
+          />
+          
+          <Box
+            width={36}
+            height={36}
+            borderRadius="50%"
+            backgroundColor={selectedStatus === 'graded' ? '#319795' : '#95E1D3'}
+            border="2px solid #2C7A7B"
+            sx={{ 
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: selectedStatus === 'graded' ? '0 0 0 4px rgba(49, 151, 149, 0.4)' : 'none',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                boxShadow: '0 0 0 3px rgba(149, 225, 211, 0.3)'
+              }
+            }}
+            onClick={() => setSelectedStatus('graded')}
+          />
+        </Box>
+      </Box>
       
       <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
         <Button
@@ -356,246 +497,110 @@ const HomeworkManagement = () => {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="homework-grid">
         {filteredHomework.map((hw) => (
-          <Paper 
-            key={hw._id}
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 2,
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid',
-              borderColor: 'rgba(0, 0, 0, 0.12)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-                transform: 'translateY(-2px)'
-              }
-            }}
-          >
-            <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-              {/* Left Section: Title and Course Info */}
-              <Box sx={{ flex: '1 1 300px', minWidth: 0 }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600,
-                    color: '#333',
-                    mb: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {hw.title}
-                </Typography>
-                <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                  <Box display="flex" alignItems="center">
-                    <SchoolIcon sx={{ fontSize: 18, color: '#666', mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {hw.course.name}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">•</Typography>
-                  <Box display="flex" alignItems="center">
-                    <ScheduleIcon sx={{ fontSize: 18, color: '#666', mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {new Date(hw.claimed_deadline).toLocaleDateString()}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-
-              {/* Middle Section: Status Badges */}
-              <Box display="flex" gap={1} flexWrap="wrap" alignItems="center" sx={{ flex: '0 1 auto' }}>
-                <Chip
-                  label={hw.completion_status.replace('_', ' ').toUpperCase()}
-                  sx={{
-                    backgroundColor: hw.completion_status === 'graded' ? '#95E1D3' :
-                                    hw.completion_status === 'completed' ? '#95E1D3' : 
-                                    hw.completion_status === 'in_progress' ? '#FCE38A' : 
-                                    '#F38181',
-                    color: '#fff',
-                    fontWeight: 600,
-                    fontSize: '0.75rem'
-                  }}
-                  size="medium"
+          <div key={hw._id} className="homework-item">
+            <div className={`homework-card ${hw.completion_status.replace('_', '-')}`}>
+              {/* Notebook Edge with Status Circles */}
+              <div className="notebook-edge">
+                <div 
+                  className={`status-circle not-started ${hw.completion_status === 'not_started' ? 'clickable' : ''}`}
+                  onClick={() => hw.completion_status === 'not_started' && handleStatusProgression(hw)}
+                  title="Not Started"
                 />
-                {/* Show actual grade if available, otherwise show claimed grade */}
-                {(hw.actual_grade || hw.claimed_grade) && (
-                  <Chip
-                    label={`${hw.actual_grade || hw.claimed_grade}%`}
-                    sx={{
-                      backgroundColor: hw.actual_grade ? '#95E1D3' : '#D6F7AD',
-                      color: '#333',
-                      fontWeight: 700,
-                      fontSize: '0.875rem'
-                    }}
-                    size="medium"
-                    title={hw.actual_grade ? 'Verified Grade' : 'Claimed Grade'}
-                  />
-                )}
-                {hw.is_late && (
-                  <Chip
-                    label="LATE"
-                    sx={{
-                      backgroundColor: 'rgba(243, 129, 129, 0.3)',
-                      color: '#333',
-                      border: '1px solid #F38181',
-                      fontWeight: 600
-                    }}
-                    size="small"
-                  />
-                )}
-                {hw.deadline_verification_status === 'unverified' && (
-                  <Chip
-                    label="DEADLINE NOT VERIFIED"
-                    sx={{
-                      backgroundColor: 'rgba(255, 193, 7, 0.3)',
-                      color: '#333',
-                      border: '1px solid #FFC107',
-                      fontWeight: 600,
-                      fontSize: '0.75rem'
-                    }}
-                    size="small"
-                  />
-                )}
-                {hw.partner_info?.has_partner && hw.partner_info?.partnership_status === 'accepted' && (
-                  <Chip
-                    label={`PARTNER: ${hw.partner_info.partner_name}`}
-                    sx={{
-                      backgroundColor: 'rgba(149, 225, 211, 0.3)',
-                      color: '#333',
-                      border: '1px solid #95E1D3',
-                      fontWeight: 600,
-                      fontSize: '0.75rem'
-                    }}
-                    size="small"
-                  />
-                )}
-              </Box>
+                <div 
+                  className={`status-circle in-progress ${hw.completion_status === 'in_progress' ? 'clickable' : ''}`}
+                  onClick={() => hw.completion_status === 'in_progress' && handleStatusProgression(hw)}
+                  title="In Progress"
+                />
+                <div 
+                  className={`status-circle completed ${hw.completion_status === 'completed' ? 'clickable' : ''}`}
+                  onClick={() => hw.completion_status === 'completed' && handleStatusProgression(hw)}
+                  title="Completed"
+                />
+                <div 
+                  className={`status-circle graded ${hw.completion_status === 'graded' ? 'clickable' : ''}`}
+                  onClick={() => hw.completion_status === 'graded' && handleStatusProgression(hw)}
+                  title="Graded"
+                />
+              </div>
 
-              {/* Right Section: Action Buttons */}
-              <Box display="flex" gap={1} flexWrap="wrap" sx={{ flex: '0 1 auto' }}>
-                {/* Not Started: Only show Start Working button */}
-                {hw.completion_status === 'not_started' && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<PlayArrowIcon />}
-                    onClick={() => handleStartWorking(hw)}
-                    disabled={submitting}
-                    sx={{
-                      borderColor: '#FCE38A',
-                      color: '#333',
-                      '&:hover': { borderColor: '#f5d563', backgroundColor: 'rgba(252, 227, 138, 0.1)' }
-                    }}
-                  >
-                    Start Working
-                  </Button>
-                )}
+              {/* Homework Content */}
+              <div className="homework-content">
+                <div className="homework-title">
+                  {hw.title}
+                </div>
+                <div className="homework-course">{hw.course.name}</div>
+                <div className="homework-description">{hw.description || 'No description provided'}</div>
                 
-                {/* In Progress: Show Submit button */}
-                {hw.completion_status === 'in_progress' && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<CheckCircleIcon />}
-                    onClick={() => {
-                      setSelectedHomework(hw);
-                      setCompleteDialogOpen(true);
-                    }}
-                    sx={{
-                      borderColor: '#95E1D3',
-                      color: '#333',
-                      '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
-                    }}
-                  >
-                    Mark as Submitted
-                  </Button>
-                )}
-                
-                {/* Completed: Show Add Grade button */}
-                {hw.completion_status === 'completed' && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<CheckCircleIcon />}
-                    onClick={() => {
-                      setSelectedHomework(hw);
-                      setCompleteDialogOpen(true);
-                    }}
-                    sx={{
-                      borderColor: '#A8E6CF',
-                      color: '#333',
-                      '&:hover': { borderColor: '#8fd9b6', backgroundColor: 'rgba(168, 230, 207, 0.1)' }
-                    }}
-                  >
-                    Add Grade
-                  </Button>
-                )}
-                
-                {/* Graded: Show Edit Grade button */}
-                {hw.completion_status === 'graded' && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<EditIcon />}
+                {/* Deadline Box - Only show verification for student-created homework */}
+                <div className="deadline-box">
+                  <ScheduleIcon sx={{ fontSize: 20, color: '#4a5568' }} />
+                  <span className="deadline-text">
+                    {new Date(hw.claimed_deadline).toLocaleDateString()}
+                  </span>
+                  {/* Only show verification indicator for student-created homework */}
+                  {hw.uploader_role === 'student' && (
+                    <div 
+                      className={`verification-indicator ${hw.deadline_verification_status === 'verified' ? 'verified' : 'unverified'}`}
+                      title={hw.deadline_verification_status === 'verified' ? 'Verified Deadline' : 'Unverified Deadline - Needs Verification'}
+                    >
+                      {hw.deadline_verification_status === 'verified' ? 'Verified' : 'Not Verified'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Grade Section */}
+                {(hw.actual_grade || hw.claimed_grade) && (
+                  <div className="grade-section">
+                    <span className="grade-display">
+                      {hw.actual_grade || hw.claimed_grade}%
+                    </span>
+                    <EditPenIcon 
+                      className="grade-edit-icon"
                     onClick={() => {
                       setSelectedHomework(hw);
                       setClaimedGrade(hw.claimed_grade || '');
                       setCompleteDialogOpen(true);
                     }}
-                    sx={{
-                      borderColor: '#95E1D3',
-                      color: '#333',
-                      '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
-                    }}
-                  >
-                    Edit Grade
-                  </Button>
+                      title="Edit Grade"
+                    />
+                  </div>
                 )}
-                
-                {/* Show edit/delete buttons for student-created homework */}
-                {hw.uploader_role === 'student' && (
-                  <>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<EditIcon />}
+
+                {/* Status Action Button */}
+                {getStatusAction(hw.completion_status) && (
+                  <button 
+                    className="status-action-button"
+                    onClick={() => handleStatusProgression(hw)}
+                    disabled={submitting}
+                  >
+                    {getStatusAction(hw.completion_status)}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons (Below the card like Instagram) */}
+            <div className="homework-actions">
+              <button 
+                className="action-button edit"
                       onClick={() => handleEditHomework(hw)}
                       disabled={submitting}
-                      sx={{
-                        borderColor: '#95E1D3',
-                        color: '#333',
-                        '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
-                      }}
                     >
                       Edit
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      startIcon={<DeleteIcon />}
+              </button>
+              <button 
+                className="action-button delete"
                       onClick={() => handleDeleteHomework(hw)}
                       disabled={submitting}
-                      sx={{
-                        '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.1)' }
-                      }}
                     >
                       Delete
-                    </Button>
-                  </>
-                )}
-              </Box>
-            </Box>
-          </Paper>
+              </button>
+            </div>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {filteredHomework.length === 0 && (
         <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
@@ -856,6 +861,7 @@ const HomeworkManagement = () => {
         </DialogActions>
       </Dialog>
       </Box>
+      </div>
     </DashboardLayout>
   );
 };

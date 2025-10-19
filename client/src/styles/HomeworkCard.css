@@ -1,0 +1,445 @@
+/* White page background for specific pages */
+.white-page-background {
+  background: #ffffff !important;
+  min-height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 16px;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+}
+
+/* When sidebar is collapsed */
+.dashboard-container:has(.dashboard-sidebar.collapsed) .white-page-background {
+  left: 70px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .white-page-background {
+    left: 0;
+  }
+}
+
+/* Homework Card - Notebook Style */
+.homework-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.homework-item {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.homework-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  min-height: 300px;
+  border-right: 35px solid #D6F7AD; /* Thick edge, will be overridden by status */
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  overflow: visible;
+}
+
+/* Status-based border colors */
+.homework-card.not-started {
+  border-right-color: #F38181; /* Coral */
+}
+
+.homework-card.in-progress {
+  border-right-color: #FCE38A; /* Yellow */
+}
+
+.homework-card.completed {
+  border-right-color: #D6F7AD; /* Green */
+}
+
+.homework-card.graded {
+  border-right-color: #95E1D3; /* Teal */
+}
+
+.homework-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+}
+
+/* Notebook grid lines */
+.homework-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 100% 24px;
+  background-position: 0 0;
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+/* Notebook Edge Circles */
+.notebook-edge {
+  position: absolute;
+  left: -17px;
+  top: 0;
+  width: 35px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.status-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.status-circle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2);
+}
+
+.status-circle.clickable {
+  cursor: pointer;
+  animation: pulse 2s infinite;
+}
+
+.status-circle.clickable:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Status Colors */
+.status-circle.not-started {
+  background: #F38181; /* Coral */
+}
+
+.status-circle.in-progress {
+  background: #FCE38A; /* Yellow */
+}
+
+.status-circle.completed {
+  background: #D6F7AD; /* Green */
+}
+
+.status-circle.graded {
+  background: #95E1D3; /* Teal */
+}
+
+/* Homework Content */
+.homework-content {
+  padding-left: 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.homework-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.homework-course {
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.homework-description {
+  font-size: 0.95rem;
+  color: #4a5568;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Deadline Box */
+.deadline-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border-radius: 6px;
+}
+
+.deadline-text {
+  font-size: 1rem;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.leaf-icon {
+  font-size: 1.2rem;
+  color: #4a5568;
+}
+
+.verification-indicator {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.verification-indicator.verified {
+  background: transparent;
+  color: #2d3748;
+}
+
+.verification-indicator.unverified {
+  background: transparent;
+  color: #2d3748;
+}
+
+/* Grade Section */
+.grade-section {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.grade-display {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2d3748;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.grade-edit-icon {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  color: #4a5568;
+  transition: all 0.3s ease;
+}
+
+.grade-edit-icon:hover {
+  color: #2d3748;
+  transform: scale(1.1);
+}
+
+/* Action Buttons (Below the card like Instagram) */
+.homework-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.5rem 0;
+}
+
+.action-button {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.action-button.edit {
+  background: rgba(255, 255, 255, 0.6);
+  color: #333;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.action-button.edit:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+.action-button.delete {
+  background: rgba(255, 255, 255, 0.6);
+  color: #333;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.action-button.delete:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+/* Status Action Button */
+.status-action-button {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background: #95E1D3;
+  color: #333;
+}
+
+.status-action-button:hover {
+  background: #7dd3c0;
+  transform: translateY(-1px);
+}
+
+/* Lecturer-specific styles */
+.lecturer-homework {
+  border-left-color: #D6F7AD !important; /* Green for lecturer homework */
+}
+
+.lecturer-edge {
+  background: #D6F7AD;
+  width: 35px;
+  left: -17px;
+}
+
+.lecturer-indicator {
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 50%;
+  margin: 0 auto;
+  margin-top: 50%;
+  box-shadow: 0 0 0 2px #D6F7AD;
+}
+
+.partner-indicator {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Lecturer homework course styling */
+.lecturer-homework .homework-course {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Student homework styles */
+.student-homework {
+  border-left-color: #D6F7AD !important; /* Green for student homework */
+}
+
+.student-edge {
+  background: #D6F7AD;
+  width: 35px;
+  left: -17px;
+}
+
+.student-indicator {
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 50%;
+  margin: 0 auto;
+  margin-top: 50%;
+  box-shadow: 0 0 0 2px #D6F7AD;
+}
+
+.verification-indicator {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Student homework course styling */
+.student-homework .homework-course {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .homework-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 0.5rem;
+  }
+  
+  .homework-card {
+    padding: 1.5rem;
+    min-height: 250px;
+  }
+  
+  .homework-actions {
+    justify-content: center;
+  }
+  
+  .action-button {
+    min-width: 50px;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .homework-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .homework-card {
+    padding: 1rem;
+    min-height: 200px;
+  }
+  
+  .homework-title {
+    font-size: 1.1rem;
+  }
+  
+  .homework-description {
+    font-size: 0.9rem;
+  }
+}

@@ -203,18 +203,19 @@ const LecturerCalendar = () => {
 
   return (
     <DashboardLayout userRole="lecturer">
-      <Box>
-        <Typography variant="h3" gutterBottom sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Lecturer Calendar
-        </Typography>
+      <div className="white-page-background">
+        <Box>
+          <Typography variant="h3" gutterBottom sx={{ 
+            fontWeight: '600',
+            fontSize: '2.5rem',
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            letterSpacing: '-0.01em',
+            lineHeight: '1.2',
+            color: '#2c3e50',
+            mb: 1
+          }}>
+            Lecturer Calendar
+          </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ 
           mb: 4,
           fontWeight: '300',
@@ -305,6 +306,7 @@ const LecturerCalendar = () => {
         {/* Calendar Component */}
         <CalendarComponent events={[...homework, ...classes, ...exams]} userRole="lecturer" />
       </Box>
+      </div>
     </DashboardLayout>
   );
 };

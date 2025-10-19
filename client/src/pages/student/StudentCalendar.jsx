@@ -209,18 +209,19 @@ const StudentCalendar = () => {
 
   return (
     <DashboardLayout userRole="student">
-      <Box>
-        <Typography variant="h3" gutterBottom sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Student Calendar
-        </Typography>
+      <div className="white-page-background">
+        <Box>
+          <Typography variant="h3" gutterBottom sx={{ 
+            fontWeight: '600',
+            fontSize: '2.5rem',
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            letterSpacing: '-0.01em',
+            lineHeight: '1.2',
+            color: '#2c3e50',
+            mb: 1
+          }}>
+            Student Calendar
+          </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ 
           mb: 4,
           fontWeight: '300',
@@ -283,6 +284,7 @@ const StudentCalendar = () => {
         {/* Calendar Component */}
         <CalendarComponent events={[...homework, ...classes, ...exams]} userRole="student" />
       </Box>
+      </div>
     </DashboardLayout>
   );
 };
