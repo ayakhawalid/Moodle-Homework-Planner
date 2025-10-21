@@ -59,6 +59,7 @@ const Auth0Login = () => {
     console.log('Attempting signup with role:', selectedRole, 'username:', username);
     try {
       localStorage.setItem('signup_role', selectedRole);
+      localStorage.setItem('is_signup_flow', 'true'); // Mark this as a signup flow
       if (username.trim()) {
         localStorage.setItem('signup_username', username.trim());
       }
@@ -92,16 +93,14 @@ const Auth0Login = () => {
     }, 50);
     return (
       <div className="login-container">
-        <div className="login-logo-container">
-          <img 
-            src={logo} 
-            alt="University Logo" 
-            className="login-logo"
-            onClick={() => navigate('/')}
-            style={{ cursor: 'pointer' }}
-          />
-        </div>
-        <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+        <Box 
+          display="flex" 
+          flexDirection="column" 
+          alignItems="center" 
+          justifyContent="center"
+          gap={2}
+          minHeight="100vh"
+        >
           <CircularProgress />
           <Typography>Redirecting to login...</Typography>
         </Box>
@@ -112,7 +111,14 @@ const Auth0Login = () => {
   if (isLoading) {
     return (
       <div className="login-container">
-        <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+        <Box 
+          display="flex" 
+          flexDirection="column" 
+          alignItems="center" 
+          justifyContent="center"
+          gap={2}
+          minHeight="100vh"
+        >
           <CircularProgress />
           <Typography>Loading...</Typography>
         </Box>
@@ -123,7 +129,15 @@ const Auth0Login = () => {
   if (isAuthenticated) {
     return (
       <div className="login-container">
-        <Typography variant="h6">You are already logged in. Redirecting...</Typography>
+        <Box 
+          display="flex" 
+          flexDirection="column" 
+          alignItems="center" 
+          justifyContent="center"
+          minHeight="100vh"
+        >
+          <Typography variant="h6">You are already logged in. Redirecting...</Typography>
+        </Box>
       </div>
     );
   }
@@ -143,10 +157,10 @@ const Auth0Login = () => {
       </div>
 
       <Card className="login-form" sx={{ maxWidth: 500, width: '100%', borderRadius: 3, boxShadow: 3 }}>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: 2 }}>
           {mode === 'signup' ? (
             <>
-              <Box textAlign="center" mb={2}>
+              <Box textAlign="center" mb={1}>
                 <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Choose your role</Typography>
                 <Typography variant="body2" color="textSecondary">You will be redirected to Auth0 to finish sign up.</Typography>
               </Box>
@@ -154,7 +168,7 @@ const Auth0Login = () => {
                 <Alert severity="error" sx={{ mb: 2 }}>{error.message}</Alert>
               )}
               
-              <Box display="flex" flexDirection="column" gap={2}>
+              <Box display="flex" flexDirection="column" gap={1.5}>
                 <TextField
                   label="Username (optional)"
                   value={username}

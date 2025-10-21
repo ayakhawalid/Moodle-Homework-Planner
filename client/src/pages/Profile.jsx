@@ -5,6 +5,7 @@ import { useUserSyncContext } from '../contexts/UserSyncContext';
 import { apiService } from '../services/api';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate } from 'react-router-dom';
+import '../styles/HomeworkCard.css';
 
 function Profile() {
   const { user, refreshUser } = useUserSyncContext();
@@ -124,31 +125,10 @@ function Profile() {
   };
 
   const content = (
-    <Box sx={{ p: 2 }}>
-      <div className="dashboard-card" style={{ maxWidth: 800, margin: '0 auto' }}>
-        <div className="card-content">
-          <Typography variant="h3" component="h1" sx={{ 
-            fontWeight: '600',
-            fontSize: '2.5rem',
-            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-            letterSpacing: '-0.01em',
-            lineHeight: '1.2',
-            color: '#2c3e50',
-            mb: 1
-          }}>
-            Edit Profile
-          </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ 
-            mb: 4,
-            fontWeight: '300',
-            fontSize: '1.1rem',
-            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-            color: '#7f8c8d',
-            lineHeight: '1.6',
-            letterSpacing: '0.3px'
-          }}>
-            Manage your personal information and account settings
-          </Typography>
+    <div className="white-page-background">
+      <Box sx={{ p: 2 }}>
+        <div className="dashboard-card" style={{ maxWidth: 'none', margin: '0 auto' }}>
+          <div className="card-content">
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
@@ -210,9 +190,9 @@ function Profile() {
               onClick={save}
               disabled={saving || (data.username && !isValidUsername(data.username)) || usernameCheck.available === false}
               sx={{ 
-                backgroundColor: '#95E1D3', 
+                backgroundColor: '#D6F7AD', 
                 color: '#333',
-                '&:hover': { backgroundColor: '#7dd3c0' }
+                '&:hover': { backgroundColor: '#c8f299' }
               }}
             >
               {saving ? <CircularProgress size={20} /> : 'Save Changes'}
@@ -222,9 +202,9 @@ function Profile() {
               onClick={load} 
               disabled={loading}
               sx={{ 
-                backgroundColor: '#FCE38A',
+                backgroundColor: '#D6F7AD',
                 color: '#333',
-                '&:hover': { backgroundColor: '#fbd65e' }
+                '&:hover': { backgroundColor: '#c8f299' }
               }}
             >
               Reset
@@ -233,10 +213,10 @@ function Profile() {
 
           {/* Danger Zone */}
           <Box mt={4} pt={3} borderTop="1px solid #e0e0e0">
-            <Typography variant="h6" sx={{ color: '#F38181' }} gutterBottom>
+            <Typography variant="h6" sx={{ color: '#000000' }} gutterBottom>
               Danger Zone
             </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ color: '#000000', mb: 2 }}>
               Once you delete your account, there is no going back. Please be certain.
             </Typography>
             <Button
@@ -313,14 +293,17 @@ function Profile() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </Box>
+    </div>
   );
 
   // Wait for user context to be loaded before determining role
   if (!user) {
     return (
       <DashboardLayout userRole="student">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh"><CircularProgress /></Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh"><CircularProgress /></Box>
+        </div>
       </DashboardLayout>
     );
   }
@@ -336,9 +319,11 @@ function Profile() {
   return (
     <DashboardLayout userRole={userRole}>
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+            <CircularProgress />
+          </Box>
+        </div>
       ) : (
         content
       )}

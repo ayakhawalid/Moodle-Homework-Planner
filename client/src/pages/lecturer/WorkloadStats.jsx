@@ -91,8 +91,10 @@ function WorkloadStats() {
   if (loading) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="welcome-section">
-          <h1 className="welcome-title">Loading Workload Statistics...</h1>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
         </div>
       </DashboardLayout>
     );
@@ -101,9 +103,12 @@ function WorkloadStats() {
   if (error) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="welcome-section">
-          <h1 className="welcome-title">Error Loading Statistics</h1>
-          <p className="welcome-subtitle">{error}</p>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <Typography variant="h6" color="error">
+              {error}
+            </Typography>
+          </Box>
         </div>
       </DashboardLayout>
     );
@@ -111,30 +116,9 @@ function WorkloadStats() {
 
   return (
     <DashboardLayout userRole="lecturer">
+      <div className="white-page-background">
       <Box>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Workload Statistics
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 4,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Analyze your teaching workload and course overview
-        </Typography>
-      </Box>
+      
 
       {statsData && (
         <>
@@ -167,7 +151,6 @@ function WorkloadStats() {
                 </div>
               </div>
             </div>
-
           </div>
 
           {/* Course Details with Dropdown */}
@@ -502,12 +485,14 @@ function WorkloadStats() {
                   </div>
                 ))}
               </div>
-      </div>
-    </div>
+            </div>
+          </div>
         </>
       )}
+      </Box>
+      </div>
     </DashboardLayout>
   );
 }
 
-export default WorkloadStats
+export default WorkloadStats;

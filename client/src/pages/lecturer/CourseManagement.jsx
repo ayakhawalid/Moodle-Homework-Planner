@@ -206,37 +206,29 @@ const CourseManagement = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="lecturer">
+        <div className="white-page-background">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout userRole="lecturer">
+      <div className="white-page-background">
       <Box p={3}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h3" component="h1" sx={{ 
-            fontWeight: '600',
-            fontSize: '2.5rem',
-            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-            letterSpacing: '-0.01em',
-            lineHeight: '1.2',
-            color: '#2c3e50',
-            mb: 1
-          }}>
-            Course Management
-          </Typography>
+        <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
             size="large"
             sx={{
-              backgroundColor: '#95E1D3',
+              backgroundColor: '#D6F7AD',
               color: '#333',
-              '&:hover': { backgroundColor: '#7dd3c0' }
+              '&:hover': { backgroundColor: '#c8f299' }
             }}
           >
             Add New Course
@@ -675,6 +667,7 @@ const CourseManagement = () => {
         </Dialog>
 
       </Box>
+      </div>
     </DashboardLayout>
   );
 };

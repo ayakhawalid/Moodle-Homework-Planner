@@ -210,14 +210,26 @@ function StudentDashboard() {
           <Grid container spacing={0} mb={4}>
             {/* Chart Card */}
             <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
-              <div className="dashboard-card" style={{ height: '400px' }}>
-                <ProgressChart
-                  title="Weekly Study Progress"
-                  data={studyProgressData}
-                  type="area"
-                  height={300}
-                  color="#1976d2"
-                />
+              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card-header">
+                  <div className="card-icon study-progress">
+                    <TimerIcon />
+                  </div>
+                  <div>
+                    <h3 className="card-title">Weekly Study Progress</h3>
+                    <p className="card-subtitle">Your study hours this week</p>
+                  </div>
+                </div>
+                <div className="card-content" style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{marginTop: '15px', height: 'calc(100% - 15px)', overflowY: 'auto', paddingRight: '8px'}}>
+                    <ProgressChart
+                      data={studyProgressData}
+                      type="area"
+                      height={280}
+                      color="#1976d2"
+                    />
+                  </div>
+                </div>
               </div>
             </Grid>
             

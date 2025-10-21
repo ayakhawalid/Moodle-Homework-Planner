@@ -69,6 +69,11 @@ const HomeworkManagement = () => {
   
   const [claimedGrade, setClaimedGrade] = useState('');
   const [isLate, setIsLate] = useState(false);
+  
+  // Status edit dialog for traditional homework
+  const [statusEditDialogOpen, setStatusEditDialogOpen] = useState(false);
+  const [statusEditingHomework, setStatusEditingHomework] = useState(null);
+  const [newStatus, setNewStatus] = useState('not_started');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -151,9 +156,38 @@ const HomeworkManagement = () => {
       course_id: hw.course?._id || hw.course_id,
       claimed_deadline: hw.claimed_deadline ? new Date(hw.claimed_deadline).toISOString().slice(0, 16) : '',
       allow_partners: hw.allow_partners || false,
-      max_partners: hw.max_partners || 1
+      max_partners: hw.max_partners || 1,
+      completion_status: hw.completion_status || 'not_started'
     });
     setEditDialogOpen(true);
+  };
+
+  // Handle status edit for traditional homework
+  const handleEditStatus = (hw) => {
+    setStatusEditingHomework(hw);
+    setNewStatus(hw.completion_status || 'not_started');
+    setStatusEditDialogOpen(true);
+  };
+
+  const handleUpdateStatus = async () => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      await apiService.studentHomework.updateHomework(statusEditingHomework._id, {
+        completion_status: newStatus
+      });
+      
+      setSuccess('Status updated successfully!');
+      setStatusEditDialogOpen(false);
+      setStatusEditingHomework(null);
+      fetchHomework();
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError(err.response?.data?.error || 'Failed to update status');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleUpdateHomework = async () => {
@@ -161,8 +195,21 @@ const HomeworkManagement = () => {
       setSubmitting(true);
       setError(null);
       
-      // Update student homework (need to add API method)
-      await apiService.studentHomework.updateHomework(editingHomework._id, newHomework);
+      // Debug logging
+      console.log('=== HOMEWORK UPDATE DEBUG ===');
+      console.log('Editing homework:', editingHomework);
+      console.log('Homework uploader role:', editingHomework.uploader_role);
+      console.log('New homework data:', newHomework);
+      console.log('=== END HOMEWORK UPDATE DEBUG ===');
+      
+      // Only allow editing of student-created homework
+      if (editingHomework.uploader_role === 'student') {
+        console.log('Using studentHomework.updateHomework endpoint');
+        await apiService.studentHomework.updateHomework(editingHomework._id, newHomework);
+      } else {
+        throw new Error('Cannot edit lecturer-created homework');
+      }
+      
       setSuccess('Homework updated successfully!');
       setEditDialogOpen(false);
       setEditingHomework(null);
@@ -267,12 +314,6 @@ const HomeworkManagement = () => {
     }
   };
 
-  const getStatusAction = (currentStatus) => {
-    switch (currentStatus) {
-      case 'completed': return 'Add Grade';
-      default: return null;
-    }
-  };
 
   const handleStatusProgression = async (hw) => {
     if (hw.completion_status !== 'completed') return;
@@ -287,6 +328,23 @@ const HomeworkManagement = () => {
     } catch (err) {
       console.error('Error opening grade dialog:', err);
       setError(err.response?.data?.error || 'Failed to open grade dialog');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCompleteHomeworkFromCircle = async (hw) => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      // Mark as completed without grade first
+      await apiService.studentHomework.completeHomework(hw._id, null, false);
+      setSuccess('Homework marked as submitted!');
+      fetchHomework();
+    } catch (err) {
+      console.error('Error completing homework:', err);
+      setError(err.response?.data?.error || 'Failed to complete homework');
     } finally {
       setSubmitting(false);
     }
@@ -324,34 +382,9 @@ const HomeworkManagement = () => {
           p: 3,
           minHeight: '100vh'
         }}>
-      <Box mb={4}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Homework Management
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 3,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Create, manage, and track your homework assignments
-        </Typography>
-      </Box>
-
-      {/* Course Filter */}
-      <Box mb={3}>
-        <FormControl fullWidth sx={{ maxWidth: 400 }}>
+      {/* Course Filter and Status Filter */}
+      <Box mb={3} display="flex" alignItems="center" gap={3} flexWrap="wrap">
+        <FormControl sx={{ maxWidth: 400, minWidth: 200 }}>
           <InputLabel>Filter by Course</InputLabel>
           <Select
             value={searchCourse}
@@ -370,14 +403,9 @@ const HomeworkManagement = () => {
             ))}
           </Select>
         </FormControl>
-      </Box>
 
-      {/* Status Filter Palette */}
-      <Box mb={3}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: '500', color: '#2c3e50' }}>
-          Filter by Status
-        </Typography>
-        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+        {/* Status Filter Circles */}
+        <Box display="flex" gap={2} alignItems="center">
           <Box
             width={36}
             height={36}
@@ -476,9 +504,9 @@ const HomeworkManagement = () => {
           startIcon={<AddIcon />}
           onClick={() => setCreateDialogOpen(true)}
           sx={{
-            backgroundColor: '#95E1D3',
+            backgroundColor: '#D6F7AD',
             color: '#333',
-            '&:hover': { backgroundColor: '#7dd3c0' }
+            '&:hover': { backgroundColor: '#c8f299' }
           }}
         >
           Add Homework
@@ -505,23 +533,23 @@ const HomeworkManagement = () => {
               <div className="notebook-edge">
                 <div 
                   className={`status-circle not-started ${hw.completion_status === 'not_started' ? 'clickable' : ''}`}
-                  onClick={() => hw.completion_status === 'not_started' && handleStatusProgression(hw)}
-                  title="Not Started"
+                  onClick={() => hw.completion_status === 'not_started' && handleStartWorking(hw)}
+                  title="Not Started - Click to start"
                 />
                 <div 
                   className={`status-circle in-progress ${hw.completion_status === 'in_progress' ? 'clickable' : ''}`}
-                  onClick={() => hw.completion_status === 'in_progress' && handleStatusProgression(hw)}
-                  title="In Progress"
+                  onClick={() => hw.completion_status === 'in_progress' && handleCompleteHomeworkFromCircle(hw)}
+                  title="In Progress - Click to complete"
                 />
                 <div 
                   className={`status-circle completed ${hw.completion_status === 'completed' ? 'clickable' : ''}`}
                   onClick={() => hw.completion_status === 'completed' && handleStatusProgression(hw)}
-                  title="Completed"
+                  title="Completed - Click to add grade"
                 />
                 <div 
                   className={`status-circle graded ${hw.completion_status === 'graded' ? 'clickable' : ''}`}
                   onClick={() => hw.completion_status === 'graded' && handleStatusProgression(hw)}
-                  title="Graded"
+                  title="Graded - Click to edit grade"
                 />
               </div>
 
@@ -533,70 +561,78 @@ const HomeworkManagement = () => {
                 <div className="homework-course">{hw.course.name}</div>
                 <div className="homework-description">{hw.description || 'No description provided'}</div>
                 
-                {/* Deadline Box - Only show verification for student-created homework */}
-                <div className="deadline-box">
-                  <ScheduleIcon sx={{ fontSize: 20, color: '#4a5568' }} />
-                  <span className="deadline-text">
-                    {new Date(hw.claimed_deadline).toLocaleDateString()}
-                  </span>
-                  {/* Only show verification indicator for student-created homework */}
-                  {hw.uploader_role === 'student' && (
-                    <div 
-                      className={`verification-indicator ${hw.deadline_verification_status === 'verified' ? 'verified' : 'unverified'}`}
-                      title={hw.deadline_verification_status === 'verified' ? 'Verified Deadline' : 'Unverified Deadline - Needs Verification'}
-                    >
-                      {hw.deadline_verification_status === 'verified' ? 'Verified' : 'Not Verified'}
+                {/* Grade and Deadline - Left aligned */}
+                <div className="homework-meta">
+                  {/* Grade Section */}
+                  {(hw.actual_grade || hw.claimed_grade) && (
+                    <div className="grade-section">
+                      <span className="grade-display">
+                        {hw.actual_grade || hw.claimed_grade}/100
+                      </span>
+                      <EditPenIcon 
+                        className="grade-edit-icon"
+                        onClick={() => {
+                          setSelectedHomework(hw);
+                          setClaimedGrade(hw.claimed_grade || '');
+                          setCompleteDialogOpen(true);
+                        }}
+                        title="Edit Grade"
+                      />
                     </div>
                   )}
+
+                  {/* Deadline Box - Always show */}
+                  <div className="deadline-box">
+                    <span className="deadline-text">
+                      {new Date(hw.claimed_deadline).toLocaleDateString()}
+                    </span>
+                    {/* Only show verification indicator for student-created homework */}
+                    {hw.uploader_role === 'student' && (
+                      <div 
+                        className={`verification-indicator ${hw.deadline_verification_status === 'verified' ? 'verified' : 'unverified'}`}
+                        title={hw.deadline_verification_status === 'verified' ? 'Verified Deadline' : 'Unverified Deadline - Needs Verification'}
+                      >
+                        {hw.deadline_verification_status === 'verified' ? 'Verified' : 'Not Verified'}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Grade Section */}
-                {(hw.actual_grade || hw.claimed_grade) && (
-                  <div className="grade-section">
-                    <span className="grade-display">
-                      {hw.actual_grade || hw.claimed_grade}%
-                    </span>
-                    <EditPenIcon 
-                      className="grade-edit-icon"
-                    onClick={() => {
-                      setSelectedHomework(hw);
-                      setClaimedGrade(hw.claimed_grade || '');
-                      setCompleteDialogOpen(true);
-                    }}
-                      title="Edit Grade"
-                    />
-                  </div>
-                )}
-
-                {/* Status Action Button */}
-                {getStatusAction(hw.completion_status) && (
-                  <button 
-                    className="status-action-button"
-                    onClick={() => handleStatusProgression(hw)}
-                    disabled={submitting}
-                  >
-                    {getStatusAction(hw.completion_status)}
-                  </button>
-                )}
               </div>
             </div>
 
             {/* Action Buttons (Below the card like Instagram) */}
             <div className="homework-actions">
-              <button 
-                className="action-button edit"
-                      onClick={() => handleEditHomework(hw)}
-                      disabled={submitting}
-                    >
-                      Edit
-              </button>
-              <button 
-                className="action-button delete"
-                      onClick={() => handleDeleteHomework(hw)}
-                      disabled={submitting}
-                    >
-                      Delete
-              </button>
+              {/* Show edit/delete buttons for student-created homework */}
+              {hw.uploader_role === 'student' && (
+                <>
+                  <button 
+                    className="action-button edit"
+                    onClick={() => handleEditHomework(hw)}
+                    disabled={submitting}
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    className="action-button delete"
+                    onClick={() => handleDeleteHomework(hw)}
+                    disabled={submitting}
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+              
+              {/* Show status edit button for traditional homework */}
+              {hw.uploader_role !== 'student' && (
+                <button 
+                  className="action-button edit"
+                  onClick={() => handleEditStatus(hw)}
+                  disabled={submitting}
+                >
+                  Edit Status
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -756,6 +792,22 @@ const HomeworkManagement = () => {
               />
             </Grid>
             
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={newHomework.completion_status || 'not_started'}
+                  onChange={(e) => setNewHomework({ ...newHomework, completion_status: e.target.value })}
+                  label="Status"
+                >
+                  <MenuItem value="not_started">Not Started</MenuItem>
+                  <MenuItem value="in_progress">In Progress</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="graded">Graded</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            
             <Grid item xs={12}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
@@ -781,18 +833,23 @@ const HomeworkManagement = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setEditDialogOpen(false);
-            setEditingHomework(null);
-          }}>Cancel</Button>
+          <Button 
+            onClick={() => {
+              setEditDialogOpen(false);
+              setEditingHomework(null);
+            }}
+            sx={{ color: '#333' }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleUpdateHomework}
             variant="contained"
             disabled={submitting || !newHomework.title || !newHomework.course_id || !newHomework.claimed_deadline}
             sx={{
-              backgroundColor: '#95E1D3',
+              backgroundColor: '#D6F7AD',
               color: '#333',
-              '&:hover': { backgroundColor: '#7dd3c0' }
+              '&:hover': { backgroundColor: '#c8f299' }
             }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Update'}
@@ -857,6 +914,53 @@ const HomeworkManagement = () => {
             {submitting ? <CircularProgress size={24} /> : 
               selectedHomework?.completion_status === 'in_progress' ? 'Submit' : 
               selectedHomework?.completion_status === 'graded' ? 'Update Grade' : 'Add Grade'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Status Edit Dialog for Traditional Homework */}
+      <Dialog open={statusEditDialogOpen} onClose={() => {
+        setStatusEditDialogOpen(false);
+        setStatusEditingHomework(null);
+      }}>
+        <DialogTitle>Edit Status</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Update the status for "{statusEditingHomework?.title}"
+          </Typography>
+          
+          <FormControl fullWidth>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              label="Status"
+            >
+              <MenuItem value="not_started">Not Started</MenuItem>
+              <MenuItem value="in_progress">In Progress</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="graded">Graded</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setStatusEditDialogOpen(false);
+            setStatusEditingHomework(null);
+          }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpdateStatus}
+            variant="contained"
+            disabled={submitting}
+            sx={{
+              backgroundColor: '#D6F7AD',
+              color: '#333',
+              '&:hover': { backgroundColor: '#c8f299' }
+            }}
+          >
+            {submitting ? <CircularProgress size={24} /> : 'Update Status'}
           </Button>
         </DialogActions>
       </Dialog>

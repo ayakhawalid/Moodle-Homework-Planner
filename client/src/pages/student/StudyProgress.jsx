@@ -14,6 +14,7 @@ import {
   Edit as EditIcon,
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
+import '../../styles/HomeworkCard.css';
 
 const StudyProgress = () => {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
@@ -33,6 +34,14 @@ const StudyProgress = () => {
         const token = await getAccessTokenSilently();
         const response = await apiService.studentDashboard.getStudyProgress(30); // Last 30 days
         setStudyData(response.data);
+        
+        // Debug logging for study progress data
+        console.log('=== STUDY PROGRESS DATA DEBUG ===');
+        console.log('Study progress data received:', response.data);
+        console.log('Weekly breakdown:', response.data.weekly_breakdown);
+        console.log('Overview:', response.data.overview);
+        console.log('Recent sessions:', response.data.recent_sessions);
+        console.log('=== END STUDY PROGRESS DATA DEBUG ===');
         
         // Set weekly goal from data or default
         if (response.data.overview?.weekly_goal) {
@@ -93,9 +102,11 @@ const StudyProgress = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
@@ -110,34 +121,12 @@ const StudyProgress = () => {
 
   return (
     <DashboardLayout userRole="student">
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Study Progress
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 4,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Track your study habits and set goals to improve your academic performance
-        </Typography>
-
-        <Grid container spacing={3}>
-          {/* Weekly Goal Card */}
+      <div className="white-page-background">
+        <Box sx={{ p: 3 }}>
+          <Grid container spacing={3}>
+          {/* Row 1: Weekly Goal Card and Study Statistics */}
           <Grid item xs={12} md={6}>
-            <div className="dashboard-card">
+            <div className="dashboard-card" style={{ height: '100%' }}>
               <div className="card-header">
                 <div className="card-icon primary">
                   <TargetIcon />
@@ -210,10 +199,10 @@ const StudyProgress = () => {
 
                 <Box sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       This Week: {formatStudyTime(studyData?.overview?.total_hours || 0)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       {getProgressPercentage().toFixed(1)}%
                     </Typography>
                   </Box>
@@ -253,7 +242,7 @@ const StudyProgress = () => {
 
           {/* Study Statistics */}
           <Grid item xs={12} md={6}>
-            <div className="dashboard-card">
+            <div className="dashboard-card" style={{ height: '100%' }}>
               <div className="card-header">
                 <div className="card-icon secondary">
                   <TrendingUpIcon />
@@ -294,9 +283,9 @@ const StudyProgress = () => {
             </div>
           </Grid>
 
-          {/* Weekly Breakdown */}
-          <Grid item xs={12}>
-            <div className="dashboard-card">
+          {/* Row 2: Weekly Breakdown */}
+          <Grid item xs={12} md={6}>
+            <div className="dashboard-card" style={{ height: '100%' }}>
               <div className="card-header">
                 <div className="card-icon accent">
                   <HistoryIcon />
@@ -308,45 +297,75 @@ const StudyProgress = () => {
               </div>
               <div className="card-content">
                 <Grid container spacing={1}>
-                  {studyData?.weekly_breakdown?.map((week, index) => {
-                    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                    const hours = week.total_hours || 0;
-                    const percentage = weeklyGoal > 0 ? (hours / weeklyGoal) * 100 : 0;
-                    
-                    return (
-                      <Grid item xs key={index}>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <Typography variant="caption" color="text.secondary">
-                            {dayNames[index]}
-                          </Typography>
-                          <Box sx={{ height: 100, display: 'flex', alignItems: 'end', justifyContent: 'center', mb: 1 }}>
-                            <Box
-                              sx={{
-                                width: '100%',
-                                height: `${Math.max(percentage, 5)}%`,
-                                backgroundColor: percentage >= 100 ? '#95E1D3' : 
-                                        percentage >= 75 ? '#D6F7AD' : 
-                                        percentage >= 50 ? '#FCE38A' : '#F38181',
-                                borderRadius: 1,
-                                minHeight: 4
-                              }}
-                            />
+                  {studyData?.weekly_breakdown && studyData.weekly_breakdown.length > 0 ? (
+                    studyData.weekly_breakdown.map((week, index) => {
+                      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                      const hours = week.total_hours || 0;
+                      const percentage = weeklyGoal > 0 ? (hours / weeklyGoal) * 100 : 0;
+                      
+                      return (
+                        <Grid item xs key={index}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: '#666' }}>
+                              {dayNames[index] || `Day ${index + 1}`}
+                            </Typography>
+                            <Box sx={{ height: 100, display: 'flex', alignItems: 'end', justifyContent: 'center', mb: 1 }}>
+                              <Box
+                                sx={{
+                                  width: '100%',
+                                  height: `${Math.max(percentage, 5)}%`,
+                                  backgroundColor: percentage >= 100 ? '#95E1D3' : 
+                                          percentage >= 75 ? '#D6F7AD' : 
+                                          percentage >= 50 ? '#FCE38A' : '#F38181',
+                                  borderRadius: 1,
+                                  minHeight: 4
+                                }}
+                              />
+                            </Box>
+                            <Typography variant="body2" fontWeight="bold">
+                              {formatStudyTime(hours)}
+                            </Typography>
                           </Box>
-                          <Typography variant="body2" fontWeight="bold">
-                            {formatStudyTime(hours)}
-                          </Typography>
-                        </Box>
-                      </Grid>
-                    );
-                  })}
+                        </Grid>
+                      );
+                    })
+                  ) : (
+                    // Show 7 empty bars if no data
+                    Array.from({ length: 7 }, (_, index) => {
+                      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                      return (
+                        <Grid item xs key={index}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="caption" sx={{ color: '#666' }}>
+                              {dayNames[index]}
+                            </Typography>
+                            <Box sx={{ height: 100, display: 'flex', alignItems: 'end', justifyContent: 'center', mb: 1 }}>
+                              <Box
+                                sx={{
+                                  width: '100%',
+                                  height: '5%',
+                                  backgroundColor: '#e0e0e0',
+                                  borderRadius: 1,
+                                  minHeight: 4
+                                }}
+                              />
+                            </Box>
+                            <Typography variant="body2" fontWeight="bold">
+                              0h
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      );
+                    })
+                  )}
                 </Grid>
               </div>
             </div>
           </Grid>
 
           {/* Recent Sessions */}
-          <Grid item xs={12}>
-            <div className="dashboard-card">
+          <Grid item xs={12} md={6}>
+            <div className="dashboard-card" style={{ height: '100%' }}>
               <div className="card-header">
                 <div className="card-icon primary">
                   <HistoryIcon />
@@ -375,15 +394,16 @@ const StudyProgress = () => {
                     ))}
                   </List>
                 ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                  <Typography variant="body2" sx={{ textAlign: 'center', py: 3, color: '#666' }}>
                     No study sessions recorded yet. Start a timer to begin tracking!
                   </Typography>
                 )}
               </div>
             </div>
           </Grid>
-        </Grid>
-      </Box>
+          </Grid>
+        </Box>
+      </div>
     </DashboardLayout>
   );
 };

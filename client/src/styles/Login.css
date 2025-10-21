@@ -2,10 +2,10 @@
 .login-container {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  min-height: 100vh;
-  padding: 2rem 1rem;
+  min-height: auto;
+  padding: 1rem;
   background: linear-gradient(135deg, rgba(214, 247, 173, 0.1) 0%, rgba(149, 225, 211, 0.1) 50%, rgba(252, 227, 138, 0.1) 100%);
 }
 
@@ -14,14 +14,14 @@
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .login-logo {
-  width: 120px;
+  width: 80px;
   cursor: pointer;
   transition: transform 0.3s ease;
-  margin-right: 20px;
+  margin-right: 15px;
 }
 
 .login-logo:hover {
@@ -31,12 +31,13 @@
 .login-form {
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(149, 225, 211, 0.3);
   width: 100%;
   max-width: 400px;
+  margin-bottom: 1rem;
 }
 
 .login-title {

@@ -334,9 +334,11 @@ const HomeworkManagement = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="lecturer">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
@@ -345,31 +347,6 @@ const HomeworkManagement = () => {
     <DashboardLayout userRole="lecturer">
       <div className="white-page-background">
         <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Box mb={4}>
-          <Typography variant="h3" component="h1" sx={{ 
-            fontWeight: '600',
-            fontSize: '2.5rem',
-            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-            letterSpacing: '-0.01em',
-            lineHeight: '1.2',
-            color: '#2c3e50',
-            mb: 1
-          }}>
-            Homework Management
-          </Typography>
-          <Typography variant="h6" color="text.secondary" sx={{ 
-            mb: 3,
-            fontWeight: '300',
-            fontSize: '1.1rem',
-            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-            color: '#7f8c8d',
-            lineHeight: '1.6',
-            letterSpacing: '0.3px'
-          }}>
-            Manage homework assignments and review student submissions
-          </Typography>
-        </Box>
         
         {/* Course Filter */}
         <Box mb={3}>
@@ -410,7 +387,7 @@ const HomeworkManagement = () => {
             onChange={(e, newValue) => setTabValue(newValue)}
             TabIndicatorProps={{
               sx: {
-                backgroundColor: '#95E1D3',
+                backgroundColor: '#D6F7AD',
                 height: 3
               }
             }}
@@ -430,7 +407,7 @@ const HomeworkManagement = () => {
             <Tab 
               icon={<AssignmentIcon />} 
               iconPosition="start" 
-              label="My Homework Assignments" 
+              label="My Homework" 
             />
             <Tab 
               icon={<PeopleIcon />} 
@@ -448,10 +425,10 @@ const HomeworkManagement = () => {
               startIcon={<AddIcon />}
               onClick={() => setCreateDialogOpen(true)}
               sx={{
-                backgroundColor: '#95E1D3',
+                backgroundColor: '#D6F7AD',
                 color: '#333',
                 '&:hover': {
-                  backgroundColor: '#7fd1c1'
+                  backgroundColor: '#c8f299'
                 }
               }}
             >
@@ -508,39 +485,46 @@ const HomeworkManagement = () => {
                       <div className="homework-content">
                         <div className="homework-title">{hw.title}</div>
                         <div className="homework-course">
-                          <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
+                          <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
                           {hw.course_id?.course_name || 'Unknown Course'} ({hw.course_id?.course_code || 'N/A'})
                         </div>
+                        <div className="homework-description">{hw.description || 'No description provided'}</div>
                         
-                        {/* Due Date */}
-                        <div className="deadline-box">
-                          <ScheduleIcon sx={{ fontSize: 20, color: '#4a5568' }} />
-                          <span className="deadline-text">
-                            {formatDate(hw.due_date)}
-                            {isOverdue && ' (Overdue)'}
-                          </span>
-                        </div>
-
-                        {/* Description */}
-                        {hw.description && (
-                          <div className="homework-description">{hw.description}</div>
-                        )}
-
                         {/* Partner Settings */}
                         {hw.allow_partners && (
                           <div className="partner-indicator">
                             <Chip
                               label="Allows Partners"
                               sx={{
-                                backgroundColor: 'rgba(149, 225, 211, 0.3)',
+                                backgroundColor: 'rgba(214, 247, 173, 0.3)',
                                 color: '#333',
-                                border: '1px solid #95E1D3',
+                                border: '1px solid #D6F7AD',
                                 fontSize: '0.75rem'
                               }}
                               size="small"
                             />
                           </div>
                         )}
+
+                        {/* Grade and Deadline - Left aligned */}
+                        <div className="homework-meta">
+                          {/* Grade Section */}
+                          {hw.grade && (
+                            <div className="grade-section">
+                              <span className="grade-display">
+                                {hw.grade}/100
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Deadline Box - Always show */}
+                          <div className="deadline-box">
+                            <span className="deadline-text">
+                              {new Date(hw.due_date).toLocaleDateString()}
+                              {isOverdue && ' (Overdue)'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -600,37 +584,50 @@ const HomeworkManagement = () => {
 
                       {/* Course Info */}
                       <div className="homework-course">
-                        <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
+                        <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
                         {hw.course?.name || 'Unknown Course'} ({hw.course?.code || 'N/A'})
                       </div>
 
-                      {/* Deadline */}
-                      <div className="deadline-box">
-                        <ScheduleIcon sx={{ fontSize: 20, color: '#4a5568' }} />
-                        <span className="deadline-text">
-                          Deadline: {new Date(hw.claimed_deadline).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      {/* Description */}
-                      {hw.description && (
-                        <div className="homework-description">{hw.description}</div>
-                      )}
-
-                      {/* Deadline Verification Status */}
-                      <div className="verification-indicator">
+                      <div className="homework-description">{hw.description || 'No description provided'}</div>
+                      
+                      {/* Partner Settings */}
+                      <div className="partner-indicator">
                         <Chip
-                          label={`Deadline: ${formatStatus(hw.deadline_verification_status)}`}
+                          label={hw.allow_partners ? "Allows Partners" : "No Partners"}
                           sx={{
-                            backgroundColor: hw.deadline_verification_status === 'verified' ? 'rgba(149, 225, 211, 0.3)' : 
-                                            'rgba(252, 227, 138, 0.3)',
+                            backgroundColor: hw.allow_partners ? 'rgba(214, 247, 173, 0.3)' : 'rgba(255, 182, 193, 0.3)',
                             color: '#333',
-                            border: hw.deadline_verification_status === 'verified' ? '1px solid #95E1D3' : 
-                                    '1px solid #FCE38A',
+                            border: hw.allow_partners ? '1px solid #D6F7AD' : '1px solid #FFB6C1',
                             fontSize: '0.75rem'
                           }}
                           size="small"
                         />
+                      </div>
+
+                      {/* Grade and Deadline - Left aligned */}
+                      <div className="homework-meta">
+                        {/* Grade Section */}
+                        {(hw.actual_grade || hw.claimed_grade) && (
+                          <div className="grade-section">
+                            <span className="grade-display">
+                              {hw.actual_grade || hw.claimed_grade}/100
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Deadline Box - Always show */}
+                        <div className="deadline-box">
+                          <span className="deadline-text">
+                            {new Date(hw.claimed_deadline).toLocaleDateString()}
+                          </span>
+                          {/* Only show verification indicator for student-created homework */}
+                          <div 
+                            className={`verification-indicator ${hw.deadline_verification_status === 'verified' ? 'verified' : 'unverified'}`}
+                            title={hw.deadline_verification_status === 'verified' ? 'Verified Deadline' : 'Unverified Deadline - Needs Verification'}
+                          >
+                            {hw.deadline_verification_status === 'verified' ? 'Verified' : 'Not Verified'}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -887,9 +884,9 @@ const HomeworkManagement = () => {
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={20} /> : <EditIcon />}
               sx={{
-                backgroundColor: '#95E1D3',
+                backgroundColor: '#D6F7AD',
                 color: '#333',
-                '&:hover': { backgroundColor: '#7dd3c0' }
+                '&:hover': { backgroundColor: '#c8f299' }
               }}
             >
               {submitting ? 'Updating...' : 'Update'}

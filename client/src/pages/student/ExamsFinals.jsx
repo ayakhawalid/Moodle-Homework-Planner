@@ -44,6 +44,7 @@ import {
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/student/ExamsFinals.css';
+import '../../styles/HomeworkCard.css';
 
 function ExamsFinals() {
   const { syncStatus, user } = useUserSyncContext();
@@ -133,7 +134,7 @@ function ExamsFinals() {
   const getExamTypeColor = (type) => {
     const colors = {
       midterm: { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' },
-      final: { backgroundColor: 'rgba(243, 129, 129, 0.3)', color: '#333', border: '1px solid #F38181' },
+      final: { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' },
       quiz: { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' },
       assignment: { backgroundColor: 'rgba(252, 227, 138, 0.3)', color: '#333', border: '1px solid #FCE38A' }
     };
@@ -247,9 +248,11 @@ function ExamsFinals() {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
@@ -266,40 +269,18 @@ function ExamsFinals() {
 
   return (
     <DashboardLayout userRole="student">
-      <Typography variant="h3" component="h1" sx={{ 
-        fontWeight: '600',
-        fontSize: '2.5rem',
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-        letterSpacing: '-0.01em',
-        lineHeight: '1.2',
-        color: '#2c3e50',
-        mb: 1
-      }}>
-        Exams & Finals
-      </Typography>
-      <Typography variant="h6" color="text.secondary" sx={{ 
-        mb: 4,
-        fontWeight: '300',
-        fontSize: '1.1rem',
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-        color: '#7f8c8d',
-        lineHeight: '1.6',
-        letterSpacing: '0.3px'
-      }}>
-        Prepare for your exams and final assessments with organized study plans and schedules
-      </Typography>
-
-      {/* Add Exam Button */}
+      <div className="white-page-background">
+        {/* Add Exam Button */}
       <Box display="flex" justifyContent="flex-start" mb={3}>
         <Button
           variant="contained"
           startIcon={<QuizIcon />}
           onClick={() => setOpenAddExamDialog(true)}
           sx={{
-            backgroundColor: '#F38181',
-            color: 'white',
+            backgroundColor: '#D6F7AD',
+            color: '#333',
             '&:hover': {
-              backgroundColor: '#e85a6b'
+              backgroundColor: '#c8f299'
             }
           }}
         >
@@ -361,7 +342,7 @@ function ExamsFinals() {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#FCE38A' }}>
+                  <Typography variant="h4" sx={{ color: '#333' }}>
                     {examsData?.summary?.upcoming || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -371,7 +352,7 @@ function ExamsFinals() {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#95E1D3' }}>
+                  <Typography variant="h4" sx={{ color: '#333' }}>
                     {examsData?.summary?.completed || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -382,7 +363,7 @@ function ExamsFinals() {
               {/* Removed overdue statistics - students can mark exams as completed/graded after due date */}
               <Grid item xs={12} sm={3}>
                 <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#D6F7AD' }}>
+                  <Typography variant="h4" sx={{ color: '#333' }}>
                     {examsData?.summary?.total || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -471,9 +452,22 @@ function ExamsFinals() {
 
                         {exam.days_until_due !== undefined && (
                           <Box mb={2}>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 'Today'}
-                            </Typography>
+                            {exam.days_until_due > 0 ? (
+                              <Typography variant="body2" sx={{ color: '#666' }} gutterBottom>
+                                {exam.days_until_due} days remaining
+                              </Typography>
+                            ) : (
+                              <Chip 
+                                label="Today" 
+                                size="small" 
+                                sx={{ 
+                                  mb: 1,
+                                  backgroundColor: '#D6F7AD',
+                                  color: '#333',
+                                  border: '1px solid #D6F7AD'
+                                }}
+                              />
+                            )}
                             <LinearProgress 
                               variant="determinate" 
                               value={Math.max(0, 100 - (exam.days_until_due * 10))} 
@@ -482,7 +476,7 @@ function ExamsFinals() {
                                 borderRadius: 3,
                                 backgroundColor: 'rgba(149, 225, 211, 0.2)',
                                 '& .MuiLinearProgress-bar': {
-                                  backgroundColor: exam.days_until_due <= 3 ? '#F38181' : 
+                                  backgroundColor: exam.days_until_due <= 3 ? '#D6F7AD' : 
                                                  exam.days_until_due <= 7 ? '#FCE38A' : '#95E1D3'
                                 }
                               }}
@@ -508,12 +502,22 @@ function ExamsFinals() {
           <div className="dashboard-card">
             <div className="card-content">
               <Typography variant="h6" gutterBottom>
-                <QuizIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#F38181' }} />
+                <QuizIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
                 All Exams
               </Typography>
             
             {examsData?.exams?.length === 0 ? (
-              <Alert severity="info">
+              <Alert 
+                severity="info"
+                sx={{
+                  backgroundColor: 'rgba(214, 247, 173, 0.2)',
+                  border: '1px solid #D6F7AD',
+                  color: '#333',
+                  '& .MuiAlert-icon': {
+                    color: '#333'
+                  }
+                }}
+              >
                 No exams found for the selected criteria.
               </Alert>
             ) : (
@@ -550,11 +554,27 @@ function ExamsFinals() {
                               {new Date(exam.due_date).toLocaleDateString()} at {new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </Typography>
                             {exam.days_until_due !== undefined && (
-                              <Typography variant="body2" color={exam.days_until_due <= 3 ? 'error.main' : exam.days_until_due <= 7 ? 'warning.main' : 'text.secondary'} component="div">
-                                {exam.days_until_due > 0 ? `${exam.days_until_due} days remaining` : 
-                                 exam.days_until_due === 0 ? 'Today' : 
-                                 `${Math.abs(exam.days_until_due)} days past due`}
-                              </Typography>
+                              <Box component="div" sx={{ mt: 1 }}>
+                                {exam.days_until_due > 0 ? (
+                                  <Typography variant="body2" sx={{ color: '#666' }} component="div">
+                                    {exam.days_until_due} days remaining
+                                  </Typography>
+                                ) : exam.days_until_due === 0 ? (
+                                  <Chip 
+                                    label="Today" 
+                                    size="small" 
+                                    sx={{ 
+                                      backgroundColor: '#D6F7AD',
+                                      color: '#333',
+                                      border: '1px solid #D6F7AD'
+                                    }}
+                                  />
+                                ) : (
+                                  <Typography variant="body2" sx={{ color: '#D6F7AD' }} component="div">
+                                    {Math.abs(exam.days_until_due)} days past due
+                                  </Typography>
+                                )}
+                              </Box>
                             )}
                           </Box>
                         }
@@ -854,6 +874,7 @@ function ExamsFinals() {
           </Button>
         </DialogActions>
       </Dialog>
+      </div>
     </DashboardLayout>
   );
 }

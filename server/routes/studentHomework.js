@@ -337,6 +337,185 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
   }
 });
 
+// PUT /api/student-homework/:id - Update homework
+router.put('/:id', checkJwt, extractUser, requireStudent, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    const homeworkId = req.params.id;
+    const {
+      title,
+      description,
+      course_id,
+      claimed_deadline,
+      allow_partners,
+      max_partners,
+      completion_status
+    } = req.body;
+
+    // Check if it's student homework or traditional homework
+    let homework = await StudentHomework.findById(homeworkId);
+    let isStudentHomework = true;
+    
+    if (!homework) {
+      // If not found in StudentHomework, check if it's traditional homework
+      homework = await Homework.findById(homeworkId);
+      isStudentHomework = false;
+      
+      if (!homework) {
+        return res.status(404).json({ error: 'Homework not found' });
+      }
+    }
+
+    // Debug logging
+    console.log('=== HOMEWORK UPDATE PERMISSION DEBUG ===');
+    console.log('User role (DB):', user.role);
+    console.log('User roles (Auth0):', req.userInfo.roles);
+    console.log('User ID:', user._id);
+    console.log('Homework uploaded_by:', homework.uploaded_by);
+    console.log('Homework uploader_role:', homework.uploader_role);
+    console.log('Is student homework:', isStudentHomework);
+    console.log('=== END PERMISSION DEBUG ===');
+
+    // Check permissions - Students can edit ANY student-created homework
+    const isStudent = user.role === 'student' || req.userInfo.roles.includes('student');
+    const isLecturer = user.role === 'lecturer' || req.userInfo.roles.includes('lecturer');
+    const isAdmin = user.role === 'admin' || req.userInfo.roles.includes('admin');
+    
+    if (isStudent) {
+      // Students can update any student-created homework (their own or others')
+      if (homework.uploader_role !== 'student') {
+        // For traditional homework, only allow status updates
+        if (completion_status === undefined) {
+          console.log('Student trying to update lecturer-created homework content - denied');
+          return res.status(403).json({ error: 'You can only update the status of lecturer-created homework' });
+        }
+        console.log('Student updating status of lecturer-created homework - access granted');
+      } else {
+        console.log('Student updating student-created homework - access granted');
+      }
+    } else if (isLecturer) {
+      // Lecturers can only update homework from their own courses
+      const course = await Course.findById(homework.course_id);
+      if (!course || !course.lecturer_id.equals(user._id)) {
+        console.log('Lecturer trying to update homework from course they don\'t teach');
+        return res.status(403).json({ error: 'You can only update homework from your own courses' });
+      }
+    } else if (isAdmin) {
+      // Admins can update any homework
+      console.log('Admin updating homework - access granted');
+    } else {
+      console.log('User role not recognized:', { dbRole: user.role, auth0Roles: req.userInfo.roles });
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    // Update homework fields
+    // For traditional homework updated by students, only allow status updates
+    if (isStudent && homework.uploader_role !== 'student') {
+      // Only allow status updates for traditional homework by students
+      console.log('Student updating traditional homework - only status allowed');
+    } else {
+      // Full update allowed for student-created homework or non-student users
+      if (title !== undefined) homework.title = title;
+      if (description !== undefined) homework.description = description;
+      if (course_id !== undefined) homework.course_id = course_id;
+      if (claimed_deadline !== undefined) homework.claimed_deadline = new Date(claimed_deadline);
+      if (allow_partners !== undefined) homework.allow_partners = allow_partners;
+      if (max_partners !== undefined) homework.max_partners = max_partners;
+    }
+
+    await homework.save();
+
+    // Update Grade table if completion_status is provided
+    if (completion_status !== undefined) {
+      // Find existing Grade entry for the current user
+      let gradeEntry = await Grade.findOne({
+        student_id: user._id,
+        homework_id: homeworkId,
+        homework_type: isStudentHomework ? 'student' : 'traditional'
+      });
+
+      if (completion_status === 'not_started') {
+        // If changing to 'not_started', remove from Grade table
+        if (gradeEntry) {
+          await Grade.findByIdAndDelete(gradeEntry._id);
+          console.log(`Removed Grade entry for student ${user._id} and homework ${homeworkId} (status changed to not_started)`);
+        }
+      } else {
+        // For other statuses, create or update Grade entry
+        if (!gradeEntry) {
+          // Create Grade entry if it doesn't exist
+          gradeEntry = new Grade({
+            student_id: user._id,
+            homework_id: homeworkId,
+            homework_type: isStudentHomework ? 'student' : 'traditional',
+            completion_status: completion_status,
+            graded_by: user._id,
+            graded_at: new Date()
+          });
+          console.log(`Created NEW Grade entry for student ${user._id} and homework ${homeworkId} with status: ${completion_status}`);
+        } else {
+          // Check if changing from 'graded' to any other status
+          const wasGraded = gradeEntry.completion_status === 'graded';
+          
+          // Update existing Grade entry
+          gradeEntry.completion_status = completion_status;
+          gradeEntry.graded_at = new Date();
+          
+          // If changing from 'graded' to any other status, remove the grade
+          if (wasGraded && completion_status !== 'graded') {
+            gradeEntry.grade = undefined; // Remove the grade
+            console.log(`UPDATED existing Grade entry for student ${user._id} and homework ${homeworkId} - removed grade (status changed from graded to ${completion_status})`);
+          } else {
+            console.log(`UPDATED existing Grade entry for student ${user._id} and homework ${homeworkId} to status: ${completion_status}`);
+          }
+        }
+
+        await gradeEntry.save();
+        console.log(`Updated Grade entry for student ${user._id} and homework ${homeworkId} to status: ${completion_status}`);
+      }
+    }
+    await homework.populate('course_id', 'course_name course_code');
+    
+    // Only populate uploaded_by for student-created homework
+    if (isStudentHomework) {
+      await homework.populate('uploaded_by', 'name email');
+    }
+
+    res.json({
+      message: 'Homework updated successfully',
+      homework: {
+        _id: homework._id,
+        title: homework.title,
+        description: homework.description,
+        course: {
+          _id: homework.course_id._id,
+          name: homework.course_id.course_name,
+          code: homework.course_id.course_code
+        },
+        uploaded_by: homework.uploaded_by ? {
+          _id: homework.uploaded_by._id,
+          name: homework.uploaded_by.name,
+          email: homework.uploaded_by.email,
+          role: homework.uploader_role
+        } : null,
+        claimed_deadline: homework.claimed_deadline,
+        allow_partners: homework.allow_partners,
+        max_partners: homework.max_partners,
+        deadline_verification_status: homework.deadline_verification_status,
+        updatedAt: homework.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Error updating homework:', error);
+    res.status(500).json({ error: 'Failed to update homework' });
+  }
+});
+
 // PUT /api/student-homework/:id/complete - Mark homework as completed
 router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {
@@ -803,19 +982,30 @@ router.delete('/:id', checkJwt, extractUser, async (req, res) => {
       }
     }
 
-    // Check permissions
-    if (user.role === 'student') {
-      // Students can only delete their own homework
-      if (!homework.uploaded_by.equals(user._id)) {
-        return res.status(403).json({ error: 'You can only delete your own homework' });
+    // Check permissions - Students can delete ANY student-created homework
+    const isStudent = user.role === 'student' || req.userInfo.roles.includes('student');
+    const isLecturer = user.role === 'lecturer' || req.userInfo.roles.includes('lecturer');
+    const isAdmin = user.role === 'admin' || req.userInfo.roles.includes('admin');
+    
+    if (isStudent) {
+      // Students can delete any student-created homework (their own or others')
+      if (homework.uploader_role !== 'student') {
+        console.log('Student trying to delete lecturer-created homework - denied');
+        return res.status(403).json({ error: 'You can only delete student-created homework' });
       }
-    } else if (user.role === 'lecturer') {
-      // Lecturers can delete homework from their courses
+      console.log('Student deleting student-created homework - access granted');
+    } else if (isLecturer) {
+      // Lecturers can delete homework from their own courses
       const course = await Course.findById(homework.course_id);
-      if (!course.lecturer_id.equals(user._id)) {
+      if (!course || !course.lecturer_id.equals(user._id)) {
+        console.log('Lecturer trying to delete homework from course they don\'t teach');
         return res.status(403).json({ error: 'You can only delete homework from your own courses' });
       }
+    } else if (isAdmin) {
+      // Admins can delete any homework
+      console.log('Admin deleting homework - access granted');
     } else {
+      console.log('User role not recognized:', { dbRole: user.role, auth0Roles: req.userInfo.roles });
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
