@@ -68,7 +68,7 @@ body, html {
 
 /* Four Colored Walls - Individual Divs */
 .wall {
-  height: 120px; /* Make walls shorter */
+  height: 80px; /* Make walls shorter */
   width: 25vw;
   position: fixed; /* Fixed positioning to stay at top */
   top: 0;
@@ -456,7 +456,7 @@ body, html {
 /* About Section */
 .about-section {
   padding: 0 2rem; /* Add side padding for content readability */
-  padding-top: 200px; /* Add space for walls + fixed buttons */
+  padding-top: 160px; /* Add space for shorter walls + fixed buttons */
   padding-bottom: 0; /* Remove bottom padding since media section handles it */
   text-align: left;
   width: 100%; /* Full width so walls show on sides */
@@ -497,7 +497,7 @@ body, html {
   border-radius: 0; /* Remove rounded corners for full width */
   transition: all 0.3s ease; /* Smooth transition */
   position: fixed; /* Fixed positioning like navbar */
-  top: 120px; /* Position below the walls */
+  top: 80px; /* Position below the walls - adjusted for shorter walls */
   left: 0;
   z-index: 1000; /* High z-index to stay on top */
   background: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
@@ -748,7 +748,7 @@ body, html {
 /* Mini Four Walls Section */
 .mini-walls-section {
   position: relative;
-  height: 200px; /* Small section after statuses */
+  height: 150px; /* Consistent height for all mini walls */
   width: 100vw; /* Full viewport width */
   margin: 2rem -2rem 0 -2rem; /* Break out of container margins */
   padding: 0;
@@ -989,7 +989,7 @@ body, html {
 /* Responsive Design */
 @media (max-width: 1024px) {
   .wall {
-    height: 100px; /* Shorter walls for tablets */
+    height: 70px; /* Shorter walls for tablets */
   }
   
   .home-logo {
@@ -1002,7 +1002,7 @@ body, html {
   }
   
   .about-section {
-    padding-top: 100px; /* Reduce space for tablets */
+    padding-top: 140px; /* Reduce space for tablets */
     width: 100%; /* Full width on tablets too */
     max-width: 95%; /* Adjust max width for tablets */
   }
@@ -1067,7 +1067,7 @@ body, html {
 
 @media (max-width: 768px) {
   .wall {
-    height: 80px; /* Shorter walls for mobile */
+    height: 60px; /* Shorter walls for mobile */
   }
   
   .title-section {
@@ -1087,7 +1087,7 @@ body, html {
   }
   
   .about-section {
-    padding-top: 80px; /* Reduce space for mobile */
+    padding-top: 120px; /* Reduce space for mobile */
     width: 100%; /* Full width on mobile too */
     max-width: 95%; /* Adjust max width for mobile */
     padding-left: 1rem; /* Reduce side padding on mobile */
@@ -1174,7 +1174,7 @@ body, html {
 
 @media (max-width: 480px) {
   .wall {
-    height: 100px; /* Smallest header on very small screens */
+    height: 50px; /* Smallest header on very small screens */
   }
   
   .content-section {

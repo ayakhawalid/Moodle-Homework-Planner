@@ -5,6 +5,7 @@ import { Typography, Box } from '@mui/material';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { apiService } from '../../services/api';
 import '../../styles/DashboardLayout.css';
+import '../../styles/HomeworkCard.css';
 
 function StudyTimer() {
   const { syncStatus } = useUserSyncContext();
@@ -226,8 +227,10 @@ function StudyTimer() {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-          <div>Loading timer data...</div>
+        <div className="white-page-background">
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <div>Loading timer data...</div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -235,32 +238,8 @@ function StudyTimer() {
 
   return (
     <DashboardLayout userRole="student">
-      <Box>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Study Timer
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 4,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Use the Pomodoro technique and other timing methods to enhance your study sessions
-        </Typography>
-      </Box>
-
-      <div className="dashboard-grid">
+      <div className="white-page-background">
+        <div className="dashboard-grid">
         {/* Main Timer Card */}
         <div className="dashboard-card">
           <div className="card-header">
@@ -492,6 +471,7 @@ function StudyTimer() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </DashboardLayout>
   );

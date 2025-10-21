@@ -79,7 +79,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #D6F7AD;
+  background: #f8f9fa;
   border-radius: 50%;
 }
 
@@ -133,12 +133,12 @@
 }
 
 .nav-link:hover {
-  background: #f5f5f5;
+  background: #f8f9fa;
   color: #333;
 }
 
 .nav-link.active {
-  background: #D6F7AD;
+  background: #f8f9fa;
   color: #333;
   font-weight: 500;
 }
@@ -171,7 +171,7 @@
   gap: 12px;
   width: 100%;
   padding: 12px 16px;
-  background: #D6F7AD;
+  background: #f8f9fa;
   border: none;
   border-radius: 8px;
   color: #333;
@@ -182,7 +182,7 @@
 }
 
 .logout-btn:hover {
-  background: #c8f299;
+  background: #e9ecef;
 }
 
 /* Mobile Responsiveness */

@@ -228,9 +228,11 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="admin">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
@@ -238,25 +240,28 @@ const AdminDashboard = () => {
   if (error) {
     return (
       <DashboardLayout userRole="admin">
-        <Box p={3}>
-          <Alert 
-            severity="error" 
-            action={
-              <Button color="inherit" size="small" onClick={fetchStats}>
-                Retry
-              </Button>
-            }
-          >
-            Failed to load dashboard data. Please try again.
-          </Alert>
-        </Box>
+        <div className="white-page-background">
+          <Box p={3}>
+            <Alert 
+              severity="error" 
+              action={
+                <Button color="inherit" size="small" onClick={fetchStats}>
+                  Retry
+                </Button>
+              }
+            >
+              Failed to load dashboard data. Please try again.
+            </Alert>
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout userRole="admin">
-      <Box p={3}>
+      <div className="white-page-background">
+        <Box p={3}>
         <Grid container spacing={3} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
@@ -456,7 +461,8 @@ const AdminDashboard = () => {
             </div>
           </Grid>
         </Grid>
-      </Box>
+        </Box>
+      </div>
     </DashboardLayout>
   );
 };

@@ -39,6 +39,7 @@ import {
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { apiService } from '../../services/api';
+import '../../styles/HomeworkCard.css';
 
 const CourseEnrollment = () => {
   const { user } = useUserSyncContext();
@@ -151,58 +152,64 @@ const CourseEnrollment = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout userRole="student">
-      <Box p={3}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Course Enrollment
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 4,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Manage your course enrollment and discover new courses
-        </Typography>
+      <div className="white-page-background">
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ 
+            fontWeight: '600',
+            fontSize: '1.8rem',
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            letterSpacing: '-0.01em',
+            lineHeight: '1.2',
+            color: '#2c3e50',
+            mb: 1,
+            px: 3,
+            pt: 3
+          }}>
+            Course Enrollment
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ 
+            mb: 3,
+            fontWeight: '300',
+            fontSize: '1rem',
+            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            color: '#7f8c8d',
+            lineHeight: '1.6',
+            letterSpacing: '0.3px',
+            px: 3
+          }}>
+            Manage your course enrollment and discover new courses
+          </Typography>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          <Alert severity="error" sx={{ mb: 2, mx: 3 }} onClose={() => setError('')}>
             {error}
           </Alert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          <Alert severity="success" sx={{ mb: 2, mx: 3 }} onClose={() => setSuccess('')}>
             {success}
           </Alert>
         )}
 
-        <Grid container spacing={3}>
+        <Grid container spacing={0} sx={{ width: '100%', margin: 0 }}>
           {/* Enrolled Courses */}
-          <Grid item xs={12} md={6}>
-            <div className="dashboard-card">
+          <Grid item xs={12} xl={6} sx={{ padding: '8px', minWidth: '50%', flex: '1 1 50%' }}>
+            <div className="dashboard-card" style={{ height: '100%', minHeight: '600px' }}>
               <div className="card-content">
                 <Typography variant="h6" gutterBottom display="flex" alignItems="center">
-                  <CheckCircleIcon sx={{ mr: 1, color: '#95E1D3' }} />
+                  <CheckCircleIcon sx={{ mr: 1, color: '#4CAF50' }} />
                   My Enrolled Courses ({enrolledCourses.length})
                 </Typography>
                 
@@ -229,9 +236,9 @@ const CourseEnrollment = () => {
                                   size="small" 
                                   variant="outlined"
                                   sx={{
-                                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                    backgroundColor: 'rgba(214, 247, 173, 0.2)',
                                     color: '#333',
-                                    border: '1px solid #95E1D3'
+                                    border: '1px solid #D6F7AD'
                                   }}
                                 />
                               )}
@@ -293,8 +300,8 @@ const CourseEnrollment = () => {
           </Grid>
 
           {/* Available Courses */}
-          <Grid item xs={12} md={6}>
-            <div className="dashboard-card">
+          <Grid item xs={12} xl={6} sx={{ padding: '8px', minWidth: '50%', flex: '1 1 50%' }}>
+            <div className="dashboard-card" style={{ height: '100%', minHeight: '600px' }}>
               <div className="card-content">
                 <Typography variant="h6" gutterBottom display="flex" alignItems="center">
                   <AddIcon sx={{ mr: 1, color: '#2E7D32' }} />
@@ -375,9 +382,9 @@ const CourseEnrollment = () => {
                                   size="small" 
                                   variant="outlined"
                                   sx={{
-                                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                    backgroundColor: 'rgba(214, 247, 173, 0.2)',
                                     color: '#333',
-                                    border: '1px solid #95E1D3'
+                                    border: '1px solid #D6F7AD'
                                   }}
                                 />
                               )}
@@ -539,7 +546,8 @@ const CourseEnrollment = () => {
             )}
           </DialogActions>
         </Dialog>
-      </Box>
+        </Box>
+      </div>
     </DashboardLayout>
   );
 };

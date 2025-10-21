@@ -41,6 +41,7 @@ import {
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/student/ClassesPlanner.css';
+import '../../styles/HomeworkCard.css';
 
 function ClassesPlanner() {
   const { syncStatus, user } = useUserSyncContext();
@@ -129,12 +130,12 @@ function ClassesPlanner() {
   // Get class type color
   const getClassTypeColor = (type) => {
     const colors = {
-      lecture: { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' },
+      lecture: { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' },
       tutorial: { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' },
       lab: { backgroundColor: 'rgba(252, 227, 138, 0.3)', color: '#333', border: '1px solid #FCE38A' },
       seminar: { backgroundColor: 'rgba(243, 129, 129, 0.3)', color: '#333', border: '1px solid #F38181' }
     };
-    return colors[type] || { backgroundColor: 'rgba(149, 225, 211, 0.3)', color: '#333', border: '1px solid #95E1D3' };
+    return colors[type] || { backgroundColor: 'rgba(214, 247, 173, 0.3)', color: '#333', border: '1px solid #D6F7AD' };
   };
 
   // Check if date is today
@@ -243,9 +244,11 @@ function ClassesPlanner() {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
@@ -262,40 +265,18 @@ function ClassesPlanner() {
 
   return (
     <DashboardLayout userRole="student">
-      <Typography variant="h3" component="h1" sx={{ 
-        fontWeight: '600',
-        fontSize: '2.5rem',
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-        letterSpacing: '-0.01em',
-        lineHeight: '1.2',
-        color: '#2c3e50',
-        mb: 1
-      }}>
-        Classes Planner
-      </Typography>
-      <Typography variant="h6" color="text.secondary" sx={{ 
-        mb: 4,
-        fontWeight: '300',
-        fontSize: '1.1rem',
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-        color: '#7f8c8d',
-        lineHeight: '1.6',
-        letterSpacing: '0.3px'
-      }}>
-        Plan and organize your class schedules and academic calendar
-      </Typography>
-
-      {/* Add Class Button */}
+      <div className="white-page-background">
+        {/* Add Class Button */}
       <Box display="flex" justifyContent="flex-start" mb={3}>
         <Button
           variant="contained"
           startIcon={<CalendarTodayIcon />}
           onClick={() => setOpenAddClassDialog(true)}
           sx={{
-            backgroundColor: '#95E1D3',
+            backgroundColor: '#D6F7AD',
             color: '#333',
             '&:hover': {
-              backgroundColor: '#7dd3c0'
+              backgroundColor: '#c8f299'
             }
           }}
         >
@@ -312,9 +293,9 @@ function ClassesPlanner() {
                     onClick={goToPreviousWeek} 
                     size="small"
                     sx={{ 
-                      backgroundColor: '#95E1D3', 
-                      color: 'white',
-                      '&:hover': { backgroundColor: '#7dd3c0' }
+                      backgroundColor: '#D6F7AD', 
+                      color: '#333',
+                      '&:hover': { backgroundColor: '#c8f299' }
                     }}
                   >
                     <ChevronLeftIcon />
@@ -327,9 +308,9 @@ function ClassesPlanner() {
                     onClick={goToNextWeek} 
                     size="small"
                     sx={{ 
-                      backgroundColor: '#95E1D3', 
-                      color: 'white',
-                      '&:hover': { backgroundColor: '#7dd3c0' }
+                      backgroundColor: '#D6F7AD', 
+                      color: '#333',
+                      '&:hover': { backgroundColor: '#c8f299' }
                     }}
                   >
                     <ChevronRightIcon />
@@ -356,36 +337,36 @@ function ClassesPlanner() {
           <div className="dashboard-card" style={{ marginBottom: '24px' }}>
             <div className="card-content">
               <Typography variant="h6" gutterBottom>
-                <TrendingUpIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
+                <TrendingUpIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
                 Weekly Overview
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}>
                   <Box textAlign="center">
-                    <Typography variant="h4" sx={{ color: '#95E1D3' }}>
+                    <Typography variant="h4" sx={{ color: '#333' }}>
                       {classesData?.statistics?.total_classes || 0}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       Total Classes
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Box textAlign="center">
-                    <Typography variant="h4" sx={{ color: '#D6F7AD' }}>
+                    <Typography variant="h4" sx={{ color: '#333' }}>
                       {classesData?.statistics?.total_hours || 0}h
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       Total Hours
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Box textAlign="center">
-                    <Typography variant="h4" sx={{ color: '#FCE38A' }}>
+                    <Typography variant="h4" sx={{ color: '#333' }}>
                       {classesData?.statistics?.average_classes_per_day || 0}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       Avg/Day
                     </Typography>
                   </Box>
@@ -404,20 +385,24 @@ function ClassesPlanner() {
             
             <div className="schedule-grid" style={{ background: 'transparent' }}>
               {classesData?.schedule?.map((day, index) => (
-                <div key={index} className="schedule-day" style={{ background: 'rgba(255, 255, 255, 0.3)', backdropFilter: 'blur(10px)', borderRadius: '8px', border: '1px solid rgba(149, 225, 211, 0.3)' }}>
-                  <div className="day-header" style={{ background: 'rgba(149, 225, 211, 0.2)', padding: '8px', borderRadius: '8px 8px 0 0' }}>
+                <div key={index} className="schedule-day" style={{ background: 'rgba(255, 255, 255, 0.3)', backdropFilter: 'blur(10px)', borderRadius: '8px', border: '1px solid rgba(214, 247, 173, 0.3)' }}>
+                  <div className="day-header" style={{ background: 'rgba(214, 247, 173, 0.2)', padding: '8px', borderRadius: '8px 8px 0 0' }}>
                     <Typography variant="subtitle1" fontWeight="bold">
                       {day.day}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       {new Date(day.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </Typography>
                     {isToday(new Date(day.date)) && (
                       <Chip 
                         label="Today" 
                         size="small" 
-                        color="primary" 
-                        sx={{ mt: 0.5 }}
+                        sx={{ 
+                          mt: 0.5,
+                          backgroundColor: '#D6F7AD',
+                          color: '#333',
+                          border: '1px solid #D6F7AD'
+                        }}
                       />
                     )}
                   </div>
@@ -429,7 +414,7 @@ function ClassesPlanner() {
                           <Typography variant="body2" fontWeight="bold">
                             {classItem.topic}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: '#666' }}>
                             {classItem.course?.code}
                           </Typography>
                           <Box display="flex" alignItems="center" gap={0.5}>
@@ -455,7 +440,7 @@ function ClassesPlanner() {
                       </div>
                     ))
                   ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ mt: 2, color: '#666' }}>
                       No classes
                     </Typography>
                   )}
@@ -490,7 +475,7 @@ function ClassesPlanner() {
                               <Typography variant="h6" gutterBottom>
                                 {classItem.topic}
                               </Typography>
-                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                              <Typography variant="body2" sx={{ color: '#666' }} gutterBottom>
                                 {classItem.course?.code} - {classItem.course?.name}
                               </Typography>
                               
@@ -508,14 +493,14 @@ function ClassesPlanner() {
                                 />
                                 {classItem.room && (
                                   <Chip 
-                                    icon={<LocationOnIcon sx={{ color: '#95E1D3' }} />}
+                                    icon={<LocationOnIcon sx={{ color: '#D6F7AD' }} />}
                                     label={String(classItem.room || 'TBA')}
                                     size="small"
                                     variant="outlined"
                                     sx={{
-                                      backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                      backgroundColor: 'rgba(214, 247, 173, 0.2)',
                                       color: '#333',
-                                      border: '1px solid #95E1D3'
+                                      border: '1px solid #D6F7AD'
                                     }}
                                   />
                                 )}
@@ -529,15 +514,15 @@ function ClassesPlanner() {
                                   size="small"
                                   variant="outlined"
                                   sx={{
-                                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                                    backgroundColor: 'rgba(214, 247, 173, 0.2)',
                                     color: '#333',
-                                    border: '1px solid #95E1D3'
+                                    border: '1px solid #D6F7AD'
                                   }}
                                 />
                               </Box>
                               
                               {classItem.description && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                <Typography variant="body2" sx={{ color: '#666', mt: 1 }}>
                                   {classItem.description}
                                 </Typography>
                               )}
@@ -551,8 +536,8 @@ function ClassesPlanner() {
                                     size="small"
                                     onClick={() => handleEditClass(classItem)}
                                     sx={{
-                                      backgroundColor: 'rgba(149, 225, 211, 0.2)',
-                                      '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.4)' }
+                                      backgroundColor: 'rgba(214, 247, 173, 0.2)',
+                                      '&:hover': { backgroundColor: 'rgba(214, 247, 173, 0.4)' }
                                     }}
                                   >
                                     <EditIcon fontSize="small" />
@@ -677,10 +662,10 @@ function ClassesPlanner() {
             onClick={handleAddClass} 
             variant="contained"
             sx={{
-              backgroundColor: '#95E1D3',
+              backgroundColor: '#D6F7AD',
               color: '#333',
               '&:hover': {
-                backgroundColor: '#7dd3c0'
+                backgroundColor: '#c8f299'
               }
             }}
           >
@@ -789,10 +774,10 @@ function ClassesPlanner() {
             onClick={handleUpdateClass} 
             variant="contained"
             sx={{
-              backgroundColor: '#95E1D3',
+              backgroundColor: '#D6F7AD',
               color: '#333',
               '&:hover': {
-                backgroundColor: '#7dd3c0'
+                backgroundColor: '#c8f299'
               }
             }}
           >
@@ -800,6 +785,7 @@ function ClassesPlanner() {
           </Button>
         </DialogActions>
       </Dialog>
+      </div>
     </DashboardLayout>
   );
 }

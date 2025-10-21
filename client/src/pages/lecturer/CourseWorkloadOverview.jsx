@@ -519,29 +519,8 @@ const CourseWorkloadOverview = () => {
 
   return (
     <DashboardLayout userRole="lecturer">
+      <div className="white-page-background">
       <Box sx={{ p: 3 }}>
-      <Typography variant="h3" component="h1" sx={{ 
-        fontWeight: '600',
-        fontSize: '2.5rem',
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-        letterSpacing: '-0.01em',
-        lineHeight: '1.2',
-        color: '#2c3e50',
-        mb: 1
-      }}>
-        Course Workload Overview
-      </Typography>
-      <Typography variant="h6" color="text.secondary" sx={{ 
-        mb: 4,
-        fontWeight: '300',
-        fontSize: '1.1rem',
-        fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-        color: '#7f8c8d',
-        lineHeight: '1.6',
-        letterSpacing: '0.3px'
-      }}>
-        Visualize student workload across all courses in the system
-      </Typography>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -928,7 +907,7 @@ const CourseWorkloadOverview = () => {
                               size="small"
                               sx={{
                                 backgroundColor: courseData.upcoming_week > 3 ? 'rgba(243, 129, 129, 0.3)' : 'rgba(149, 225, 211, 0.3)',
-                                color: courseData.upcoming_week > 3 ? '#F38181' : '#95E1D3',
+                                color: '#666666',
                                 fontWeight: 'bold'
                               }}
                             />
@@ -937,7 +916,7 @@ const CourseWorkloadOverview = () => {
                               size="small"
                               sx={{
                                 backgroundColor: 'rgba(214, 247, 173, 0.3)',
-                                color: '#D6F7AD',
+                                color: '#666666',
                                 fontWeight: 'bold'
                               }}
                             />
@@ -947,7 +926,7 @@ const CourseWorkloadOverview = () => {
                                 size="small"
                                 sx={{
                                   backgroundColor: 'rgba(252, 227, 138, 0.3)',
-                                  color: '#FCE38A',
+                                  color: '#666666',
                                   fontWeight: 'bold'
                                 }}
                               />
@@ -967,22 +946,22 @@ const CourseWorkloadOverview = () => {
                                 </Typography>
                                 
                                 {courseStatusData.homework_status.map((homework) => (
-                                  <Paper key={homework._id} sx={{ p: 2, mb: 2, borderLeft: `4px solid ${homework.type === 'traditional' ? '#95E1D3' : '#FCE38A'}`, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}>
+                                  <Paper key={homework._id} sx={{ p: 2, mb: 2, borderLeft: `4px solid ${homework.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                       <Box>
                                         <Typography variant="subtitle2" fontWeight="bold">
                                           {homework.title}
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary" display="block">
-                                          Due: {new Date(homework.due_date).toLocaleDateString()}
+                                          Due: {new Date(homework.claimed_deadline || homework.due_date).toLocaleDateString()}
                                         </Typography>
                                         <Chip 
-                                          label={homework.type === 'traditional' ? 'Traditional' : 'Student Created'} 
+                                          label={homework.homework_type === 'student' ? 'Student Created' : 'Traditional'} 
                                           size="small" 
                                           sx={{ 
                                             mt: 0.5,
-                                            backgroundColor: homework.type === 'traditional' ? 'rgba(149, 225, 211, 0.3)' : 'rgba(252, 227, 138, 0.3)',
-                                            color: homework.type === 'traditional' ? '#95E1D3' : '#FCE38A',
+                                            backgroundColor: homework.homework_type === 'student' ? 'rgba(252, 227, 138, 0.3)' : 'rgba(149, 225, 211, 0.3)',
+                                            color: '#666666',
                                             fontWeight: 'bold'
                                           }}
                                         />
@@ -1152,6 +1131,7 @@ const CourseWorkloadOverview = () => {
 
 
       </Box>
+      </div>
     </DashboardLayout>
   );
 };

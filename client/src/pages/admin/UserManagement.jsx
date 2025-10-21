@@ -330,10 +330,12 @@ const UserManagement = () => {
   if (!hasAdminAccess) {
     return (
       <DashboardLayout userRole="admin">
-        <PermissionError
-          error={{ message: 'You need admin privileges to access user management.' }}
-          onRetry={refreshUser}
-        />
+        <div className="white-page-background">
+          <PermissionError
+            error={{ message: 'You need admin privileges to access user management.' }}
+            onRetry={refreshUser}
+          />
+        </div>
       </DashboardLayout>
     );
   }
@@ -341,38 +343,19 @@ const UserManagement = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="admin">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
 
   return (
     <DashboardLayout userRole="admin">
-      <Box>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          User Management
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 4,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Manage user accounts, roles, and permissions
-        </Typography>
+      <div className="white-page-background">
+        <Box>
 
         <Box display="flex" justifyContent="flex-end" mb={3}>
           <Button
@@ -536,6 +519,7 @@ const UserManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </div>
     </DashboardLayout>
   );
 };

@@ -42,6 +42,7 @@ import {
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/student/ChoosePartner.css';
+import '../../styles/HomeworkCard.css';
 
 function ChoosePartner() {
   const { syncStatus, user } = useUserSyncContext();
@@ -308,9 +309,11 @@ function ChoosePartner() {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
       </DashboardLayout>
     );
   }
@@ -328,39 +331,21 @@ function ChoosePartner() {
 
   return (
     <DashboardLayout userRole="student">
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Choose Study Partner
-        </Typography>
+      <div className="white-page-background">
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Button
             variant="outlined"
             startIcon={<GroupIcon />}
             onClick={() => setShowRequests(!showRequests)}
-            color="secondary"
+            sx={{
+              borderColor: '#D6F7AD',
+              color: '#333',
+              '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+            }}
           >
             {showRequests ? 'Hide Requests' : 'View Requests'}
           </Button>
         </Box>
-
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 4,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Find and connect with study partners for collaborative learning and homework assignments.
-        </Typography>
           
           {/* Success Message */}
           {success && (
@@ -472,19 +457,27 @@ function ChoosePartner() {
                               <div className="card-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', padding: '16px' }}>
                                 <Button
                                   size="small"
-                                  color="success"
                                   variant="contained"
                                   startIcon={<CheckCircleIcon />}
                                   onClick={() => handleRespondToRequest(request._id, 'accept')}
+                                  sx={{
+                                    backgroundColor: '#D6F7AD',
+                                    color: '#333',
+                                    '&:hover': { backgroundColor: '#c8f299' }
+                                  }}
                                 >
                                   Accept
                                 </Button>
                                 <Button
                                   size="small"
-                                  color="error"
                                   variant="outlined"
                                   startIcon={<CancelIcon />}
                                   onClick={() => handleRespondToRequest(request._id, 'decline')}
+                                  sx={{
+                                    borderColor: '#F38181',
+                                    color: '#F38181',
+                                    '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                                  }}
                                 >
                                   Decline
                                 </Button>
@@ -587,9 +580,9 @@ function ChoosePartner() {
                                     setSuccess('Request is pending. You can send a follow-up message if needed.');
                                   }}
                                   sx={{ 
-                                    borderColor: '#95E1D3', 
-                                    color: '#95E1D3',
-                                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                                    borderColor: '#D6F7AD', 
+                                    color: '#333',
+                                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
                                   }}
                                 >
                                   Follow Up
@@ -685,25 +678,38 @@ function ChoosePartner() {
                                   variant="outlined"
                                   startIcon={<GroupIcon />}
                                   onClick={() => setDetailsDialog({ open: true, partnership })}
+                                  sx={{
+                                    borderColor: '#95E1D3',
+                                    color: '#333',
+                                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                                  }}
                                 >
                                   View Details
                                 </Button>
                                 <Button
                                   size="small"
-                                  color="warning"
                                   variant="outlined"
                                   startIcon={<EditIcon />}
                                   onClick={() => handleUpdatePartnership(partnership._id, 'completed')}
+                                  sx={{
+                                    borderColor: '#D6F7AD',
+                                    color: '#333',
+                                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                                  }}
                                 >
                                   Mark Complete
                                 </Button>
                                 <Button
                                   size="small"
-                                  color="error"
                                   variant="outlined"
                                   startIcon={<DeleteIcon />}
                                   onClick={() => handleDeletePartnership(partnership)}
                                   disabled={sendingRequest}
+                                  sx={{
+                                    borderColor: '#F38181',
+                                    color: '#F38181',
+                                    '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                                  }}
                                 >
                                   Delete
                                 </Button>
@@ -789,7 +795,17 @@ function ChoosePartner() {
                     !partnerRequests.sent_requests?.length && 
                     !partnerRequests.active_partnerships?.length &&
                     !partnerRequests.completed_partnerships?.length) && (
-                    <Alert severity="info">
+                    <Alert 
+                      severity="info"
+                      sx={{
+                        backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                        border: '1px solid #95E1D3',
+                        color: '#333',
+                        '& .MuiAlert-icon': {
+                          color: '#333'
+                        }
+                      }}
+                    >
                       No partnership requests found. Send requests to other students to start collaborating!
                     </Alert>
                   )}
@@ -856,7 +872,18 @@ function ChoosePartner() {
             
             {/* No homework available message */}
             {selectedCourse && partnerData?.homework_assignments?.length === 0 && (
-              <Alert severity="info" sx={{ mt: 2 }}>
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  mt: 2,
+                  backgroundColor: 'rgba(252, 227, 138, 0.2)',
+                  border: '1px solid #FCE38A',
+                  color: '#333',
+                  '& .MuiAlert-icon': {
+                    color: '#333'
+                  }
+                }}
+              >
                 No available homework assignments found for this course. All homework may be completed or not yet available.
               </Alert>
             )}
@@ -889,7 +916,18 @@ function ChoosePartner() {
               </Typography>
               
               {partnerData?.courses?.filter(course => course.partner_enabled).length === 0 ? (
-                <Alert severity="info" sx={{ mb: 3 }}>
+                <Alert 
+                  severity="info" 
+                  sx={{ 
+                    mb: 3,
+                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                    border: '1px solid #95E1D3',
+                    color: '#333',
+                    '& .MuiAlert-icon': {
+                      color: '#333'
+                    }
+                  }}
+                >
                   <Typography variant="h6" gutterBottom>
                     Partner Functionality Disabled
                   </Typography>
@@ -919,22 +957,6 @@ function ChoosePartner() {
                           </Box>
                         </Box>
                         
-                        <Box display="flex" flexWrap="wrap" gap={1} mb={2}>
-                          <Chip 
-                            icon={<GroupIcon />} 
-                            label={course.partner_enabled ? 'Partners Enabled' : 'Partners Disabled'} 
-                            size="small" 
-                            color={course.partner_enabled ? 'success' : 'error'} 
-                            variant="outlined" 
-                          />
-                          <Chip 
-                            icon={<PersonIcon />} 
-                            label={`Max: ${course.max_partners}`} 
-                            size="small" 
-                            color="info" 
-                            variant="outlined" 
-                          />
-                        </Box>
                         
                         {course.partner_enabled ? (
                           <Typography variant="body2" color="text.secondary">
@@ -954,6 +976,15 @@ function ChoosePartner() {
                           disabled={!course.partner_enabled}
                           fullWidth
                           variant={course.partner_enabled ? 'contained' : 'outlined'}
+                          sx={course.partner_enabled ? {
+                            backgroundColor: '#D6F7AD',
+                            color: '#333',
+                            '&:hover': { backgroundColor: '#c8f299' }
+                          } : {
+                            borderColor: '#F38181',
+                            color: '#F38181',
+                            '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                          }}
                         >
                           {!course.partner_enabled 
                             ? 'Partners Disabled' 
@@ -985,7 +1016,18 @@ function ChoosePartner() {
                           : 'You can add more partners for this course.'
                         }
                       </Typography>
-                      <Alert severity="info" sx={{ mt: 1 }}>
+                      <Alert 
+                        severity="info" 
+                        sx={{ 
+                          mt: 1,
+                          backgroundColor: 'rgba(149, 225, 211, 0.2)',
+                          border: '1px solid #95E1D3',
+                          color: '#333',
+                          '& .MuiAlert-icon': {
+                            color: '#333'
+                          }
+                        }}
+                      >
                         <Typography variant="body2">
                           <strong>Note:</strong> Partners shown here include pending, accepted, and active partnerships. 
                           Students already listed here won't appear in "Available Study Partners" below.
@@ -1079,18 +1121,26 @@ function ChoosePartner() {
                               <Button
                                 size="small"
                                 variant="outlined"
-                                color="error"
                                 onClick={() => handleChangePartner(partnership)}
+                                sx={{
+                                  borderColor: '#FCE38A',
+                                  color: '#333',
+                                  '&:hover': { borderColor: '#fbd65e', backgroundColor: 'rgba(252, 227, 138, 0.1)' }
+                                }}
                               >
                                 Change Partner
                               </Button>
                               <Button
                                 size="small"
                                 variant="outlined"
-                                color="error"
                                 startIcon={<DeleteIcon />}
                                 onClick={() => handleDeletePartnership(partnership)}
                                 disabled={sendingRequest}
+                                sx={{
+                                  borderColor: '#F38181',
+                                  color: '#F38181',
+                                  '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                                }}
                               >
                                 Delete
                               </Button>
@@ -1113,14 +1163,28 @@ function ChoosePartner() {
                   size="small"
                   variant="outlined"
                   onClick={fetchPartnerData}
-                  sx={{ color: '#95E1D3', borderColor: '#95E1D3' }}
+                  sx={{ 
+                    borderColor: '#D6F7AD', 
+                    color: '#333',
+                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                  }}
                 >
                   Refresh
                 </Button>
               </Box>
 
               {getUniquePartners().length === 0 ? (
-                <Alert severity="info">
+                <Alert 
+                  severity="info"
+                  sx={{
+                    backgroundColor: 'rgba(214, 247, 173, 0.2)',
+                    border: '1px solid #D6F7AD',
+                    color: '#333',
+                    '& .MuiAlert-icon': {
+                      color: '#333'
+                    }
+                  }}
+                >
                   {partnerData?.current_partners && partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1) 
                     ? 'You have reached the maximum number of partners for this course.'
                     : 'No potential study partners found. All students may already have pending requests or partnerships.'
@@ -1163,20 +1227,7 @@ function ChoosePartner() {
                           </Box>
                           
                           <Box display="flex" flexWrap="wrap" gap={1}>
-                            <Chip 
-                              icon={<SchoolIcon />} 
-                              label="Student" 
-                              size="small" 
-                              color="primary" 
-                              variant="outlined" 
-                            />
-                            <Chip 
-                              icon={<GroupIcon />} 
-                              label="Available" 
-                              size="small" 
-                              color="success" 
-                              variant="outlined" 
-                            />
+                            {/* Tags removed */}
                           </Box>
                         </div>
                         <div className="card-actions" style={{ marginTop: '24px' }}>
@@ -1187,7 +1238,12 @@ function ChoosePartner() {
                             disabled={!selectedHomework || (partnerData?.current_partners && partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1))}
                             fullWidth
                             variant="contained"
-                            color="primary"
+                            sx={{
+                              backgroundColor: '#D6F7AD',
+                              color: '#333',
+                              '&:hover': { backgroundColor: '#c8f299' },
+                              '&:disabled': { backgroundColor: '#e0e0e0', color: '#999' }
+                            }}
                           >
                             {!selectedHomework 
                               ? 'Select Homework First' 
@@ -1212,6 +1268,11 @@ function ChoosePartner() {
                     setSelectedCourse('');
                     setSelectedHomework('');
                   }}
+                  sx={{
+                    borderColor: '#95E1D3',
+                    color: '#333',
+                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                  }}
                 >
                   Back to Course Selection
                 </Button>
@@ -1228,30 +1289,30 @@ function ChoosePartner() {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
                 <Box textAlign="center">
-                  <Typography variant="h4" color="primary">
+                  <Typography variant="h4" sx={{ color: '#333' }}>
                     {getUniquePartners().length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: '#666' }}>
                     Available Partners
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Box textAlign="center">
-                  <Typography variant="h4" color="secondary">
+                  <Typography variant="h4" sx={{ color: '#333' }}>
                     {partnerData?.courses?.length || 0}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: '#666' }}>
                     Enrolled Courses
                   </Typography>
                 </Box>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Box textAlign="center">
-                  <Typography variant="h4" color="success.main">
+                  <Typography variant="h4" sx={{ color: '#333' }}>
                     {selectedCourse ? '1' : '0'}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: '#666' }}>
                     Selected Course
                   </Typography>
                 </Box>
@@ -1305,6 +1366,11 @@ function ChoosePartner() {
               variant="contained"
               startIcon={sendingRequest ? <CircularProgress size={20} /> : <SendIcon />}
               disabled={sendingRequest}
+              sx={{
+                backgroundColor: '#D6F7AD',
+                color: '#333',
+                '&:hover': { backgroundColor: '#c8f299' }
+              }}
             >
               {sendingRequest ? 'Sending...' : 'Send Request'}
             </Button>
@@ -1511,15 +1577,16 @@ function ChoosePartner() {
               onClick={() => setDetailsDialog({ open: false, partnership: null })}
               variant="contained"
               sx={{ 
-                backgroundColor: '#95E1D3',
+                backgroundColor: '#D6F7AD',
                 color: '#333',
-                '&:hover': { backgroundColor: '#7dd3c0' }
+                '&:hover': { backgroundColor: '#c8f299' }
               }}
             >
               Close
             </Button>
           </DialogActions>
         </Dialog>
+      </div>
     </DashboardLayout>
   );
 }

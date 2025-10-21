@@ -40,10 +40,18 @@ const Callback = () => {
           }
 
           // If a signup role was selected, submit a role request
+          // Only submit role request if this is actually a signup (not a regular login)
           const signupRole = localStorage.getItem('signup_role');
-          if (signupRole) {
-            console.log('Submitting role request for:', signupRole);
+          const isSignupFlow = localStorage.getItem('is_signup_flow') === 'true';
+          
+          if (signupRole && isSignupFlow) {
+            console.log('Submitting role request for signup:', signupRole);
             await apiService.roleRequests.submit(signupRole);
+            localStorage.removeItem('signup_role');
+            localStorage.removeItem('is_signup_flow');
+          } else if (signupRole && !isSignupFlow) {
+            // Clean up stale signup role from localStorage if this is not a signup flow
+            console.log('Cleaning up stale signup role from regular login');
             localStorage.removeItem('signup_role');
           }
 

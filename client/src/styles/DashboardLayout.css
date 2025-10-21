@@ -206,6 +206,12 @@
   color: #333;
 }
 
+.card-icon.study-progress {
+  background: #1976d2;
+  color: white;
+  font-size: 18px;
+}
+
 .card-title {
   font-size: 18px;
   font-weight: 600;

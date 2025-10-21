@@ -74,9 +74,6 @@ const ProgressChart = ({ title, data, type = 'line', height = 300, color = '#197
 
   return (
     <div>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#333', marginBottom: '15px' }}>
-        {title}
-      </Typography>
       <Box>
         <Chart
           options={chartOptions}

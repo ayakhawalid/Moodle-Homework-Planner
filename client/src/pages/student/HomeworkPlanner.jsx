@@ -5,6 +5,7 @@ import { Alert, CircularProgress, Typography, Box } from '@mui/material';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/DashboardLayout.css';
+import '../../styles/HomeworkCard.css';
 
 function HomeworkPlanner() {
   const { syncStatus } = useUserSyncContext();
@@ -53,48 +54,29 @@ function HomeworkPlanner() {
     return () => window.removeEventListener('focus', handleFocus);
   }, [syncStatus]);
 
+  if (loading) {
+    return (
+      <DashboardLayout userRole="student">
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout userRole="student">
-      <Box>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: '600',
-          fontSize: '2.5rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          letterSpacing: '-0.01em',
-          lineHeight: '1.2',
-          color: '#2c3e50',
-          mb: 1
-        }}>
-          Homework Planner
-        </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ 
-          mb: 4,
-          fontWeight: '300',
-          fontSize: '1.1rem',
-          fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-          color: '#7f8c8d',
-          lineHeight: '1.6',
-          letterSpacing: '0.3px'
-        }}>
-          Organize and track your homework assignments efficiently
-        </Typography>
-      </Box>
+      <div className="white-page-background">
+        {/* Error State */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, mx: 3 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Loading State */}
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-          <CircularProgress />
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <Alert severity="error" style={{ marginBottom: '20px' }}>
-          {error}
-        </Alert>
-      )}
-
-      {!loading && !error && homeworkData && (
+        {!loading && !error && homeworkData && (
         <div className="dashboard-grid">
         <div className="dashboard-card">
           <div className="card-header">
@@ -236,8 +218,8 @@ function HomeworkPlanner() {
           </div>
         </div>
         </div>
-      )}
-
+        )}
+      </div>
     </DashboardLayout>
   );
 }
