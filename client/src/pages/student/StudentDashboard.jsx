@@ -207,10 +207,9 @@ function StudentDashboard() {
 
         {/* All Dashboard Cards - 4 Cards Per Row */}
         {!loading && !error && dashboardData && (
-          <Grid container spacing={0} mb={4}>
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
             {/* Chart Card */}
-            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
-              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+            <div className="dashboard-card" style={{ flex: '1', height: '400px', display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(10px)' }}>
                 <div className="card-header">
                   <div className="card-icon study-progress">
                     <TimerIcon />
@@ -225,17 +224,15 @@ function StudentDashboard() {
                     <ProgressChart
                       data={studyProgressData}
                       type="area"
-                      height={280}
+                      height={250}
                       color="#1976d2"
                     />
                   </div>
                 </div>
               </div>
-            </Grid>
             
             {/* Today's Classes Card */}
-            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
-              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+            <div className="dashboard-card" style={{ flex: '1', height: '400px', display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(10px)' }}>
                 <div className="card-header">
                   <div className="card-icon study-activity">
                     <EventIcon />
@@ -306,11 +303,9 @@ function StudentDashboard() {
                   </div>
                 </div>
               </div>
-            </Grid>
 
             {/* Homework Deadlines Card */}
-            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
-              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+            <div className="dashboard-card" style={{ flex: '1', height: '400px', display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(10px)' }}>
                 <div className="card-header">
                   <div className="card-icon secondary">
                     <AssignmentIcon />
@@ -359,11 +354,9 @@ function StudentDashboard() {
                   </div>
                 </div>
               </div>
-            </Grid>
 
             {/* Exam Deadlines Card */}
-            <Grid item xs={12} md={3} sx={{ padding: '8px' }}>
-              <div className="dashboard-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
+            <div className="dashboard-card" style={{ flex: '1', height: '400px', display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(10px)' }}>
                 <div className="card-header">
                   <div className="card-icon accent">
                     <QuizIcon />
@@ -412,15 +405,12 @@ function StudentDashboard() {
                   </div>
                 </div>
               </div>
-            </Grid>
-          </Grid>
+          </div>
         )}
 
         {/* Courses Info Section */}
         {!loading && !error && dashboardData && (
-          <Grid container spacing={0} mb={4}>
-            <Grid item xs={12}>
-              <div className="dashboard-card" style={{ minHeight: '250px', display: 'flex', flexDirection: 'column' }}>
+          <div className="dashboard-card" style={{ minHeight: '250px', display: 'flex', flexDirection: 'column', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(10px)' }}>
                 <div className="card-header">
                   <div className="card-icon primary">
                     <SchoolIcon />
@@ -458,8 +448,6 @@ function StudentDashboard() {
                   </div>
                 </div>
               </div>
-            </Grid>
-          </Grid>
         )}
 
       </Box>

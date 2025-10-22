@@ -20,8 +20,6 @@ import {
   CircularProgress,
   Paper,
   Divider,
-  Tabs,
-  Tab,
   Accordion,
   AccordionSummary,
   AccordionDetails
@@ -37,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
+import '../../styles/HomeworkCard.css';
 
 const VerificationDashboard = () => {
   const { isAuthenticated } = useAuth0();
@@ -57,7 +56,6 @@ const VerificationDashboard = () => {
   });
   
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -168,115 +166,73 @@ const VerificationDashboard = () => {
         </Alert>
       )}
 
-      <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-        <div className="card-content">
-          <Tabs 
-            value={activeTab} 
-            onChange={(e, newValue) => setActiveTab(newValue)}
-            sx={{
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#666'
-              }
-            }}
-          >
-            <Tab 
-              label={`Deadline Verifications (${deadlineVerifications.length})`} 
-              icon={<ScheduleIcon sx={{ color: '#666' }} />}
-              sx={{ 
-                color: '#666',
-                '&.Mui-selected': { color: '#666' }
-              }}
-            />
-          </Tabs>
-        </div>
-      </div>
-
-      {/* Deadline Verifications Tab */}
-      {activeTab === 0 && (
+      {/* Deadline Verifications */}
         <Box>
-          {deadlineVerifications.length === 0 ? (
-            <div className="dashboard-card" style={{ textAlign: 'center', padding: '32px' }}>
-              <div className="card-content">
-                <Typography variant="h6" color="text.secondary">
-                  No pending deadline verifications
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  All deadline verifications are up to date
-                </Typography>
-              </div>
-            </div>
-          ) : (
-            <Grid container spacing={3}>
-              {deadlineVerifications.map((verification) => (
-                <Grid item xs={12} md={6} lg={4} key={verification._id}>
-                  <div className="dashboard-card">
-                    <div className="card-content">
-                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                        <Typography variant="h6" component="h2">
-                          {verification.title}
-                        </Typography>
-                        {getStatusIcon(verification.deadline_verification_status)}
-                      </Box>
+          <div className="homework-grid">
+            {deadlineVerifications.map((verification) => (
+                <div className="homework-item" key={verification._id}>
+                  <div className="homework-card student-homework">
+                    {/* Notebook Edge - Simple line for verification */}
+                    <div className="notebook-edge student-edge">
+                      <div className="student-indicator"></div>
+                    </div>
 
-                      <Box display="flex" alignItems="center" mb={1}>
-                        <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {verification.course.name} ({verification.course.code})
-                        </Typography>
-                      </Box>
+                    {/* Verification Content */}
+                    <div className="homework-content">
+                      <div className="homework-title">{verification.title}</div>
+                      
+                      {/* Student Info */}
+                      <div className="homework-course">
+                        <PersonIcon sx={{ mr: 1, fontSize: 16, color: '#FCE38A' }} />
+                        {verification.uploaded_by.name} ({verification.uploaded_by.role})
+                      </div>
 
-                      <Box display="flex" alignItems="center" mb={1}>
-                        <PersonIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {verification.uploaded_by.name} ({verification.uploaded_by.role})
-                        </Typography>
-                      </Box>
+                      {/* Course Info */}
+                      <div className="homework-course">
+                        <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
+                        {verification.course.name} ({verification.course.code})
+                      </div>
 
-                      <Box display="flex" alignItems="center" mb={2}>
-                        <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#FCE38A' }} />
-                        <Typography variant="body2" color="text.secondary">
-                          Claimed Deadline: {new Date(verification.claimed_deadline).toLocaleString()}
-                        </Typography>
-                      </Box>
-
-                      <Divider sx={{ my: 2 }} />
-
-                      <Box display="flex" gap={1}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<CheckCircleIcon />}
-                          onClick={() => openVerifyDialog(verification)}
-                          sx={{ 
-                            backgroundColor: '#95E1D3',
-                            color: '#333',
-                            '&:hover': { backgroundColor: '#7dd3c0' }
-                          }}
-                        >
-                          Verify
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<CancelIcon />}
-                          onClick={() => openVerifyDialog(verification)}
-                          sx={{ 
-                            borderColor: '#F38181',
-                            color: '#F38181',
-                            '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
-                          }}
-                        >
-                          Reject
-                        </Button>
-                      </Box>
+                      <div className="homework-description">{verification.description || 'No description provided'}</div>
+                      
+                      {/* Deadline and Status - Left aligned */}
+                      <div className="homework-meta">
+                        {/* Deadline Box - Always show */}
+                        <div className="deadline-box">
+                          <span className="deadline-text">
+                            {new Date(verification.claimed_deadline).toLocaleDateString()}
+                          </span>
+                          {/* Verification Status */}
+                          <div 
+                            className={`verification-indicator ${verification.deadline_verification_status === 'verified' ? 'verified' : 'unverified'}`}
+                            title={verification.deadline_verification_status === 'verified' ? 'Verified Deadline' : 'Unverified Deadline - Needs Verification'}
+                          >
+                            {verification.deadline_verification_status === 'verified' ? 'Verified' : 'Not Verified'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </Grid>
-              ))}
-            </Grid>
-          )}
+
+                  {/* Action Buttons */}
+                  <div className="homework-actions">
+                    <button
+                      className="action-button edit"
+                      onClick={() => openVerifyDialog(verification)}
+                    >
+                      Verify
+                    </button>
+                    <button
+                      className="action-button delete"
+                      onClick={() => openVerifyDialog(verification)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+            ))}
+          </div>
         </Box>
-      )}
 
       {/* Verification Dialog */}
       <Dialog open={verifyDialogOpen} onClose={() => setVerifyDialogOpen(false)} maxWidth="md" fullWidth>

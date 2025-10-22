@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import CalendarComponent from '../../Components/Calendar';
+import FallingLeaves from '../../components/FallingLeaves';
 import { apiService } from '../../services/api';
 import { useAuth0 } from '@auth0/auth0-react';
 import {
@@ -211,48 +212,67 @@ const StudentCalendar = () => {
 
   return (
     <DashboardLayout userRole="student">
+      <style>
+        {`
+          .dashboard-card {
+            background-color: rgba(255, 255, 255, 0.3) !important;
+          }
+        `}
+      </style>
       <div className="white-page-background">
         <Box>
         {/* Statistics Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
             <div className="dashboard-card">
-              <div className="card-header">
-                <div className="card-icon primary">
-                  <AssignmentIcon />
-                </div>
-                <div>
-                  <h3 className="card-title">{totalHomework}</h3>
-                  <p className="card-subtitle">Total Assignments</p>
-                </div>
+              <div className="card-content">
+                <Box display="flex" alignItems="center">
+                  <AssignmentIcon sx={{ mr: 2, color: '#95E1D3' }} />
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
+                      {totalHomework}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
+                      Total Assignments
+                    </Typography>
+                  </Box>
+                </Box>
               </div>
             </div>
           </Grid>
           
           <Grid item xs={12} sm={6} md={3}>
             <div className="dashboard-card">
-              <div className="card-header">
-                <div className="card-icon secondary">
-                  <CheckCircleIcon />
-                </div>
-                <div>
-                  <h3 className="card-title">{completedHomework}</h3>
-                  <p className="card-subtitle">Completed</p>
-                </div>
+              <div className="card-content">
+                <Box display="flex" alignItems="center">
+                  <CheckCircleIcon sx={{ mr: 2, color: '#D6F7AD' }} />
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
+                      {completedHomework}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
+                      Completed
+                    </Typography>
+                  </Box>
+                </Box>
               </div>
             </div>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <div className="dashboard-card">
-              <div className="card-header">
-                <div className="card-icon accent">
-                  <ScheduleIcon />
-                </div>
-                <div>
-                  <h3 className="card-title">{upcomingHomework}</h3>
-                  <p className="card-subtitle">Due This Week</p>
-                </div>
+              <div className="card-content">
+                <Box display="flex" alignItems="center">
+                  <ScheduleIcon sx={{ mr: 2, color: '#FCE38A' }} />
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
+                      {upcomingHomework}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
+                      Due This Week
+                    </Typography>
+                  </Box>
+                </Box>
               </div>
             </div>
           </Grid>

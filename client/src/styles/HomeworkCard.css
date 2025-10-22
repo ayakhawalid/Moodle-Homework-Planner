@@ -315,6 +315,16 @@
   transform: scale(1.1);
 }
 
+/* Action Buttons - Top Right Corner */
+.homework-actions-top {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.25rem;
+  z-index: 10;
+}
+
 /* Action Buttons (Below the card like Instagram) */
 .homework-actions {
   display: flex;

@@ -28,15 +28,15 @@ import {
 } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Schedule as ScheduleIcon,
-  School as SchoolIcon,
-  Assignment as AssignmentIcon,
+  Plus as AddIcon,
+  Trash as DeleteIcon,
+  PencilSimple as EditIcon,
+  Clock as ScheduleIcon,
+  GraduationCap as SchoolIcon,
+  BookOpen as AssignmentIcon,
   Warning as WarningIcon,
-  People as PeopleIcon
-} from '@mui/icons-material';
+  Users as PeopleIcon
+} from 'phosphor-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
 import '../../styles/DashboardLayout.css';
@@ -348,9 +348,9 @@ const HomeworkManagement = () => {
       <div className="white-page-background">
         <Box sx={{ p: 3 }}>
         
-        {/* Course Filter */}
-        <Box mb={3}>
-          <FormControl fullWidth sx={{ maxWidth: 400 }}>
+        {/* Course Filter and Add Button */}
+        <Box mb={3} display="flex" alignItems="center" gap={2}>
+          <FormControl sx={{ maxWidth: 400, flex: 1 }}>
             <InputLabel>Filter by Course</InputLabel>
             <Select
               value={searchCourse}
@@ -369,17 +369,36 @@ const HomeworkManagement = () => {
               ))}
             </Select>
           </FormControl>
+          
+          {/* Add Homework Icon Button */}
+          {tabValue === 0 && (
+            <IconButton
+              onClick={() => setCreateDialogOpen(true)}
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              color: '#555',
+              borderRadius: '8px',
+              padding: '20px',
+              minWidth: '64px',
+              width: '64px',
+              height: '64px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                color: '#333'
+              }
+            }}
+            >
+              <AddIcon size={48} weight="thin" />
+            </IconButton>
+          )}
         </Box>
 
         {/* Tabs */}
-        <Paper 
-          elevation={0} 
+        <Box 
           sx={{ 
             mb: 3, 
-            background: 'rgba(255, 255, 255, 0.6)',
-            borderRadius: '16px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-            border: 'none'
+            borderBottom: '1px solid #e0e0e0',
+            backgroundColor: 'transparent'
           }}
         >
           <Tabs 
@@ -388,54 +407,37 @@ const HomeworkManagement = () => {
             TabIndicatorProps={{
               sx: {
                 backgroundColor: '#D6F7AD',
-                height: 3
+                height: 2
               }
             }}
             sx={{
+              minHeight: 'auto',
               '& .MuiTab-root': {
-                color: '#666',
+                color: '#2d3748',
                 fontWeight: 500,
                 textTransform: 'none',
                 fontSize: '1rem',
+                minHeight: '48px',
+                padding: '12px 16px',
                 '&.Mui-selected': {
-                  color: '#333',
+                  color: '#1a202c',
                   fontWeight: 600
                 }
               }
             }}
           >
             <Tab 
-              icon={<AssignmentIcon />} 
+              icon={<AssignmentIcon size={20} weight="thin" />} 
               iconPosition="start" 
               label="My Homework" 
             />
             <Tab 
-              icon={<PeopleIcon />} 
+              icon={<PeopleIcon size={20} weight="thin" />} 
               iconPosition="start" 
               label={`Student Homework (${studentHomework.length})`} 
             />
           </Tabs>
-        </Paper>
-
-        {/* Add Homework Button */}
-        {tabValue === 0 && (
-          <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setCreateDialogOpen(true)}
-              sx={{
-                backgroundColor: '#D6F7AD',
-                color: '#333',
-                '&:hover': {
-                  backgroundColor: '#c8f299'
-                }
-              }}
-            >
-              Add Homework
-            </Button>
-          </Box>
-        )}
+        </Box>
 
         {/* Success/Error Messages */}
         {success && (
@@ -452,25 +454,7 @@ const HomeworkManagement = () => {
         {/* Tab Content */}
         {tabValue === 0 && (
           <div className="homework-grid">
-            {filteredHomework.length === 0 ? (
-              <div className="dashboard-card" style={{ 
-                padding: '40px', 
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <AssignmentIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
-                <Typography variant="h6" color="textSecondary">
-                  No homework assignments yet
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  Create your first homework assignment to get started
-                </Typography>
-              </div>
-            ) : (
-              filteredHomework.map((hw) => {
+            {filteredHomework.map((hw) => {
                 const isOverdue = new Date(hw.due_date) < new Date();
                 
                 return (
@@ -483,9 +467,53 @@ const HomeworkManagement = () => {
 
                       {/* Homework Content */}
                       <div className="homework-content">
+                        {/* Action Buttons - Top Right Corner */}
+                        <div className="homework-actions-top">
+                          <IconButton 
+                            className="action-button edit"
+                            onClick={() => handleEditHomework(hw)}
+                            sx={{
+                              backgroundColor: 'transparent !important',
+                              color: '#555',
+                              border: 'none !important',
+                              padding: '6px',
+                              margin: '0 2px',
+                              minWidth: '32px',
+                              width: '32px',
+                              height: '32px',
+                              '&:hover': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.1) !important',
+                                transform: 'scale(1.05)'
+                              }
+                            }}
+                          >
+                            <EditIcon size={16} weight="thin" />
+                          </IconButton>
+                          <IconButton 
+                            className="action-button delete"
+                            onClick={() => openDeleteDialog(hw)}
+                            sx={{
+                              backgroundColor: 'transparent !important',
+                              color: '#e53e3e',
+                              border: 'none !important',
+                              padding: '6px',
+                              margin: '0 2px',
+                              minWidth: '32px',
+                              width: '32px',
+                              height: '32px',
+                              '&:hover': {
+                                backgroundColor: 'rgba(229, 62, 62, 0.1) !important',
+                                transform: 'scale(1.05)'
+                              }
+                            }}
+                          >
+                            <DeleteIcon size={16} weight="thin" />
+                          </IconButton>
+                        </div>
+
                         <div className="homework-title">{hw.title}</div>
                         <div className="homework-course">
-                          <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
+                          <SchoolIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#D6F7AD' }} />
                           {hw.course_id?.course_name || 'Unknown Course'} ({hw.course_id?.course_code || 'N/A'})
                         </div>
                         <div className="homework-description">{hw.description || 'No description provided'}</div>
@@ -528,43 +556,17 @@ const HomeworkManagement = () => {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="homework-actions">
-                      <button
-                        className="action-button edit"
-                        onClick={() => handleEditHomework(hw)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="action-button delete"
-                        onClick={() => openDeleteDialog(hw)}
-                      >
-                        Delete
-                      </button>
-                    </div>
                   </div>
                 );
               })
-            )}
+            }
           </div>
         )}
 
         {/* Student Homework Tab */}
         {tabValue === 1 && (
           <div className="homework-grid">
-            {filteredStudentHomework.length === 0 ? (
-              <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
-                <PeopleIcon sx={{ fontSize: 64, color: '#ccc', mb: 2 }} />
-                <Typography variant="h6" color="textSecondary">
-                  No student homework yet
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  Student homework will appear here when students create homework entries
-                </Typography>
-              </div>
-            ) : (
-              filteredStudentHomework.map((hw) => (
+            {filteredStudentHomework.map((hw) => (
                 <div className="homework-item" key={hw._id || `student-hw-${Math.random()}`}>
                   <div className="homework-card student-homework">
                     {/* Notebook Edge - Simple line for student homework */}
@@ -574,17 +576,63 @@ const HomeworkManagement = () => {
 
                     {/* Homework Content */}
                     <div className="homework-content">
+                      {/* Action Buttons - Top Right Corner */}
+                      <div className="homework-actions-top">
+                        <IconButton 
+                          className="action-button edit"
+                          onClick={() => handleEditStudentHomework(hw)}
+                          disabled={submitting}
+                          sx={{
+                            backgroundColor: 'transparent !important',
+                            color: '#555',
+                            border: 'none !important',
+                            padding: '6px',
+                            margin: '0 2px',
+                            minWidth: '32px',
+                            width: '32px',
+                            height: '32px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(0, 0, 0, 0.1) !important',
+                              transform: 'scale(1.05)'
+                            }
+                          }}
+                        >
+                          <EditIcon size={16} weight="thin" />
+                        </IconButton>
+                        <IconButton 
+                          className="action-button delete"
+                          onClick={() => handleDeleteStudentHomework(hw)}
+                          disabled={submitting}
+                          sx={{
+                            backgroundColor: 'transparent !important',
+                            color: '#e53e3e',
+                            border: 'none !important',
+                            padding: '6px',
+                            margin: '0 2px',
+                            minWidth: '32px',
+                            width: '32px',
+                            height: '32px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(229, 62, 62, 0.1) !important',
+                              transform: 'scale(1.05)'
+                            }
+                          }}
+                        >
+                          <DeleteIcon size={16} weight="thin" />
+                        </IconButton>
+                      </div>
+
                       <div className="homework-title">{hw.title}</div>
                       
                       {/* Student Info */}
                       <div className="homework-course">
-                        <PeopleIcon sx={{ mr: 1, fontSize: 16, color: '#FCE38A' }} />
+                        <PeopleIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#FCE38A' }} />
                         {hw.uploaded_by?.full_name || hw.uploaded_by?.name || 'Unknown Student'}
                       </div>
 
                       {/* Course Info */}
                       <div className="homework-course">
-                        <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
+                        <SchoolIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#D6F7AD' }} />
                         {hw.course?.name || 'Unknown Course'} ({hw.course?.code || 'N/A'})
                       </div>
 
@@ -632,26 +680,9 @@ const HomeworkManagement = () => {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="homework-actions">
-                    <button
-                      className="action-button edit"
-                      onClick={() => handleEditStudentHomework(hw)}
-                      disabled={submitting}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="action-button delete"
-                      onClick={() => handleDeleteStudentHomework(hw)}
-                      disabled={submitting}
-                    >
-                      Delete
-                    </button>
-                  </div>
                 </div>
               ))
-            )}
+            }
           </div>
         )}
 
@@ -662,9 +693,9 @@ const HomeworkManagement = () => {
           maxWidth="md"
           fullWidth
         >
-          <DialogTitle>
+          <DialogTitle sx={{ color: '#2d3748' }}>
             <Box display="flex" alignItems="center" gap={1}>
-              <AddIcon />
+              <AddIcon size={20} weight="thin" />
               Add New Homework
             </Box>
           </DialogTitle>
@@ -757,12 +788,17 @@ const HomeworkManagement = () => {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setCreateDialogOpen(false)} sx={{ color: '#4a5568' }}>Cancel</Button>
             <Button
               variant="contained"
               onClick={handleCreateHomework}
               disabled={submitting}
-              startIcon={submitting ? <CircularProgress size={20} /> : <AddIcon />}
+              sx={{
+                backgroundColor: '#D6F7AD',
+                color: '#2d3748',
+                '&:hover': { backgroundColor: '#c8f299' }
+              }}
+              startIcon={submitting ? <CircularProgress size={20} /> : <AddIcon size={20} weight="thin" />}
             >
               {submitting ? 'Creating...' : 'Create'}
             </Button>
@@ -779,9 +815,9 @@ const HomeworkManagement = () => {
           maxWidth="md"
           fullWidth
         >
-          <DialogTitle>
+          <DialogTitle sx={{ color: '#2d3748' }}>
             <Box display="flex" alignItems="center" gap={1}>
-              <EditIcon />
+              <EditIcon size={20} weight="thin" />
               Edit Homework
             </Box>
           </DialogTitle>
@@ -877,12 +913,12 @@ const HomeworkManagement = () => {
             <Button onClick={() => {
               setEditDialogOpen(false);
               setEditingHomework(null);
-            }}>Cancel</Button>
+            }} sx={{ color: '#4a5568' }}>Cancel</Button>
             <Button
               variant="contained"
               onClick={handleUpdateHomework}
               disabled={submitting}
-              startIcon={submitting ? <CircularProgress size={20} /> : <EditIcon />}
+              startIcon={submitting ? <CircularProgress size={20} /> : <EditIcon size={20} weight="thin" />}
               sx={{
                 backgroundColor: '#D6F7AD',
                 color: '#333',
@@ -901,28 +937,25 @@ const HomeworkManagement = () => {
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle>
+          <DialogTitle sx={{ color: '#2d3748' }}>
             <Box display="flex" alignItems="center" gap={1} color="error.main">
-              <WarningIcon />
+              <WarningIcon size={20} weight="thin" />
               Delete Homework?
             </Box>
           </DialogTitle>
-          <DialogContent>
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              This action cannot be undone. All related partnerships and grades will also be deleted.
-            </Alert>
-            <Typography>
-              Are you sure you want to delete "<strong>{selectedHomework?.title}</strong>"?
-            </Typography>
-          </DialogContent>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete "{selectedHomework?.title}"? This action cannot be undone and will also delete all related partnerships.
+          </Typography>
+        </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: '#4a5568' }}>Cancel</Button>
             <Button
               variant="contained"
               color="error"
               onClick={handleDeleteHomework}
               disabled={submitting}
-              startIcon={submitting ? <CircularProgress size={20} /> : <DeleteIcon />}
+              startIcon={submitting ? <CircularProgress size={20} /> : <DeleteIcon size={20} weight="thin" />}
             >
               {submitting ? 'Deleting...' : 'Delete'}
             </Button>
