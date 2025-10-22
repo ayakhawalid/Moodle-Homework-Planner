@@ -3,6 +3,7 @@
   display: flex;
   min-height: 100vh;
   background: #D6F7AD;
+  transition: background-color 0.3s ease;
 }
 
 .dashboard-content {
@@ -11,6 +12,18 @@
   transition: margin-left 0.3s ease;
   min-height: 100vh;
   background: #D6F7AD;
+  transition: background-color 0.3s ease;
+}
+
+/* Background toggle support */
+.white-background .dashboard-container,
+.white-background .dashboard-content {
+  background: #ffffff !important;
+}
+
+.green-background .dashboard-container,
+.green-background .dashboard-content {
+  background: #D6F7AD !important;
 }
 
 .content-wrapper {

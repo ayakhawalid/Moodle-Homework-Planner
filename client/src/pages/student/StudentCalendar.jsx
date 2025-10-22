@@ -159,7 +159,7 @@ const StudentCalendar = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <div className="white-page-background">
+        <div className="page-background">
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
@@ -219,7 +219,7 @@ const StudentCalendar = () => {
           }
         `}
       </style>
-      <div className="white-page-background">
+      <div className="page-background">
         <Box>
         {/* Statistics Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>

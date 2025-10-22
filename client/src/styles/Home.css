@@ -20,6 +20,18 @@ body, html {
   overflow-x: hidden;
   overflow-y: auto; /* Ensure vertical scroll is visible */
   background: #ffffff; /* Fallback white background */
+  transition: background-color 0.3s ease;
+}
+
+/* Background toggle support */
+.white-background body,
+.white-background html {
+  background: #ffffff !important;
+}
+
+.green-background body,
+.green-background html {
+  background: #D6F7AD !important;
 }
 
 /* Home Footer */

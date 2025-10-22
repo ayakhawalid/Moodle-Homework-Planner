@@ -1,4 +1,18 @@
-/* White page background for specific pages */
+/* Page background for specific pages - TOGGLEABLE */
+.page-background {
+  min-height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 16px;
+  overflow-y: auto;
+  transition: left 0.3s ease, background-color 0.3s ease;
+}
+
+/* Legacy classes for backward compatibility */
 .white-page-background {
   background: #ffffff !important;
   min-height: 100vh;
@@ -13,14 +27,32 @@
   transition: left 0.3s ease;
 }
 
+.green-page-background {
+  background: #D6F7AD !important;
+  min-height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 16px;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+}
+
 /* When sidebar is collapsed */
-.dashboard-container:has(.dashboard-sidebar.collapsed) .white-page-background {
+.dashboard-container:has(.dashboard-sidebar.collapsed) .page-background,
+.dashboard-container:has(.dashboard-sidebar.collapsed) .white-page-background,
+.dashboard-container:has(.dashboard-sidebar.collapsed) .green-page-background {
   left: 70px;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
-  .white-page-background {
+  .page-background,
+  .white-page-background,
+  .green-page-background {
     left: 0;
   }
   
