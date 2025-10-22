@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
+import FallingLeaves from '../components/FallingLeaves';
 import {
   Box,
   Paper,
@@ -168,7 +169,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         }
       } else {
         // Student-specific logic: focus on completion status (four statuses)
-        if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
+        if (eventData?.completion_status === 'completed' || eventData?.completion_status === 'graded') {
           backgroundColor = '#95E1D3'; // Light teal for completed/graded
         } else if (daysUntilDue < 0) {
           backgroundColor = '#F38181'; // Light coral for overdue
@@ -274,7 +275,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         }
       } else {
         // Student-specific logic: focus on completion status (four statuses)
-        if (eventData?.completion_status === 'completed' || eventData?.status === 'graded') {
+        if (eventData?.completion_status === 'completed' || eventData?.completion_status === 'graded') {
           backgroundColor = '#95E1D3'; // Light teal for completed/graded
         } else if (daysUntilDue < 0) {
           backgroundColor = '#F38181'; // Light coral for overdue
@@ -353,10 +354,10 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
   };
 
   return (
-    <Box>
-      <div className="dashboard-card" style={{ marginBottom: '16px' }}>
+    <>
+      <div className="dashboard-card" style={{ marginBottom: '0px' }}>
         <div className="card-content">
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
             {userRole === 'lecturer' ? 'Lecturer Calendar' : 'Homework Calendar'}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -490,7 +491,41 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         </div>
       </div>
 
-      <div className="dashboard-card" style={{ height: '600px' }}>
+      {/* Falling Leaves Animation */}
+      <style>
+        {`
+          .falling-leaves-section {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 150px !important;
+          }
+          .falling-leaves {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+        `}
+      </style>
+      <div style={{ 
+        margin: 0, 
+        padding: 0, 
+        height: '150px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          margin: 0,
+          padding: 0
+        }}>
+          <FallingLeaves />
+        </div>
+      </div>
+
+      <div className="dashboard-card" style={{ height: '600px', marginTop: '0px' }}>
         <Calendar
           localizer={localizer}
           events={calendarEvents}
@@ -617,7 +652,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
           <Button onClick={handleCloseDialog}>Close</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </>
   );
 };
 

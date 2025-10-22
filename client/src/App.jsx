@@ -24,7 +24,7 @@ import Planner from './pages/student/Planner';
 import HomeworkPlanner from './pages/student/HomeworkPlanner';
 import Progress from './pages/student/Progress';
 import ClassesPlanner from './pages/student/ClassesPlanner';
-import StudyTimer from './pages/student/StudyTimer';
+import Study from './pages/student/Study';
 import StudyTracker from './pages/student/StudyTracker';
 import ExamsFinals from './pages/student/ExamsFinals';
 import ChoosePartner from './pages/student/ChoosePartner';
@@ -32,7 +32,6 @@ import CourseEnrollment from './pages/student/CourseEnrollment';
 import HomeworkSubmission from './pages/student/HomeworkSubmission';
 import HomeworkManagement from './pages/student/HomeworkManagement';
 import StudentCalendar from './pages/student/StudentCalendar';
-import StudyProgress from './pages/student/StudyProgress';
 
 // Lecturer Pages
 import LecturerDashboard from './pages/lecturer/LecturerDashboard';
@@ -87,7 +86,8 @@ function AppContent() {
 
   const isLoginPage = 
     location.pathname === '/login' ||
-    location.pathname.startsWith('/login?');
+    location.pathname.startsWith('/login?') ||
+    location.pathname === '/callback';
 
   const isHomePage = location.pathname === '/';
 
@@ -119,14 +119,14 @@ function AppContent() {
           <Route path='/student/submit-homework' element={<ProtectedRoute requiredRole="student"><HomeworkSubmission /></ProtectedRoute>} />
           <Route path='/student/progress' element={<ProtectedRoute requiredRole="student"><Progress /></ProtectedRoute>} />
           <Route path='/student/classes' element={<ProtectedRoute requiredRole="student"><ClassesPlanner /></ProtectedRoute>} />
-          <Route path='/student/timer' element={<ProtectedRoute requiredRole="student"><StudyTimer /></ProtectedRoute>} />
+          <Route path='/student/timer' element={<ProtectedRoute requiredRole="student"><Study /></ProtectedRoute>} />
+          <Route path='/student/study-progress' element={<ProtectedRoute requiredRole="student"><Study /></ProtectedRoute>} />
           <Route path='/student/tracker' element={<ProtectedRoute requiredRole="student"><StudyTracker /></ProtectedRoute>} />
           <Route path='/student/exams' element={<ProtectedRoute requiredRole="student"><ExamsFinals /></ProtectedRoute>} />
           <Route path='/student/partner' element={<ProtectedRoute requiredRole="student"><ChoosePartner /></ProtectedRoute>} />
           <Route path='/student/courses' element={<ProtectedRoute requiredRole="student"><CourseEnrollment /></ProtectedRoute>} />
           <Route path='/student/homework-management' element={<ProtectedRoute requiredRole="student"><HomeworkManagement /></ProtectedRoute>} />
           <Route path='/student/calendar' element={<ProtectedRoute requiredRole="student"><StudentCalendar /></ProtectedRoute>} />
-          <Route path='/student/study-progress' element={<ProtectedRoute requiredRole="student"><StudyProgress /></ProtectedRoute>} />
           
 
           {/* Lecturer Pages */}

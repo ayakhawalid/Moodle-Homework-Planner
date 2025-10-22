@@ -61,13 +61,6 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
     
     const classes = await query
       .populate('course_id', 'course_name course_code lecturer_id students')
-      .populate({
-        path: 'files',
-        populate: {
-          path: 'uploaded_by',
-          select: 'name email'
-        }
-      })
       .sort({ class_date: 1, start_time: 1 });
     
     // Apply role filtering to results if needed
@@ -99,14 +92,7 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
 router.get('/:id', checkJwt, extractUser, async (req, res) => {
   try {
     const classItem = await Class.findById(req.params.id)
-      .populate('course_id', 'course_name course_code lecturer_id students')
-      .populate({
-        path: 'files',
-        populate: {
-          path: 'uploaded_by',
-          select: 'name email'
-        }
-      });
+      .populate('course_id', 'course_name course_code lecturer_id students');
     
     if (!classItem) {
       return res.status(404).json({ error: 'Class not found' });
@@ -313,14 +299,7 @@ router.post('/:id/cancel', checkJwt, extractUser, requireLecturer, async (req, r
 router.get('/course/:courseId', checkJwt, extractUser, async (req, res) => {
   try {
     const classes = await Class.findByCourse(req.params.courseId)
-      .populate('course_id', 'course_name course_code')
-      .populate({
-        path: 'files',
-        populate: {
-          path: 'uploaded_by',
-          select: 'name email'
-        }
-      });
+      .populate('course_id', 'course_name course_code');
     
     res.json(classes);
   } catch (error) {

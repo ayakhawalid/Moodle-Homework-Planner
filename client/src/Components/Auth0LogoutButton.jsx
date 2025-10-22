@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Button } from '@mui/material';
-import { Logout as LogoutIcon } from '@mui/icons-material';
+import { SignOut as LogoutIcon } from 'phosphor-react';
 
 const Auth0LogoutButton = ({ className = "nav-circle logout-btn" }) => {
   const { logout, isAuthenticated } = useAuth0();
@@ -43,7 +43,7 @@ const Auth0LogoutButton = ({ className = "nav-circle logout-btn" }) => {
         className={className}
         title={isCollapsed ? 'Logout' : ''}
       >
-        <span className="nav-icon"><LogoutIcon /></span>
+        <span className="nav-icon"><LogoutIcon size={20} weight="thin" /></span>
         {!isCollapsed && <span className="nav-label">Logout</span>}
       </button>
     );
@@ -51,7 +51,7 @@ const Auth0LogoutButton = ({ className = "nav-circle logout-btn" }) => {
 
   return (
     <button onClick={handleLogout} className={className}>
-      <LogoutIcon style={{ marginRight: '5px', fontSize: '18px' }} />
+      <LogoutIcon size={18} weight="thin" style={{ marginRight: '5px' }} />
       Logout
     </button>
   );

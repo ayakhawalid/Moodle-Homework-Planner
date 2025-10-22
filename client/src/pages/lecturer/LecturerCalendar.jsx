@@ -217,10 +217,10 @@ const LecturerCalendar = () => {
                 <Box display="flex" alignItems="center">
                   <AssignmentIcon sx={{ mr: 2, color: '#95E1D3' }} />
                   <Box>
-                    <Typography variant="h4">
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
                       {totalHomework}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
                       Total Assignments
                     </Typography>
                   </Box>
@@ -235,10 +235,10 @@ const LecturerCalendar = () => {
                 <Box display="flex" alignItems="center">
                   <SchoolIcon sx={{ mr: 2, color: '#D6F7AD' }} />
                   <Box>
-                    <Typography variant="h4">
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
                       {traditionalHomework}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
                       Traditional Homework
                     </Typography>
                   </Box>
@@ -253,10 +253,10 @@ const LecturerCalendar = () => {
                 <Box display="flex" alignItems="center">
                   <AssignmentIcon sx={{ mr: 2, color: '#FCE38A' }} />
                   <Box>
-                    <Typography variant="h4">
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
                       {studentHomework}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
                       Student Created
                     </Typography>
                   </Box>
@@ -271,10 +271,10 @@ const LecturerCalendar = () => {
                 <Box display="flex" alignItems="center">
                   <ScheduleIcon sx={{ mr: 2, color: '#F38181' }} />
                   <Box>
-                    <Typography variant="h4">
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', fontSize: '1.8rem' }}>
                       {pendingVerifications}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.95rem' }}>
                       Pending Verifications
                     </Typography>
                   </Box>

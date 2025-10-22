@@ -273,7 +273,7 @@ function WorkloadStats() {
                               key={hw._id} 
                               sx={{ 
                                 p: 2, 
-                                borderLeft: `4px solid ${hw.type === 'traditional' ? '#2196f3' : '#ff9800'}`,
+                                borderLeft: `4px solid ${hw.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`,
                                 borderRadius: '8px' 
                               }}
                             >
@@ -290,11 +290,14 @@ function WorkloadStats() {
                                     })()}
                                   </Typography>
                                   <Chip 
-                                    label={(hw.homework_type === 'traditional') ? 'Traditional' : 'Student Created'} 
+                                    label={hw.homework_type === 'student' ? 'Student Created' : 'Traditional'} 
                                     size="small" 
-                                    color={(hw.homework_type === 'traditional') ? 'primary' : 'warning'}
-                                    variant="outlined"
-                                    sx={{ mt: 0.5 }}
+                                    sx={{ 
+                                      mt: 0.5,
+                                      backgroundColor: hw.homework_type === 'student' ? 'rgba(252, 227, 138, 0.3)' : 'rgba(149, 225, 211, 0.3)',
+                                      color: '#666666',
+                                      fontWeight: 'bold'
+                                    }}
                                   />
                                 </Box>
                               </Box>

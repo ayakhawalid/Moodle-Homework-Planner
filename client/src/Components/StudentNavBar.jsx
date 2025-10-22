@@ -41,11 +41,7 @@ function StudentNavBar() {
         </Link>
         <Link to="/student/timer" className="nav-circle">
           <TimerIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-          <span>Timer</span>
-        </Link>
-        <Link to="/student/progress" className="nav-circle">
-          <TrendingUpIcon style={{ fontSize: '18px', marginBottom: '2px' }} />
-          <span>Progress</span>
+          <span>Study</span>
         </Link>
         <button onClick={handleLogout} className="nav-circle logout-btn">
           <LogoutIcon style={{ fontSize: '18px', marginBottom: '2px' }} />

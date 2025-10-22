@@ -26,15 +26,15 @@ import {
 } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import {
-  Add as AddIcon,
+  Plus as AddIcon,
   CheckCircle as CheckCircleIcon,
-  Edit as EditIcon,
-  Schedule as ScheduleIcon,
-  School as SchoolIcon,
-  Delete as DeleteIcon,
-  PlayArrow as PlayArrowIcon,
-  Edit as EditPenIcon
-} from '@mui/icons-material';
+  PencilSimple as EditIcon,
+  Clock as ScheduleIcon,
+  GraduationCap as SchoolIcon,
+  Trash as DeleteIcon,
+  Play as PlayArrowIcon,
+  PencilSimple as EditPenIcon
+} from 'phosphor-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
 import '../../styles/HomeworkCard.css';
@@ -74,6 +74,10 @@ const HomeworkManagement = () => {
   const [statusEditDialogOpen, setStatusEditDialogOpen] = useState(false);
   const [statusEditingHomework, setStatusEditingHomework] = useState(null);
   const [newStatus, setNewStatus] = useState('not_started');
+
+  // Delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [homeworkToDelete, setHomeworkToDelete] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -276,13 +280,17 @@ const HomeworkManagement = () => {
     }
   };
 
-  const handleDeleteHomework = async (hw) => {
+  const handleDeleteHomework = async () => {
+    if (!homeworkToDelete) return;
+    
     try {
       setSubmitting(true);
       setError(null);
       
-      await apiService.studentHomework.deleteHomework(hw._id);
+      await apiService.studentHomework.deleteHomework(homeworkToDelete._id);
       setSuccess('Homework and all related partnerships deleted successfully!');
+      setDeleteDialogOpen(false);
+      setHomeworkToDelete(null);
       fetchHomework();
     } catch (err) {
       console.error('Error deleting homework:', err);
@@ -382,7 +390,7 @@ const HomeworkManagement = () => {
           p: 3,
           minHeight: '100vh'
         }}>
-      {/* Course Filter and Status Filter */}
+      {/* Course Filter, Status Filter, and Add Button */}
       <Box mb={3} display="flex" alignItems="center" gap={3} flexWrap="wrap">
         <FormControl sx={{ maxWidth: 400, minWidth: 200 }}>
           <InputLabel>Filter by Course</InputLabel>
@@ -411,7 +419,6 @@ const HomeworkManagement = () => {
             height={36}
             borderRadius="50%"
             backgroundColor={selectedStatus === '' ? '#2d3748' : '#4a5568'}
-            border="2px solid #1a202c"
             sx={{ 
               cursor: 'pointer',
               transition: 'all 0.3s ease',
@@ -429,7 +436,6 @@ const HomeworkManagement = () => {
             height={36}
             borderRadius="50%"
             backgroundColor={selectedStatus === 'not_started' ? '#E53E3E' : '#F38181'}
-            border="2px solid #C53030"
             sx={{ 
               cursor: 'pointer',
               transition: 'all 0.3s ease',
@@ -447,7 +453,6 @@ const HomeworkManagement = () => {
             height={36}
             borderRadius="50%"
             backgroundColor={selectedStatus === 'in_progress' ? '#D69E2E' : '#FCE38A'}
-            border="2px solid #B7791F"
             sx={{ 
               cursor: 'pointer',
               transition: 'all 0.3s ease',
@@ -465,7 +470,6 @@ const HomeworkManagement = () => {
             height={36}
             borderRadius="50%"
             backgroundColor={selectedStatus === 'completed' ? '#38A169' : '#D6F7AD'}
-            border="2px solid #2F855A"
             sx={{ 
               cursor: 'pointer',
               transition: 'all 0.3s ease',
@@ -483,7 +487,6 @@ const HomeworkManagement = () => {
             height={36}
             borderRadius="50%"
             backgroundColor={selectedStatus === 'graded' ? '#319795' : '#95E1D3'}
-            border="2px solid #2C7A7B"
             sx={{ 
               cursor: 'pointer',
               transition: 'all 0.3s ease',
@@ -496,21 +499,26 @@ const HomeworkManagement = () => {
             onClick={() => setSelectedStatus('graded')}
           />
         </Box>
-      </Box>
-      
-      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+
+        {/* Add Homework Icon Button */}
+        <IconButton
           onClick={() => setCreateDialogOpen(true)}
           sx={{
-            backgroundColor: '#D6F7AD',
-            color: '#333',
-            '&:hover': { backgroundColor: '#c8f299' }
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            color: '#555',
+            borderRadius: '8px',
+            padding: '20px',
+            minWidth: '64px',
+            width: '64px',
+            height: '64px',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              color: '#333'
+            }
           }}
         >
-          Add Homework
-        </Button>
+          <AddIcon size={48} weight="thin" />
+        </IconButton>
       </Box>
 
       {error && (
@@ -555,6 +563,85 @@ const HomeworkManagement = () => {
 
               {/* Homework Content */}
               <div className="homework-content">
+                {/* Action Buttons - Top Right Corner */}
+                <div className="homework-actions-top">
+                  {/* Show edit/delete buttons for student-created homework */}
+                  {hw.uploader_role === 'student' && (
+                    <>
+                      <IconButton 
+                        className="action-button edit"
+                        onClick={() => handleEditHomework(hw)}
+                        disabled={submitting}
+                        sx={{
+                          backgroundColor: 'transparent !important',
+                          color: '#555',
+                          border: 'none !important',
+                          padding: '6px',
+                          margin: '0 2px',
+                          minWidth: '32px',
+                          width: '32px',
+                          height: '32px',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.1) !important',
+                            transform: 'scale(1.05)'
+                          }
+                        }}
+                      >
+                        <EditIcon size={16} weight="thin" />
+                      </IconButton>
+                      <IconButton 
+                        className="action-button delete"
+                        onClick={() => {
+                          setHomeworkToDelete(hw);
+                          setDeleteDialogOpen(true);
+                        }}
+                        disabled={submitting}
+                        sx={{
+                          backgroundColor: 'transparent !important',
+                          color: '#e53e3e',
+                          border: 'none !important',
+                          padding: '6px',
+                          margin: '0 2px',
+                          minWidth: '32px',
+                          width: '32px',
+                          height: '32px',
+                          '&:hover': {
+                            backgroundColor: 'rgba(229, 62, 62, 0.1) !important',
+                            transform: 'scale(1.05)'
+                          }
+                        }}
+                      >
+                        <DeleteIcon size={16} weight="thin" />
+                      </IconButton>
+                    </>
+                  )}
+                  
+                  {/* Show status edit button for traditional homework */}
+                  {hw.uploader_role !== 'student' && (
+                    <IconButton 
+                      className="action-button edit"
+                      onClick={() => handleEditStatus(hw)}
+                      disabled={submitting}
+                      sx={{
+                        backgroundColor: 'transparent !important',
+                        color: '#555',
+                        border: 'none !important',
+                        padding: '6px',
+                        margin: '0 2px',
+                        minWidth: '32px',
+                        width: '32px',
+                        height: '32px',
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.1) !important',
+                          transform: 'scale(1.05)'
+                        }
+                      }}
+                    >
+                      <EditIcon size={16} weight="thin" />
+                    </IconButton>
+                  )}
+                </div>
+
                 <div className="homework-title">
                   {hw.title}
                 </div>
@@ -571,6 +658,8 @@ const HomeworkManagement = () => {
                       </span>
                       <EditPenIcon 
                         className="grade-edit-icon"
+                        size={16}
+                        weight="thin"
                         onClick={() => {
                           setSelectedHomework(hw);
                           setClaimedGrade(hw.claimed_grade || '');
@@ -601,57 +690,14 @@ const HomeworkManagement = () => {
               </div>
             </div>
 
-            {/* Action Buttons (Below the card like Instagram) */}
-            <div className="homework-actions">
-              {/* Show edit/delete buttons for student-created homework */}
-              {hw.uploader_role === 'student' && (
-                <>
-                  <button 
-                    className="action-button edit"
-                    onClick={() => handleEditHomework(hw)}
-                    disabled={submitting}
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    className="action-button delete"
-                    onClick={() => handleDeleteHomework(hw)}
-                    disabled={submitting}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
-              
-              {/* Show status edit button for traditional homework */}
-              {hw.uploader_role !== 'student' && (
-                <button 
-                  className="action-button edit"
-                  onClick={() => handleEditStatus(hw)}
-                  disabled={submitting}
-                >
-                  Edit Status
-                </button>
-              )}
-            </div>
           </div>
         ))}
       </div>
 
-      {filteredHomework.length === 0 && (
-        <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary">
-            No homework found
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Click "Add Homework" to create your first homework entry
-          </Typography>
-        </div>
-      )}
 
       {/* Create Homework Dialog */}
       <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add New Homework</DialogTitle>
+        <DialogTitle sx={{ color: '#2d3748' }}>Add New Homework</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -727,11 +773,16 @@ const HomeworkManagement = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setCreateDialogOpen(false)} sx={{ color: '#4a5568' }}>Cancel</Button>
           <Button
             onClick={handleCreateHomework}
             variant="contained"
             disabled={submitting || !newHomework.title || !newHomework.course_id || !newHomework.claimed_deadline}
+            sx={{
+              backgroundColor: '#D6F7AD',
+              color: '#2d3748',
+              '&:hover': { backgroundColor: '#c8f299' }
+            }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Create'}
           </Button>
@@ -743,7 +794,7 @@ const HomeworkManagement = () => {
         setEditDialogOpen(false);
         setEditingHomework(null);
       }} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Homework</DialogTitle>
+        <DialogTitle sx={{ color: '#2d3748' }}>Edit Homework</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -838,7 +889,7 @@ const HomeworkManagement = () => {
               setEditDialogOpen(false);
               setEditingHomework(null);
             }}
-            sx={{ color: '#333' }}
+            sx={{ color: '#4a5568' }}
           >
             Cancel
           </Button>
@@ -859,7 +910,7 @@ const HomeworkManagement = () => {
 
       {/* Complete/Grade Homework Dialog */}
       <Dialog open={completeDialogOpen} onClose={() => setCompleteDialogOpen(false)}>
-        <DialogTitle>
+        <DialogTitle sx={{ color: '#2d3748' }}>
           {selectedHomework?.completion_status === 'in_progress' 
             ? 'Mark Homework as Submitted' 
             : selectedHomework?.completion_status === 'graded'
@@ -905,11 +956,16 @@ const HomeworkManagement = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCompleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setCompleteDialogOpen(false)} sx={{ color: '#4a5568' }}>Cancel</Button>
           <Button
             onClick={handleCompleteHomework}
             variant="contained"
             disabled={submitting || ((selectedHomework?.completion_status === 'completed' || selectedHomework?.completion_status === 'graded') && !claimedGrade)}
+            sx={{
+              backgroundColor: '#D6F7AD',
+              color: '#2d3748',
+              '&:hover': { backgroundColor: '#c8f299' }
+            }}
           >
             {submitting ? <CircularProgress size={24} /> : 
               selectedHomework?.completion_status === 'in_progress' ? 'Submit' : 
@@ -923,7 +979,7 @@ const HomeworkManagement = () => {
         setStatusEditDialogOpen(false);
         setStatusEditingHomework(null);
       }}>
-        <DialogTitle>Edit Status</DialogTitle>
+        <DialogTitle sx={{ color: '#2d3748' }}>Edit Status</DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
             Update the status for "{statusEditingHomework?.title}"
@@ -947,7 +1003,7 @@ const HomeworkManagement = () => {
           <Button onClick={() => {
             setStatusEditDialogOpen(false);
             setStatusEditingHomework(null);
-          }}>
+          }} sx={{ color: '#4a5568' }}>
             Cancel
           </Button>
           <Button
@@ -961,6 +1017,39 @@ const HomeworkManagement = () => {
             }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Update Status'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => {
+        setDeleteDialogOpen(false);
+        setHomeworkToDelete(null);
+      }}>
+        <DialogTitle sx={{ color: '#2d3748' }}>Delete Homework</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete "{homeworkToDelete?.title}"? This action cannot be undone and will also delete all related partnerships.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setDeleteDialogOpen(false);
+            setHomeworkToDelete(null);
+          }} sx={{ color: '#4a5568' }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteHomework}
+            variant="contained"
+            disabled={submitting}
+            sx={{
+              backgroundColor: '#e53e3e',
+              color: 'white',
+              '&:hover': { backgroundColor: '#c53030' }
+            }}
+          >
+            {submitting ? <CircularProgress size={24} /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
