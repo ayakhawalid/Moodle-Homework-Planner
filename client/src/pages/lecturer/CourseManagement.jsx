@@ -33,7 +33,6 @@ import {
   Divider
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Group as GroupIcon,
@@ -43,6 +42,9 @@ import {
   Person as PersonIcon,
   Description as DescriptionIcon
 } from '@mui/icons-material';
+import {
+  Plus as AddIcon
+} from 'phosphor-react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { apiService } from '../../services/api';
@@ -206,7 +208,7 @@ const CourseManagement = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="white-page-background">
+        <div className="page-background">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
@@ -217,22 +219,28 @@ const CourseManagement = () => {
 
   return (
     <DashboardLayout userRole="lecturer">
-      <div className="white-page-background">
+      <div className="page-background">
       <Box p={3}>
-        <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
+        <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
+          {/* Add Course Icon Button */}
+          <IconButton
             onClick={() => handleOpenDialog()}
-            size="large"
             sx={{
-              backgroundColor: '#D6F7AD',
-              color: '#333',
-              '&:hover': { backgroundColor: '#c8f299' }
+              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              color: '#555',
+              borderRadius: '8px',
+              padding: '20px',
+              minWidth: '64px',
+              width: '64px',
+              height: '64px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                color: '#333'
+              }
             }}
           >
-            Add New Course
-          </Button>
+            <AddIcon size={48} weight="thin" />
+          </IconButton>
         </Box>
 
         {error && (

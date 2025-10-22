@@ -334,7 +334,7 @@ const HomeworkManagement = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="white-page-background">
+        <div className="page-background">
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
@@ -345,32 +345,12 @@ const HomeworkManagement = () => {
 
   return (
     <DashboardLayout userRole="lecturer">
-      <div className="white-page-background">
+      <div className="page-background">
         <Box sx={{ p: 3 }}>
         
-        {/* Course Filter and Add Button */}
+        {/* Add Button and Course Filter */}
         <Box mb={3} display="flex" alignItems="center" gap={2}>
-          <FormControl sx={{ maxWidth: 400, flex: 1 }}>
-            <InputLabel>Filter by Course</InputLabel>
-            <Select
-              value={searchCourse}
-              onChange={(e) => setSearchCourse(e.target.value)}
-              label="Filter by Course"
-              sx={{
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '8px'
-              }}
-            >
-              <MenuItem value="">All Courses</MenuItem>
-              {courses.map((course) => (
-                <MenuItem key={course._id} value={course._id}>
-                  {course.course_code} - {course.course_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          {/* Add Homework Icon Button */}
+          {/* Add Homework Icon Button - Moved to Left */}
           {tabValue === 0 && (
             <IconButton
               onClick={() => setCreateDialogOpen(true)}
@@ -391,6 +371,26 @@ const HomeworkManagement = () => {
               <AddIcon size={48} weight="thin" />
             </IconButton>
           )}
+          
+          <FormControl sx={{ maxWidth: 400, flex: 1 }}>
+            <InputLabel>Filter by Course</InputLabel>
+            <Select
+              value={searchCourse}
+              onChange={(e) => setSearchCourse(e.target.value)}
+              label="Filter by Course"
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '8px'
+              }}
+            >
+              <MenuItem value="">All Courses</MenuItem>
+              {courses.map((course) => (
+                <MenuItem key={course._id} value={course._id}>
+                  {course.course_code} - {course.course_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
         {/* Tabs */}

@@ -176,7 +176,7 @@ const LecturerCalendar = () => {
   if (loading) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="white-page-background">
+        <div className="page-background">
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
@@ -188,7 +188,7 @@ const LecturerCalendar = () => {
   if (error) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="white-page-background">
+        <div className="page-background">
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
@@ -207,7 +207,7 @@ const LecturerCalendar = () => {
 
   return (
     <DashboardLayout userRole="lecturer">
-      <div className="white-page-background">
+      <div className="page-background">
         <Box>
           {/* Statistics Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>

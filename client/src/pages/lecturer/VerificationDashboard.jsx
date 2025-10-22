@@ -150,7 +150,7 @@ const VerificationDashboard = () => {
 
   return (
     <DashboardLayout userRole="lecturer">
-      <div className="white-page-background">
+      <div className="page-background">
       <Box sx={{ p: 3 }}>
       
 

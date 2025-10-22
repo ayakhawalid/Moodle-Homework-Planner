@@ -385,7 +385,7 @@ const HomeworkManagement = () => {
 
   return (
     <DashboardLayout userRole="student">
-      <div className="white-page-background">
+      <div className="page-background">
         <Box sx={{ 
           p: 3,
           minHeight: '100vh'
