@@ -837,6 +837,7 @@ function ChoosePartner() {
                       setSelectedHomework(''); // Reset homework when course changes
                     }}
                     label="Course"
+                    sx={{ minWidth: '300px' }}
                   >
                     <MenuItem value="">
                       <em>All Courses</em>
@@ -856,6 +857,7 @@ function ChoosePartner() {
                     value={selectedHomework}
                     onChange={(e) => setSelectedHomework(e.target.value)}
                     label="Homework Assignment"
+                    sx={{ minWidth: '300px' }}
                   >
                     <MenuItem value="">
                       <em>All Homework</em>

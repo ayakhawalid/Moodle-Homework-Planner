@@ -429,6 +429,11 @@
   background: #D6F7AD;
   width: 35px;
   left: -17px;
+  height: calc(100% + 2px);
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  border-radius: 12px 0 0 12px;
 }
 
 .lecturer-indicator {
@@ -462,6 +467,11 @@
   background: #D6F7AD;
   width: 35px;
   left: -17px;
+  height: calc(100% + 2px);
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  border-radius: 12px 0 0 12px;
 }
 
 .student-indicator {

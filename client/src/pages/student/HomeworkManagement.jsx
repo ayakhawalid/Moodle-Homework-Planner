@@ -400,7 +400,8 @@ const HomeworkManagement = () => {
             label="Filter by Course"
             sx={{
               backgroundColor: 'rgba(255, 255, 255, 0.6)',
-              borderRadius: '8px'
+              borderRadius: '8px',
+              minWidth: '300px'
             }}
           >
             <MenuItem value="">All Courses</MenuItem>
@@ -725,6 +726,7 @@ const HomeworkManagement = () => {
                 <Select
                   value={newHomework.course_id}
                   onChange={(e) => setNewHomework({ ...newHomework, course_id: e.target.value })}
+                  sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
                     <MenuItem key={course._id} value={course._id}>
@@ -822,6 +824,7 @@ const HomeworkManagement = () => {
                 <Select
                   value={newHomework.course_id}
                   onChange={(e) => setNewHomework({ ...newHomework, course_id: e.target.value })}
+                  sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
                     <MenuItem key={course._id} value={course._id}>
