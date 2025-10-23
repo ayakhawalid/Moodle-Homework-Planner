@@ -33,11 +33,22 @@ import {
   ChevronRight as ChevronRightIcon,
   Today as TodayIcon,
   Schedule as ScheduleIcon,
-  TrendingUp as TrendingUpIcon,
   Assignment as AssignmentIcon,
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
+import {
+  Plus as AddIcon,
+  Calendar as CalendarIcon,
+  CalendarBlank as PhosphorScheduleIcon,
+  CaretLeft as PhosphorChevronLeftIcon,
+  CaretRight as PhosphorChevronRightIcon,
+  ClipboardText as PhosphorAssignmentIcon,
+  Clock as PhosphorAccessTimeIcon,
+  MapPin as PhosphorLocationOnIcon,
+  PencilSimple as PhosphorEditIcon,
+  Trash as PhosphorDeleteIcon
+} from 'phosphor-react';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/student/ClassesPlanner.css';
@@ -244,7 +255,7 @@ function ClassesPlanner() {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <div className="white-page-background">
+        <div className="page-background">
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
@@ -265,113 +276,70 @@ function ClassesPlanner() {
 
   return (
     <DashboardLayout userRole="student">
-      <div className="white-page-background">
+      <div className="page-background">
         {/* Add Class Button */}
-      <Box display="flex" justifyContent="flex-start" mb={3}>
-        <Button
-          variant="contained"
-          startIcon={<CalendarTodayIcon />}
-          onClick={() => setOpenAddClassDialog(true)}
-          sx={{
-            backgroundColor: '#D6F7AD',
-            color: '#333',
-            '&:hover': {
-              backgroundColor: '#c8f299'
-            }
-          }}
-        >
-          Add Class
-        </Button>
-      </Box>
+        <Box display="flex" justifyContent="flex-start" mb={3}>
+          <IconButton
+            onClick={() => setOpenAddClassDialog(true)}
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              color: '#555',
+              borderRadius: '8px',
+              padding: '20px',
+              minWidth: '64px',
+              width: '64px',
+              height: '64px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                color: '#333'
+              }
+            }}
+          >
+            <AddIcon size={48} weight="thin" />
+          </IconButton>
+        </Box>
 
           {/* Week Navigation */}
-          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-            <div className="card-content">
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Box display="flex" alignItems="center" gap={2}>
-                  <IconButton 
-                    onClick={goToPreviousWeek} 
-                    size="small"
-                    sx={{ 
-                      backgroundColor: '#D6F7AD', 
-                      color: '#333',
-                      '&:hover': { backgroundColor: '#c8f299' }
-                    }}
-                  >
-                    <ChevronLeftIcon />
-                  </IconButton>
-                  <Typography variant="h6">
-                    {classesData?.week_start && new Date(classesData.week_start).toLocaleDateString()} - 
-                    {classesData?.week_end && new Date(classesData.week_end).toLocaleDateString()}
-                  </Typography>
-                  <IconButton 
-                    onClick={goToNextWeek} 
-                    size="small"
-                    sx={{ 
-                      backgroundColor: '#D6F7AD', 
-                      color: '#333',
-                      '&:hover': { backgroundColor: '#c8f299' }
-                    }}
-                  >
-                    <ChevronRightIcon />
-                  </IconButton>
-                </Box>
-                <Button 
-                  variant="outlined" 
-                  startIcon={<TodayIcon />}
+          <div className="dashboard-card" style={{ marginBottom: '24px', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+            <div className="card-content" style={{ background: 'transparent', padding: '0' }}>
+              <Box display="flex" justifyContent="center" alignItems="center" gap={3}>
+                <IconButton 
+                  onClick={goToPreviousWeek} 
+                  size="small"
+                  sx={{ 
+                    backgroundColor: '#D6F7AD', 
+                    color: '#333',
+                    '&:hover': { backgroundColor: '#c8f299' }
+                  }}
+                >
+                  <PhosphorChevronLeftIcon size={20} />
+                </IconButton>
+                <Typography variant="h6" sx={{ textAlign: 'center', fontWeight: 'bold', minWidth: '200px' }}>
+                  {`${classesData?.week_start ? new Date(classesData.week_start).toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.') : ''} - ${classesData?.week_end ? new Date(classesData.week_end).toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.') : ''}`}
+                </Typography>
+                <IconButton 
+                  onClick={goToNextWeek} 
+                  size="small"
+                  sx={{ 
+                    backgroundColor: '#D6F7AD', 
+                    color: '#333',
+                    '&:hover': { backgroundColor: '#c8f299' }
+                  }}
+                >
+                  <PhosphorChevronRightIcon size={20} />
+                </IconButton>
+                <IconButton 
                   onClick={goToCurrentWeek}
                   size="small"
                   sx={{ 
-                    borderColor: '#D6F7AD', 
+                    backgroundColor: '#D6F7AD', 
                     color: '#333',
-                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                    '&:hover': { backgroundColor: '#c8f299' }
                   }}
                 >
-                  Today
-                </Button>
+                  <CalendarIcon size={20} />
+                </IconButton>
               </Box>
-            </div>
-          </div>
-
-          {/* Class Statistics */}
-          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-            <div className="card-content">
-              <Typography variant="h6" gutterBottom>
-                <TrendingUpIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
-                Weekly Overview
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
-                  <Box textAlign="center">
-                    <Typography variant="h4" sx={{ color: '#333' }}>
-                      {classesData?.statistics?.total_classes || 0}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#666' }}>
-                      Total Classes
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box textAlign="center">
-                    <Typography variant="h4" sx={{ color: '#333' }}>
-                      {classesData?.statistics?.total_hours || 0}h
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#666' }}>
-                      Total Hours
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Box textAlign="center">
-                    <Typography variant="h4" sx={{ color: '#333' }}>
-                      {classesData?.statistics?.average_classes_per_day || 0}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#666' }}>
-                      Avg/Day
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
             </div>
           </div>
 
@@ -379,19 +347,19 @@ function ClassesPlanner() {
           <div className="dashboard-card">
             <div className="card-content">
               <Typography variant="h6" gutterBottom>
-                <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#F38181' }} />
+                <PhosphorScheduleIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#F38181' }} />
                 Weekly Schedule
               </Typography>
             
             <div className="schedule-grid" style={{ background: 'transparent' }}>
               {classesData?.schedule?.map((day, index) => (
-                <div key={index} className="schedule-day" style={{ background: 'rgba(255, 255, 255, 0.3)', backdropFilter: 'blur(10px)', borderRadius: '8px', border: '1px solid rgba(214, 247, 173, 0.3)' }}>
-                  <div className="day-header" style={{ background: 'rgba(214, 247, 173, 0.2)', padding: '8px', borderRadius: '8px 8px 0 0' }}>
+                <div key={index} className="schedule-day" style={{ background: 'rgba(255, 255, 255, 0.3)', backdropFilter: 'blur(10px)', borderRadius: '8px' }}>
+                  <div className="day-header" style={{ background: 'rgba(214, 247, 173, 0.2)', padding: '8px', borderRadius: '8px 8px 0 0', textAlign: 'center' }}>
                     <Typography variant="subtitle1" fontWeight="bold">
                       {day.day}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      {new Date(day.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </Typography>
                     {isToday(new Date(day.date)) && (
                       <Chip 
@@ -409,7 +377,7 @@ function ClassesPlanner() {
                   
                   {day.classes?.length > 0 ? (
                     day.classes.map((classItem) => (
-                      <div key={classItem._id} className="class-slot" style={{ background: 'rgba(214, 247, 173, 0.2)', padding: '8px', borderRadius: '6px', border: '1px solid rgba(214, 247, 173, 0.4)' }}>
+                      <div key={classItem._id} className="class-slot" style={{ background: 'rgba(214, 247, 173, 0.2)', padding: '8px', borderRadius: '6px' }}>
                         <Box display="flex" flexDirection="column" gap={0.5}>
                           <Typography variant="body2" fontWeight="bold">
                             {classItem.topic}
@@ -418,14 +386,14 @@ function ClassesPlanner() {
                             {classItem.course?.code}
                           </Typography>
                           <Box display="flex" alignItems="center" gap={0.5}>
-                            <AccessTimeIcon sx={{ fontSize: 12 }} />
+                            <PhosphorAccessTimeIcon size={12} />
                             <Typography variant="caption">
                               {formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}
                             </Typography>
                           </Box>
                           {classItem.room && (
                             <Box display="flex" alignItems="center" gap={0.5}>
-                              <LocationOnIcon sx={{ fontSize: 12 }} />
+                              <PhosphorLocationOnIcon size={12} />
                               <Typography variant="caption">
                                 {classItem.room}
                               </Typography>
@@ -440,7 +408,7 @@ function ClassesPlanner() {
                       </div>
                     ))
                   ) : (
-                    <Typography variant="body2" sx={{ mt: 2, color: '#666' }}>
+                    <Typography variant="body2" sx={{ mt: 2, color: '#666', textAlign: 'center' }}>
                       No classes
                     </Typography>
                   )}
@@ -455,7 +423,7 @@ function ClassesPlanner() {
             <div className="dashboard-card" style={{ marginTop: '24px' }}>
               <div className="card-content">
                 <Typography variant="h6" gutterBottom>
-                  <AssignmentIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#F38181' }} />
+                  <PhosphorAssignmentIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#F38181' }} />
                   Class Details
                 </Typography>
               
@@ -463,7 +431,7 @@ function ClassesPlanner() {
                 day.classes?.length > 0 && (
                   <Box key={dayIndex} mb={2}>
                     <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      {day.day} - {new Date(day.date).toLocaleDateString()}
+                      {day.day} - {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </Typography>
                     <Divider sx={{ mb: 1 }} />
                     
@@ -481,7 +449,7 @@ function ClassesPlanner() {
                               
                               <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
                                 <Chip 
-                                  icon={<AccessTimeIcon sx={{ color: '#D6F7AD' }} />}
+                                  icon={<PhosphorAccessTimeIcon size={16} />}
                                   label={`${formatTime(classItem.start_time) || 'TBA'} - ${formatTime(classItem.end_time) || 'TBA'}`}
                                   size="small"
                                   variant="outlined"
@@ -493,7 +461,7 @@ function ClassesPlanner() {
                                 />
                                 {classItem.room && (
                                   <Chip 
-                                    icon={<LocationOnIcon sx={{ color: '#D6F7AD' }} />}
+                                    icon={<PhosphorLocationOnIcon size={16} />}
                                     label={String(classItem.room || 'TBA')}
                                     size="small"
                                     variant="outlined"
@@ -540,7 +508,7 @@ function ClassesPlanner() {
                                       '&:hover': { backgroundColor: 'rgba(214, 247, 173, 0.4)' }
                                     }}
                                   >
-                                    <EditIcon fontSize="small" />
+                                    <PhosphorEditIcon size={16} />
                                   </IconButton>
                                 </Tooltip>
                                 <Tooltip title="Delete Class">
@@ -552,7 +520,7 @@ function ClassesPlanner() {
                                       '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.4)' }
                                     }}
                                   >
-                                    <DeleteIcon fontSize="small" />
+                                    <PhosphorDeleteIcon size={16} />
                                   </IconButton>
                                 </Tooltip>
                               </Box>
@@ -581,6 +549,7 @@ function ClassesPlanner() {
                   value={classFormData.course_id}
                   onChange={handleClassFormChange}
                   label="Course"
+                  sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
                     <MenuItem key={course._id} value={course._id}>
@@ -655,7 +624,7 @@ function ClassesPlanner() {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenAddClassDialog(false)}>
+          <Button onClick={() => setOpenAddClassDialog(false)} sx={{ color: '#666' }}>
             Cancel
           </Button>
           <Button 
@@ -690,6 +659,7 @@ function ClassesPlanner() {
                   value={classFormData.course_id}
                   onChange={handleClassFormChange}
                   label="Course"
+                  sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
                     <MenuItem key={course._id} value={course._id}>
@@ -767,7 +737,7 @@ function ClassesPlanner() {
           <Button onClick={() => {
             setOpenEditClassDialog(false);
             setEditingClass(null);
-          }}>
+          }} sx={{ color: '#666' }}>
             Cancel
           </Button>
           <Button 

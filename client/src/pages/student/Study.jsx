@@ -328,7 +328,7 @@ function Study() {
     <DashboardLayout userRole="student">
       <div className="dashboard-grid">
         {/* Main Timer Card */}
-        <div className="dashboard-card" style={{ minHeight: '300px' }}>
+        <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon primary">
               <TimerIcon />
@@ -342,10 +342,11 @@ function Study() {
             <div style={{textAlign: 'center', margin: '25px 0'}}>
               <div style={{
                 fontSize: '56px', 
-                fontWeight: 'bold', 
-                color: isBreak ? '#95E1D3' : '#F38181',
+                fontWeight: '200',
+                color: '#666',
                 marginBottom: '15px',
-                fontFamily: 'monospace'
+                fontFamily: '"SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif',
+                letterSpacing: '0.5px'
               }}>
                 {formatTime(timeLeft)}
               </div>
@@ -440,7 +441,7 @@ function Study() {
           </div>
 
           {/* Custom Session Card */}
-          <div className="dashboard-card" style={{ minHeight: '300px' }}>
+          <div className="dashboard-card">
             <div className="card-header">
               <div className="card-icon secondary">
                 <PlayArrowIcon />
@@ -503,7 +504,7 @@ function Study() {
           </div>
 
           {/* Weekly Goal Card */}
-          <div className="dashboard-card" style={{ minHeight: '300px' }}>
+          <div className="dashboard-card">
             <div className="card-header">
               <div className="card-icon primary">
                 <TargetIcon />
@@ -514,24 +515,6 @@ function Study() {
               </div>
             </div>
             <div className="card-content">
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Button
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => setEditingGoal(true)}
-                  disabled={editingGoal}
-                  sx={{ 
-                    backgroundColor: '#95E1D3', 
-                    color: 'white',
-                    fontSize: '12px',
-                    padding: '6px 12px',
-                    '&:hover': { backgroundColor: '#7dd3c0' }
-                  }}
-                >
-                  Edit Goal
-                </Button>
-              </Box>
-
               {editingGoal ? (
                 <Box sx={{ mb: 2 }}>
                   <TextField
@@ -575,9 +558,24 @@ function Study() {
                   </Box>
                 </Box>
               ) : (
-                <Typography variant="h4" sx={{ color: '#F38181', fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
-                  {weeklyGoal} hours/week
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2, gap: 1 }}>
+                  <Typography variant="h6" sx={{ color: '#666', fontWeight: 'bold', fontSize: '1.2rem' }}>
+                    {weeklyGoal} hours/week
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={() => setEditingGoal(true)}
+                    disabled={editingGoal}
+                    sx={{ 
+                      minWidth: 'auto',
+                      padding: '4px',
+                      color: '#333',
+                      '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' }
+                    }}
+                  >
+                    <EditIcon sx={{ fontSize: '18px' }} />
+                  </Button>
+                </Box>
               )}
 
               <Box sx={{ mb: 2 }}>
@@ -698,7 +696,7 @@ function Study() {
           </div>
 
           {/* Combined Study Statistics & Weekly Breakdown */}
-          <div className="dashboard-card" style={{ gridColumn: 'span 2', minHeight: '320px' }}>
+          <div className="dashboard-card" style={{ gridColumn: 'span 2' }}>
             <div className="card-header">
               <div className="card-icon secondary">
                 <TrendingUpIcon />
@@ -710,37 +708,37 @@ function Study() {
             </div>
             <div className="card-content">
               {/* Statistics Row */}
-              <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid container spacing={2} sx={{ mb: 3, justifyContent: 'center' }}>
                 <Grid item xs={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 2, color: '#333', minHeight: '90px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>{formatStudyTime(studyData?.overview?.total_hours || 0)}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: '500' }}>Total Study Time</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>{formatStudyTime(studyData?.overview?.total_hours || 0)}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: '500', fontSize: '0.75rem' }}>Total Study Time</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 2, color: '#333', minHeight: '90px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>{studyData?.overview?.total_study_days || 0}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: '500' }}>Study Days</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>{studyData?.overview?.total_study_days || 0}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: '500', fontSize: '0.75rem' }}>Study Days</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 2, color: '#333', minHeight: '90px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>{studyData?.overview?.study_consistency || 0}%</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: '500' }}>Consistency</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>{studyData?.overview?.study_consistency || 0}%</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: '500', fontSize: '0.75rem' }}>Consistency</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={3}>
                   <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 2, color: '#333', minHeight: '90px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>{studyData?.overview?.goal_achieved_days || 0}</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: '500' }}>Goal Days</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, fontSize: '1.1rem' }}>{studyData?.overview?.goal_achieved_days || 0}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: '500', fontSize: '0.75rem' }}>Goal Days</Typography>
                   </Box>
                 </Grid>
               </Grid>
 
               {/* Weekly Breakdown Chart */}
               <Box sx={{ mt: 2 }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: '600', color: '#333' }}>This Week's Study Progress</Typography>
-                <Grid container spacing={1}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: '600', color: '#333', textAlign: 'center' }}>This Week's Study Progress</Typography>
+                <Grid container spacing={1} sx={{ justifyContent: 'center' }}>
                   {(() => {
                     // Get current week's data
                     const today = new Date();
@@ -819,7 +817,7 @@ function Study() {
           </div>
 
           {/* Recent Sessions */}
-          <div className="dashboard-card" style={{ minHeight: '300px' }}>
+          <div className="dashboard-card">
             <div className="card-header">
               <div className="card-icon primary">
                 <HistoryIcon />

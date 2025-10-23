@@ -41,6 +41,21 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
+import {
+  Plus as AddIcon,
+  ClipboardText as PhosphorQuizIcon,
+  CalendarBlank as PhosphorCalendarTodayIcon,
+  Clock as PhosphorAccessTimeIcon,
+  CheckCircle as PhosphorCheckCircleIcon,
+  Warning as PhosphorWarningIcon,
+  CalendarBlank as PhosphorScheduleIcon,
+  FunnelSimple as PhosphorFilterListIcon,
+  ChartLineUp as PhosphorTrendingUpIcon,
+  ClipboardText as PhosphorAssignmentIcon,
+  BookmarkSimple as PhosphorBookmarkIcon,
+  PencilSimple as PhosphorEditIcon,
+  Trash as PhosphorDeleteIcon
+} from 'phosphor-react';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import '../../styles/student/ExamsFinals.css';
@@ -75,7 +90,7 @@ function ExamsFinals() {
       setError(null);
       
       const response = await apiService.studentDashboard.getExams(
-        selectedStatus === 'all' ? null : selectedStatus,
+        null, // No status filtering
         selectedCourse || null
       );
       setExamsData(response.data);
@@ -89,7 +104,7 @@ function ExamsFinals() {
 
   useEffect(() => {
     fetchExamsData();
-  }, [selectedStatus, selectedCourse]);
+  }, [selectedCourse]);
 
   // Refresh data when window regains focus (e.g., returning from other pages)
   useEffect(() => {
@@ -99,7 +114,7 @@ function ExamsFinals() {
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [selectedStatus, selectedCourse]);
+  }, [selectedCourse]);
 
   // Get exam status color
   const getExamStatusColor = (status) => {
@@ -248,7 +263,7 @@ function ExamsFinals() {
   if (loading) {
     return (
       <DashboardLayout userRole="student">
-        <div className="white-page-background">
+        <div className="page-background">
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
@@ -269,55 +284,45 @@ function ExamsFinals() {
 
   return (
     <DashboardLayout userRole="student">
-      <div className="white-page-background">
+      <div className="page-background">
         {/* Add Exam Button */}
-      <Box display="flex" justifyContent="flex-start" mb={3}>
-        <Button
-          variant="contained"
-          startIcon={<QuizIcon />}
-          onClick={() => setOpenAddExamDialog(true)}
-          sx={{
-            backgroundColor: '#D6F7AD',
-            color: '#333',
-            '&:hover': {
-              backgroundColor: '#c8f299'
-            }
-          }}
-        >
-          Add Exam
-        </Button>
-      </Box>
+        <Box display="flex" justifyContent="flex-start" mb={3}>
+          <IconButton
+            onClick={() => setOpenAddExamDialog(true)}
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              color: '#555',
+              borderRadius: '8px',
+              padding: '20px',
+              minWidth: '64px',
+              width: '64px',
+              height: '64px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                color: '#333'
+              }
+            }}
+          >
+            <AddIcon size={48} weight="thin" />
+          </IconButton>
+        </Box>
 
           {/* Filters */}
-          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-            <div className="card-content">
+          <div className="dashboard-card" style={{ marginBottom: '24px', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+            <div className="card-content" style={{ background: 'transparent', padding: '0' }}>
               <Typography variant="h6" gutterBottom>
-                <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
+                <PhosphorFilterListIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#95E1D3' }} />
                 Filter Exams
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      label="Status"
-                    >
-                      <MenuItem value="all">All Exams</MenuItem>
-                      <MenuItem value="upcoming">Upcoming</MenuItem>
-                      <MenuItem value="completed">Completed</MenuItem>
-                      {/* Removed overdue option - students can mark exams as completed/graded after due date */}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={8}>
                   <FormControl fullWidth>
                     <InputLabel>Course</InputLabel>
                     <Select
                       value={selectedCourse}
                       onChange={(e) => setSelectedCourse(e.target.value)}
                       label="Course"
+                      sx={{ minWidth: '300px' }}
                     >
                       <MenuItem value="">All Courses</MenuItem>
                       {examsData?.courses?.map((course) => (
@@ -332,55 +337,13 @@ function ExamsFinals() {
             </div>
           </div>
 
-          {/* Exam Statistics */}
-          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-            <div className="card-content">
-              <Typography variant="h6" gutterBottom>
-                <TrendingUpIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
-                Exam Overview
-              </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#333' }}>
-                    {examsData?.summary?.upcoming || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Upcoming
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#333' }}>
-                    {examsData?.summary?.completed || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Completed
-                  </Typography>
-                </Box>
-              </Grid>
-              {/* Removed overdue statistics - students can mark exams as completed/graded after due date */}
-              <Grid item xs={12} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#333' }}>
-                    {examsData?.summary?.total || 0}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Exams
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-            </div>
-          </div>
 
           {/* Upcoming Exams */}
           {examsData?.upcoming_exams?.length > 0 && (
             <div className="dashboard-card" style={{ marginBottom: '24px' }}>
               <div className="card-content">
                 <Typography variant="h6" gutterBottom>
-                  <ScheduleIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#FCE38A' }} />
+                  <PhosphorScheduleIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#FCE38A' }} />
                   Upcoming Exams
                 </Typography>
               <Grid container spacing={2}>
@@ -416,7 +379,7 @@ function ExamsFinals() {
                                       '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.4)' }
                                     }}
                                   >
-                                    <EditIcon fontSize="small" />
+                                    <PhosphorEditIcon size={16} />
                                   </IconButton>
                                 </Tooltip>
                                 <Tooltip title="Delete Exam">
@@ -428,7 +391,7 @@ function ExamsFinals() {
                                       '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.4)' }
                                     }}
                                   >
-                                    <DeleteIcon fontSize="small" />
+                                    <PhosphorDeleteIcon size={16} />
                                   </IconButton>
                                 </Tooltip>
                               </>
@@ -437,14 +400,14 @@ function ExamsFinals() {
                         </Box>
                         
                         <Box display="flex" alignItems="center" mb={1}>
-                          <CalendarTodayIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
+                          <PhosphorCalendarTodayIcon size={16} style={{ marginRight: '8px', color: '#95E1D3' }} />
                           <Typography variant="body2">
                             {new Date(exam.due_date).toLocaleDateString()}
                           </Typography>
                         </Box>
                         
                         <Box display="flex" alignItems="center" mb={2}>
-                          <AccessTimeIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
+                          <PhosphorAccessTimeIcon size={16} style={{ marginRight: '8px', color: '#D6F7AD' }} />
                           <Typography variant="body2">
                             {new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </Typography>
@@ -502,7 +465,7 @@ function ExamsFinals() {
           <div className="dashboard-card">
             <div className="card-content">
               <Typography variant="h6" gutterBottom>
-                <QuizIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#D6F7AD' }} />
+                <PhosphorQuizIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#D6F7AD' }} />
                 All Exams
               </Typography>
             
@@ -601,7 +564,7 @@ function ExamsFinals() {
                                     '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.4)' }
                                   }}
                                 >
-                                  <EditIcon fontSize="small" />
+                                  <PhosphorEditIcon size={16} />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Delete Exam">
@@ -613,7 +576,7 @@ function ExamsFinals() {
                                     '&:hover': { backgroundColor: 'rgba(243, 129, 129, 0.4)' }
                                   }}
                                 >
-                                  <DeleteIcon fontSize="small" />
+                                  <PhosphorDeleteIcon size={16} />
                                 </IconButton>
                               </Tooltip>
                             </>
@@ -642,6 +605,7 @@ function ExamsFinals() {
                   value={examFormData.course_id}
                   onChange={handleExamFormChange}
                   label="Course"
+                  sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
                     <MenuItem key={course._id} value={course._id}>
@@ -730,17 +694,17 @@ function ExamsFinals() {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenAddExamDialog(false)}>
+          <Button onClick={() => setOpenAddExamDialog(false)} sx={{ color: '#666' }}>
             Cancel
           </Button>
           <Button 
             onClick={handleAddExam} 
             variant="contained"
             sx={{
-              backgroundColor: '#F38181',
-              color: 'white',
+              backgroundColor: '#D6F7AD',
+              color: '#333',
               '&:hover': {
-                backgroundColor: '#e85a6b'
+                backgroundColor: '#c8f299'
               }
             }}
           >
@@ -765,6 +729,7 @@ function ExamsFinals() {
                   value={examFormData.course_id}
                   onChange={handleExamFormChange}
                   label="Course"
+                  sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
                     <MenuItem key={course._id} value={course._id}>
@@ -856,17 +821,17 @@ function ExamsFinals() {
           <Button onClick={() => {
             setOpenEditExamDialog(false);
             setEditingExam(null);
-          }}>
+          }} sx={{ color: '#666' }}>
             Cancel
           </Button>
           <Button 
             onClick={handleUpdateExam} 
             variant="contained"
             sx={{
-              backgroundColor: '#F38181',
-              color: 'white',
+              backgroundColor: '#D6F7AD',
+              color: '#333',
               '&:hover': {
-                backgroundColor: '#e85a6b'
+                backgroundColor: '#c8f299'
               }
             }}
           >
