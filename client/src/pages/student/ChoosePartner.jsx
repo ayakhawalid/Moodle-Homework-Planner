@@ -269,38 +269,55 @@ function ChoosePartner() {
     }
   };
 
-  // Get unique partners (remove duplicates and students you already have requests with)
+  // Get unique partners (remove duplicates and students you already have partnerships with for the specific homework)
   const getUniquePartners = () => {
     if (!partnerData?.potential_partners) return [];
     
-    // Get IDs of students you already have pending/active partnerships with
+    // Get IDs of students you already have partnerships with for the specific homework
     const partneredStudentIds = new Set();
     
-    // Add students from current partners (for selected homework)
+    // Add students from current partners (for the selected homework only)
     partnerData?.current_partners?.forEach(partnership => {
-      if (partnership.student1_id?._id) partneredStudentIds.add(partnership.student1_id._id.toString());
-      if (partnership.student2_id?._id) partneredStudentIds.add(partnership.student2_id._id.toString());
+      // Only exclude if this partnership is for the selected homework
+      if (selectedHomework && partnership.homework_id?._id === selectedHomework) {
+        if (partnership.student1_id?._id) partneredStudentIds.add(partnership.student1_id._id.toString());
+        if (partnership.student2_id?._id) partneredStudentIds.add(partnership.student2_id._id.toString());
+      }
     });
     
-    // Also exclude students from sent requests (if View Requests is loaded)
-    if (partnerRequests?.sent_requests) {
+    // Also exclude students from sent requests for the specific homework (if View Requests is loaded)
+    if (partnerRequests?.sent_requests && selectedHomework) {
       partnerRequests.sent_requests.forEach(request => {
-        if (request.partner?._id) partneredStudentIds.add(request.partner._id.toString());
+        if (request.homework?._id === selectedHomework && request.partner?._id) {
+          partneredStudentIds.add(request.partner._id.toString());
+        }
       });
     }
     
-    // Also exclude students from pending requests received
-    if (partnerRequests?.pending_requests) {
+    // Also exclude students from pending requests received for the specific homework
+    if (partnerRequests?.pending_requests && selectedHomework) {
       partnerRequests.pending_requests.forEach(request => {
-        if (request.partner?._id) partneredStudentIds.add(request.partner._id.toString());
+        if (request.homework?._id === selectedHomework && request.partner?._id) {
+          partneredStudentIds.add(request.partner._id.toString());
+        }
       });
     }
     
+    // Also exclude students from active partnerships for the specific homework
+    if (partnerRequests?.active_partnerships && selectedHomework) {
+      partnerRequests.active_partnerships.forEach(partnership => {
+        if (partnership.homework?._id === selectedHomework && partnership.partner?._id) {
+          partneredStudentIds.add(partnership.partner._id.toString());
+        }
+      });
+    }
+    
+    // Remove duplicates and exclude students with existing partnerships for this homework
     const seen = new Set();
     return partnerData.potential_partners.filter(partner => {
       const key = partner._id;
       if (seen.has(key)) return false;
-      if (partneredStudentIds.has(key)) return false; // Exclude students with existing partnerships
+      if (partneredStudentIds.has(key)) return false; // Exclude students with existing partnerships for this homework
       seen.add(key);
       return true;
     });
@@ -1013,10 +1030,7 @@ function ChoosePartner() {
                         Current Partners ({partnerData.current_partners.length}/{partnerData.selected_course?.max_partners || 1})
                       </Typography>
                       <Typography variant="body2" sx={{ mb: 2 }}>
-                        {partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1)
-                          ? 'You have reached the maximum number of partners for this course.'
-                          : 'You can add more partners for this course.'
-                        }
+                        You can manage your partnerships for this course.
                       </Typography>
                       <Alert 
                         severity="info" 
@@ -1032,7 +1046,7 @@ function ChoosePartner() {
                       >
                         <Typography variant="body2">
                           <strong>Note:</strong> Partners shown here include pending, accepted, and active partnerships. 
-                          Students already listed here won't appear in "Available Study Partners" below.
+                          Students already listed here won't appear in "Available Study Partners" below for the same homework assignment.
                         </Typography>
                       </Alert>
                     </div>
@@ -1187,9 +1201,9 @@ function ChoosePartner() {
                     }
                   }}
                 >
-                  {partnerData?.current_partners && partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1) 
-                    ? 'You have reached the maximum number of partners for this course.'
-                    : 'No potential study partners found. All students may already have pending requests or partnerships.'
+                  {selectedHomework 
+                    ? 'No potential study partners found for this homework. All students may already have partnerships for this specific homework assignment.'
+                    : 'No potential study partners found. Please select a homework assignment first.'
                   }
                   <Typography variant="body2" sx={{ mt: 1 }}>
                     💡 Tip: Click "View Requests" at the top to see your pending, sent, and active partnerships.
@@ -1237,7 +1251,7 @@ function ChoosePartner() {
                             size="small"
                             startIcon={<SendIcon />}
                             onClick={() => handleSelectPartner(partner)}
-                            disabled={!selectedHomework || (partnerData?.current_partners && partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1))}
+                            disabled={!selectedHomework}
                             fullWidth
                             variant="contained"
                             sx={{
@@ -1247,12 +1261,7 @@ function ChoosePartner() {
                               '&:disabled': { backgroundColor: '#e0e0e0', color: '#999' }
                             }}
                           >
-                            {!selectedHomework 
-                              ? 'Select Homework First' 
-                              : (partnerData?.current_partners && partnerData.current_partners.length >= (partnerData.selected_course?.max_partners || 1))
-                                ? 'Max Partners Reached'
-                                : 'Choose Partner'
-                            }
+                            {!selectedHomework ? 'Select Homework First' : 'Choose Partner'}
                           </Button>
                         </div>
                       </div>
