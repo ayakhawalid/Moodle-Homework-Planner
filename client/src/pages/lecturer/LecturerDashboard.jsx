@@ -7,6 +7,7 @@ import {
   CalendarToday as CalendarTodayIcon,
   Notifications as NotificationsIcon
 } from '@mui/icons-material';
+import { Box, CircularProgress } from '@mui/material';
 import '../../styles/DashboardLayout.css';
 
 function LecturerDashboard() {
@@ -58,8 +59,10 @@ function LecturerDashboard() {
   if (loading) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="welcome-section">
-          <h1 className="welcome-title">Loading Dashboard...</h1>
+        <div className="page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
         </div>
       </DashboardLayout>
     );
@@ -68,9 +71,13 @@ function LecturerDashboard() {
   if (error) {
     return (
       <DashboardLayout userRole="lecturer">
-        <div className="welcome-section">
-          <h1 className="welcome-title">Error Loading Dashboard</h1>
-          <p className="welcome-subtitle">{error}</p>
+        <div className="page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <div style={{ textAlign: 'center' }}>
+              <h2>Error Loading Dashboard</h2>
+              <p>{error}</p>
+            </div>
+          </Box>
         </div>
       </DashboardLayout>
     );

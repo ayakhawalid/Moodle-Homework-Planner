@@ -2,12 +2,12 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://aia-user1:aia@cluster0.y9gor0a.mongodb.net/plannerDB', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`✅ Connected to MongoDB Atlas: ${conn.connection.host}`);
     
     // Log database name
     console.log(`Database: ${conn.connection.name}`);

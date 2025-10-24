@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
-import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
 import { useAuth0 } from '@auth0/auth0-react';
 import {
@@ -29,14 +28,13 @@ import {
 } from '@mui/material';
 import {
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  Refresh as RefreshIcon
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import PermissionError from '../../Components/PermissionError';
 
 const UserManagement = () => {
   const { user, isAdmin, refreshUser } = useUserSyncContext();
-  const { getAccessTokenSilently, loginWithRedirect } = useAuth0();
+  const { getAccessTokenSilently } = useAuth0();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,8 +43,6 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState('');
-  const [refreshingRoles, setRefreshingRoles] = useState(false);
-  const [refreshResults, setRefreshResults] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({});
 
@@ -131,7 +127,10 @@ const UserManagement = () => {
 
   useEffect(() => {
     if (hasAdminAccess) {
-      fetchUsers(page);
+      // First refresh roles from Auth0, then fetch users
+      refreshRolesFromAuth0().then(() => {
+        fetchUsers(page);
+      });
     }
   }, [hasAdminAccess, page]);
 
@@ -218,13 +217,11 @@ const UserManagement = () => {
     }
   };
 
-  // Refresh roles from Auth0
-  const handleRefreshRoles = async () => {
+  // Refresh roles from Auth0 when navigating to the page
+  const refreshRolesFromAuth0 = async () => {
     try {
-      setRefreshingRoles(true);
-      setRefreshResults(null);
-      // Don't clear error - let fetchWithToken handle error state
-
+      console.log('Refreshing roles from Auth0 on page load...');
+      
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
       const url = `${base.replace(/\/$/, '')}/users/refresh-roles`;
 
@@ -232,91 +229,22 @@ const UserManagement = () => {
       if (!resp) {
         // fetchWithToken returned null due to consent issues
         // Error message should already be set by fetchWithToken
-        setRefreshingRoles(false);
         return;
       }
       if (!resp.ok) {
         const text = await resp.text();
-        throw new Error(`Failed to refresh roles: ${resp.status} ${text}`);
+        console.error(`Failed to refresh roles: ${resp.status} ${text}`);
+        return;
       }
 
       const data = await resp.json();
-      setRefreshResults(data);
-
-      // Refresh the users list to show updated roles
-      await fetchUsers(page);
+      console.log('Roles refreshed from Auth0:', data);
     } catch (err) {
       console.error('Failed to refresh roles:', err);
-      setError(err);
-    } finally {
-      setRefreshingRoles(false);
+      // Don't set error state for background refresh
     }
   };
 
-  const handleSyncRoles = async () => {
-    if (!window.confirm('This will sync all user roles from Auth0. Continue?')) return;
-    try {
-      setLoading(true);
-
-      // Try to get a token that includes offline_access (refresh token) and read:roles
-      let token;
-      try {
-        token = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
-            scope: 'openid profile email offline_access'
-          },
-          ignoreCache: true
-        });
-      } catch (err) {
-        console.warn('Silent token acquisition failed for sync:', err);
-
-        // If missing refresh token / consent is required, do an interactive login so user can grant offline_access
-        const needsInteractive = err?.error === 'consent_required' || (err?.message && err.message.includes('Missing Refresh Token'));
-        if (needsInteractive) {
-          // Show error instead of redirecting
-          setError('Additional permissions required. Please refresh the page to grant permissions.');
-          setRefreshingRoles(false);
-          return;
-        }
-
-        // Fallback: obtain an access token without offline_access (no refresh token) to attempt the sync
-        token = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
-            scope: 'openid profile email'
-          },
-          ignoreCache: true
-        });
-      }
-
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-      const url = `${base.replace(/\/$/, '')}/users/refresh-roles`;
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Sync failed: ${response.status} ${text}`);
-      }
-
-      const result = await response.json();
-      console.log('Role sync result:', result);
-      await fetchUsers(page);
-    } catch (err) {
-      console.error('Failed to sync roles:', err);
-      setError(err);
-      alert('Failed to sync roles — check console and Auth0 logs.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -357,39 +285,12 @@ const UserManagement = () => {
       <div className="white-page-background">
         <Box>
 
-        <Box display="flex" justifyContent="flex-end" mb={3}>
-          <Button
-            variant="contained"
-            startIcon={refreshingRoles ? <CircularProgress size={20} /> : <RefreshIcon />}
-            onClick={handleRefreshRoles}
-            disabled={refreshingRoles}
-            sx={{
-              backgroundColor: '#95E1D3',
-              color: '#333',
-              '&:hover': { backgroundColor: '#7dd3c0' }
-            }}
-          >
-            {refreshingRoles ? 'Refreshing...' : 'Refresh Roles from Auth0'}
-          </Button>
-        </Box>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {typeof error === 'string' ? error : error.message}
         </Alert>
       )}
 
-      {refreshResults && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          <Typography variant="subtitle2">{refreshResults.message}</Typography>
-          {refreshResults.summary && (
-            <Typography variant="body2">
-              Total: {refreshResults.summary.total},
-              Updated: {refreshResults.summary.updated},
-              Errors: {refreshResults.summary.errors}
-            </Typography>
-          )}
-        </Alert>
-      )}
       <div className="dashboard-card">
         <TableContainer>
           <Table>
