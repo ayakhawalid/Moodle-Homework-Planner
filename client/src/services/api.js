@@ -2,8 +2,12 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 // Note: The baseURL should be the Render backend URL without /api if Render serves at root
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com';
+console.log('API Base URL:', baseURL);
+console.log('Environment variables:', import.meta.env);
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com',
+  baseURL: baseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -41,7 +45,9 @@ api.interceptors.request.use(
       console.warn('API Request Interceptor - No token provider set');
     }
 
-    console.log('API Request:', config.method?.toUpperCase(), config.url, 'Headers:', config.headers);
+    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    console.log('Full URL:', config.baseURL + config.url);
+    console.log('Headers:', config.headers);
     return config;
   },
   (error) => {
@@ -74,9 +80,19 @@ api.interceptors.response.use(
 
 // Helper function to add /api prefix if not already present
 const withApi = (path) => {
-  if (path.startsWith('/api/')) return path;
-  if (path.startsWith('/')) return `/api${path}`;
-  return `/api/${path}`;
+  console.log('withApi input:', path);
+  if (path.startsWith('/api/')) {
+    console.log('withApi output (already has /api):', path);
+    return path;
+  }
+  if (path.startsWith('/')) {
+    const result = `/api${path}`;
+    console.log('withApi output (added /api):', result);
+    return result;
+  }
+  const result = `/api/${path}`;
+  console.log('withApi output (added /api/):', result);
+  return result;
 };
 
 // API service functions
