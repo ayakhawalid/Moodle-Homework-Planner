@@ -27,7 +27,7 @@ const AuthDebugPanel = () => {
   const getToken = async () => {
     try {
       const accessToken = await getAccessTokenSilently({
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api',
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com',
         scope: 'read:users read:stats'
       });
       setToken(accessToken);
@@ -39,10 +39,10 @@ const AuthDebugPanel = () => {
   const testProfileEndpoint = async () => {
     try {
       const token = await getAccessTokenSilently({
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api',
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com',
         scope: 'read:users read:stats'
       });
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com/api'}/users/profile`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com'}/api/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

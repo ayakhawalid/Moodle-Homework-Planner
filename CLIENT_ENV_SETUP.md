@@ -9,13 +9,14 @@ Create a file named `.env` in the `client/` directory with the following content
 # PRODUCTION CONFIGURATION (for Vercel)
 # ===========================================
 
-# API Configuration
-VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com/api
+# API Configuration  
+# Note: For Render, use the base URL without /api since the routes handle the /api prefix
+VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com
 
 # Auth0 Configuration
 VITE_AUTH0_DOMAIN=your-auth0-domain.auth0.com
 VITE_AUTH0_CLIENT_ID=your-auth0-client-id
-VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com/api
+VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com
 
 # App Configuration
 VITE_APP_BASE_URL=https://moodle-homework-planner.vercel.app
@@ -27,7 +28,7 @@ VITE_AUTH0_REDIRECT_URI=https://moodle-homework-planner.vercel.app/callback
 If you want to run locally, comment out the production URLs and uncomment these:
 
 ```bash
-# VITE_API_BASE_URL=http://localhost:5000/api
+# VITE_API_BASE_URL=http://localhost:5000
 # VITE_AUTH0_AUDIENCE=http://localhost:5000
 # VITE_APP_BASE_URL=http://localhost:5173
 # VITE_AUTH0_REDIRECT_URI=http://localhost:5173/callback
