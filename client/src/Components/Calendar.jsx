@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
-import FallingLeaves from '../components/FallingLeaves';
+import FallingLeaves from './FallingLeaves';
 import {
   Box,
   Paper,
