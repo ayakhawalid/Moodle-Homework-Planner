@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import CalendarComponent from '../../Components/Calendar';
-import FallingLeaves from '../../components/FallingLeaves';
+import FallingLeaves from '../../Components/FallingLeaves';
 import { apiService } from '../../services/api';
 import { useAuth0 } from '@auth0/auth0-react';
 import {
