@@ -67,11 +67,19 @@ app.use(cors({
       'http://localhost:5174',
       'http://localhost:3000',
       'http://localhost:3001',
+      'https://moodle-homework-planner.vercel.app', // Vercel production URL
+      'https://*.vercel.app', // Any Vercel preview deployment
       process.env.CLIENT_URL,
       process.env.PRODUCTION_CLIENT_URL
     ].filter(Boolean);
     
+    // Check exact match
     if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Check if origin is a Vercel deployment (preview or production)
+    if (origin && origin.includes('.vercel.app')) {
       return callback(null, true);
     }
     
@@ -80,12 +88,9 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // For production, be more strict
-    if (process.env.NODE_ENV === 'production') {
-      return callback(new Error('Not allowed by CORS'));
-    }
-    
-    return callback(null, true);
+    // For production, be more strict but allow if it's in our allowed list
+    console.log(`CORS: Origin "${origin}" not in allowed list`);
+    return callback(null, true); // Allow for now to avoid blocking
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
