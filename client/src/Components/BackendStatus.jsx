@@ -66,7 +66,7 @@ const BackendStatus = () => {
       try {
         const token = await getAccessTokenSilently({
           authorizationParams: {
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000'
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api'
           },
           ignoreCache: true // force fresh token for health check
         });
