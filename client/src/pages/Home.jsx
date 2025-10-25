@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUserSyncContext } from '../contexts/UserSyncContext'
-import FallingLeaves from '../components/FallingLeaves'
+import FallingLeaves from '../Components/FallingLeaves'
 import '../styles/Home.css'
 
 function Home() {
