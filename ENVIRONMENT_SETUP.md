@@ -6,9 +6,9 @@ Create a `.env` file in the `client/` directory with these variables:
 
 ```bash
 # Production URLs (for deployment)
-# Note: Use base URL without /api since routes handle the prefix
+# Note: API_BASE_URL should NOT have /api, but AUDIENCE should match your Auth0 API identifier
 VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com
-VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com
+VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com/api
 VITE_APP_BASE_URL=https://your-frontend-domain.com
 VITE_AUTH0_REDIRECT_URI=https://your-frontend-domain.com/callback
 
@@ -33,7 +33,7 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database_name
 AUTH0_DOMAIN=your-auth0-domain.auth0.com
 AUTH0_CLIENT_ID=your-auth0-client-id
 AUTH0_CLIENT_SECRET=your-auth0-client-secret
-AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com
+AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com/api
 AUTH0_MANAGEMENT_CLIENT_ID=your-management-client-id
 AUTH0_MANAGEMENT_CLIENT_SECRET=your-management-client-secret
 
@@ -60,7 +60,7 @@ VITE_AUTH0_REDIRECT_URI=http://localhost:5173/callback
 ```bash
 # Frontend .env
 VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com
-VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com
+VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com/api
 VITE_APP_BASE_URL=https://your-frontend-domain.com
 VITE_AUTH0_REDIRECT_URI=https://your-frontend-domain.com/callback
 ```
