@@ -66,12 +66,12 @@ const BackendStatus = () => {
       try {
         const token = await getAccessTokenSilently({
           authorizationParams: {
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api'
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com'
           },
           ignoreCache: true // force fresh token for health check
         });
 
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth-test`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth-test`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 

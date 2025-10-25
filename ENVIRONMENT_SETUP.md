@@ -6,8 +6,9 @@ Create a `.env` file in the `client/` directory with these variables:
 
 ```bash
 # Production URLs (for deployment)
-VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com/api
-VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com/api
+# Note: Use base URL without /api since routes handle the prefix
+VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com
+VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com
 VITE_APP_BASE_URL=https://your-frontend-domain.com
 VITE_AUTH0_REDIRECT_URI=https://your-frontend-domain.com/callback
 
@@ -32,7 +33,7 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database_name
 AUTH0_DOMAIN=your-auth0-domain.auth0.com
 AUTH0_CLIENT_ID=your-auth0-client-id
 AUTH0_CLIENT_SECRET=your-auth0-client-secret
-AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com/api
+AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com
 AUTH0_MANAGEMENT_CLIENT_ID=your-management-client-id
 AUTH0_MANAGEMENT_CLIENT_SECRET=your-management-client-secret
 
@@ -49,7 +50,7 @@ JWT_SECRET=your-jwt-secret-key
 ### Development (Local)
 ```bash
 # Frontend .env
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=http://localhost:5000
 VITE_AUTH0_AUDIENCE=http://localhost:5000
 VITE_APP_BASE_URL=http://localhost:5173
 VITE_AUTH0_REDIRECT_URI=http://localhost:5173/callback
@@ -58,8 +59,8 @@ VITE_AUTH0_REDIRECT_URI=http://localhost:5173/callback
 ### Production (Render)
 ```bash
 # Frontend .env
-VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com/api
-VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com/api
+VITE_API_BASE_URL=https://moodle-homework-planner.onrender.com
+VITE_AUTH0_AUDIENCE=https://moodle-homework-planner.onrender.com
 VITE_APP_BASE_URL=https://your-frontend-domain.com
 VITE_AUTH0_REDIRECT_URI=https://your-frontend-domain.com/callback
 ```

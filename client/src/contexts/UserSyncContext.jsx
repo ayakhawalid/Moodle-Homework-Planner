@@ -21,7 +21,7 @@ export const UserSyncProvider = ({ children }) => {
       if (isAuthenticated) {
         try {
           const token = await getAccessTokenSilently({
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api',
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com',
             scope: 'read:users read:stats'
           });
           console.log('UserSyncContext - Token retrieved successfully:', !!token);
