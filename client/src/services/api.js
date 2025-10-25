@@ -72,64 +72,71 @@ api.interceptors.response.use(
   }
 );
 
+// Helper function to add /api prefix if not already present
+const withApi = (path) => {
+  if (path.startsWith('/api/')) return path;
+  if (path.startsWith('/')) return `/api${path}`;
+  return `/api/${path}`;
+};
+
 // API service functions
 export const apiService = {
   // Health check
   health: async () => {
-    const response = await api.get('/health');
+    const response = await api.get(withApi('/health'));
     return response.data;
   },
 
   // Auth test
   authTest: async () => {
-    const response = await api.get('/auth-test');
+    const response = await api.get(withApi('/auth-test'));
     return response.data;
   },
   
   // User endpoints
   user: {
     getProfile: async () => {
-      const response = await api.get('/users/profile');
+      const response = await api.get(withApi('/users/profile'));
       return response.data;
     },
     updateProfile: async (data) => {
-      const response = await api.put('/users/profile', data);
+      const response = await api.put(withApi('/users/profile'), data);
       return response.data;
     },
     getAll: async (params) => {
-      const response = await api.get('/users', { params });
+      const response = await api.get(withApi('/users'), { params });
       return response.data;
     },
     getStats: async () => {
-      const response = await api.get('/users/stats');
+      const response = await api.get(withApi('/users/stats'));
       return response.data;
     },
     getById: async (id) => {
-      const response = await api.get(`/users/${id}`);
+      const response = await api.get(withApi(`/users/${id}`));
       return response.data;
     },
     updateById: async (id, data) => {
-      const response = await api.put(`/users/${id}`, data);
+      const response = await api.put(withApi(`/users/${id}`), data);
       return response.data;
     },
     checkUsername: async (username) => {
-      const response = await api.get(`/users/username-available`, { params: { u: username } });
+      const response = await api.get(withApi('/users/username-available'), { params: { u: username } });
       return response.data;
     },
     updateRole: async (id, role) => {
-      const response = await api.put(`/users/${id}/role`, { role });
+      const response = await api.put(withApi(`/users/${id}/role`), { role });
       return response.data;
     },
     deactivate: async (id) => {
-      const response = await api.delete(`/users/${id}`);
+      const response = await api.delete(withApi(`/users/${id}`));
       return response.data;
     },
     syncProfile: async (data) => {
-      const response = await api.post('/users', data);
+      const response = await api.post(withApi('/users'), data);
       return response.data;
     },
     deleteAccount: async () => {
-      const response = await api.delete('/users/me');
+      const response = await api.delete(withApi('/users/me'));
       return response.data;
     }
   },
@@ -137,11 +144,11 @@ export const apiService = {
   // Settings endpoints
   settings: {
     getAll: async () => {
-      const response = await api.get('/settings');
+      const response = await api.get(withApi('/settings'));
       return response.data;
     },
     saveAll: async (items) => {
-      const response = await api.put('/settings', items);
+      const response = await api.put(withApi('/settings'), items);
       return response.data;
     }
   },
@@ -149,74 +156,74 @@ export const apiService = {
   // Analytics endpoints
   analytics: {
     getOverview: async () => {
-      const response = await api.get('/analytics/overview');
+      const response = await api.get(withApi('/analytics/overview'));
       return response.data;
     }
   },
 
   roleRequests: {
     submit: async (role) => {
-      const response = await api.post('/role-requests', { role });
+      const response = await api.post(withApi('/role-requests'), { role });
       return response.data;
     },
     list: async (status) => {
       const params = status ? { status } : {};
-      const response = await api.get('/role-requests', { params });
+      const response = await api.get(withApi('/role-requests'), { params });
       return response.data;
     },
     getMyRequests: async () => {
-      const response = await api.get('/role-requests/my');
+      const response = await api.get(withApi('/role-requests/my'));
       return response.data;
     },
     approve: async (id) => {
-      const response = await api.post(`/role-requests/${id}/approve`);
+      const response = await api.post(withApi(`/role-requests/${id}/approve`));
       return response.data;
     },
     reject: async (id, note) => {
-      const response = await api.post(`/role-requests/${id}/reject`, { note });
+      const response = await api.post(withApi(`/role-requests/${id}/reject`), { note });
       return response.data;
     }
   },
   
   // Course endpoints
   courses: {
-    getAll: (params) => api.get('/courses', { params }),
-    getById: (id) => api.get(`/courses/${id}`),
-    create: (data) => api.post('/courses', data),
-    update: (id, data) => api.put(`/courses/${id}`, data),
-    delete: (id) => api.delete(`/courses/${id}`),
-    getByLecturer: (lecturerId) => api.get(`/courses/lecturer/${lecturerId}`),
-    getByStudent: (studentId) => api.get(`/courses/student/${studentId}`),
-    addStudent: (courseId, studentId) => api.post(`/courses/${courseId}/students`, { student_id: studentId }),
-    updatePartnerSettings: (id, settings) => api.put(`/courses/${id}/partner-settings`, settings),
-    removeStudent: (courseId, studentId) => api.delete(`/courses/${courseId}/students/${studentId}`)
+    getAll: (params) => api.get(withApi('/courses'), { params }),
+    getById: (id) => api.get(withApi(`/courses/${id}`)),
+    create: (data) => api.post(withApi('/courses'), data),
+    update: (id, data) => api.put(withApi(`/courses/${id}`), data),
+    delete: (id) => api.delete(withApi(`/courses/${id}`)),
+    getByLecturer: (lecturerId) => api.get(withApi(`/courses/lecturer/${lecturerId}`)),
+    getByStudent: (studentId) => api.get(withApi(`/courses/student/${studentId}`)),
+    addStudent: (courseId, studentId) => api.post(withApi(`/courses/${courseId}/students`), { student_id: studentId }),
+    updatePartnerSettings: (id, settings) => api.put(withApi(`/courses/${id}/partner-settings`), settings),
+    removeStudent: (courseId, studentId) => api.delete(withApi(`/courses/${courseId}/students/${studentId}`))
   },
 
   // Lecturer dashboard
   lecturerDashboard: {
-    getOverview: () => api.get('/lecturer-dashboard/overview'),
-    getWorkloadStats: () => api.get('/lecturer-dashboard/workload-stats'),
-    getCoursesInfo: () => api.get('/lecturer-dashboard/courses-info'),
-    getStudentCourseWorkload: (courseId) => api.get(`/lecturer-dashboard/student-course-workload/${courseId}`),
-        getHomeworkStatus: (courseId) => api.get(`/lecturer-dashboard/homework-status/${courseId}`),
-        getHomeworkStatusAny: (courseId) => api.get(`/lecturer-dashboard/homework-status-any/${courseId}`),
-        getAllHomeworkStatus: () => api.get('/lecturer-dashboard/all-homework-status'),
-        getAllHomework: () => api.get('/lecturer-dashboard/all-homework'),
+    getOverview: () => api.get(withApi('/lecturer-dashboard/overview')),
+    getWorkloadStats: () => api.get(withApi('/lecturer-dashboard/workload-stats')),
+    getCoursesInfo: () => api.get(withApi('/lecturer-dashboard/courses-info')),
+    getStudentCourseWorkload: (courseId) => api.get(withApi(`/lecturer-dashboard/student-course-workload/${courseId}`)),
+        getHomeworkStatus: (courseId) => api.get(withApi(`/lecturer-dashboard/homework-status/${courseId}`)),
+        getHomeworkStatusAny: (courseId) => api.get(withApi(`/lecturer-dashboard/homework-status-any/${courseId}`)),
+        getAllHomeworkStatus: () => api.get(withApi('/lecturer-dashboard/all-homework-status')),
+        getAllHomework: () => api.get(withApi('/lecturer-dashboard/all-homework')),
     getHomeworkChecker: (status = 'pending', courseId = null) => {
       const params = new URLSearchParams();
       if (status) params.append('status', status);
       if (courseId) params.append('course_id', courseId);
-      return api.get(`/lecturer-dashboard/homework-checker?${params.toString()}`);
+      return api.get(withApi(`/lecturer-dashboard/homework-checker?${params.toString()}`));
     },
     getClasses: (courseId = null) => {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);
-      return api.get(`/classes?${params.toString()}`);
+      return api.get(withApi(`/classes?${params.toString()}`));
     },
     getExams: (courseId = null) => {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);
-      return api.get(`/exams?${params.toString()}`);
+      return api.get(withApi(`/exams?${params.toString()}`));
     }
   },
 
@@ -225,11 +232,11 @@ export const apiService = {
     getAll: (courseId = null) => {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);
-      return api.get(`/exams?${params.toString()}`);
+      return api.get(withApi(`/exams?${params.toString()}`));
     },
-    create: (data) => api.post('/exams', data),
-    update: (id, data) => api.put(`/exams/${id}`, data),
-    delete: (id) => api.delete(`/exams/${id}`)
+    create: (data) => api.post(withApi('/exams'), data),
+    update: (id, data) => api.put(withApi(`/exams/${id}`), data),
+    delete: (id) => api.delete(withApi(`/exams/${id}`))
   },
 
   // Classes
@@ -237,184 +244,184 @@ export const apiService = {
     getAll: (courseId = null) => {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);
-      return api.get(`/classes?${params.toString()}`);
+      return api.get(withApi(`/classes?${params.toString()}`));
     },
-    create: (data) => api.post('/classes', data),
-    update: (id, data) => api.put(`/classes/${id}`, data),
-    delete: (id) => api.delete(`/classes/${id}`)
+    create: (data) => api.post(withApi('/classes'), data),
+    update: (id, data) => api.put(withApi(`/classes/${id}`), data),
+    delete: (id) => api.delete(withApi(`/classes/${id}`))
   },
 
   // Student dashboard
   studentDashboard: {
-    getOverview: () => api.get('/student-dashboard/overview'),
+    getOverview: () => api.get(withApi('/student-dashboard/overview')),
     getHomeworkPlanner: (status = 'all', courseId = null, upcomingDays = 7) => {
       const params = new URLSearchParams();
       if (status) params.append('status', status);
       if (courseId) params.append('course_id', courseId);
       if (upcomingDays) params.append('upcoming_days', upcomingDays);
-      return api.get(`/student-dashboard/homework-planner?${params.toString()}`);
+      return api.get(withApi(`/student-dashboard/homework-planner?${params.toString()}`));
     },
     getClassesPlanner: (weekStart = null) => {
       const params = new URLSearchParams();
       if (weekStart) params.append('week_start', weekStart);
-      return api.get(`/student-dashboard/classes-planner?${params.toString()}`);
+      return api.get(withApi(`/student-dashboard/classes-planner?${params.toString()}`));
     },
     getExams: (status = 'all', courseId = null) => {
       const params = new URLSearchParams();
       if (status) params.append('status', status);
       if (courseId) params.append('course_id', courseId);
-      return api.get(`/student-dashboard/exams?${params.toString()}`);
+      return api.get(withApi(`/student-dashboard/exams?${params.toString()}`));
     },
     getStudyTimer: (days = 7) => {
       const params = new URLSearchParams();
       if (days) params.append('days', days);
-      return api.get(`/student-dashboard/study-timer?${params.toString()}`);
+      return api.get(withApi(`/student-dashboard/study-timer?${params.toString()}`));
     },
-    saveStudySession: (data) => api.post('/student-dashboard/study-timer/session', data),
+    saveStudySession: (data) => api.post(withApi('/student-dashboard/study-timer/session'), data),
     getChoosePartner: (courseId = null, homeworkId = null) => {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);
       if (homeworkId) params.append('homework_id', homeworkId);
-      return api.get(`/student-dashboard/choose-partner?${params.toString()}`);
+      return api.get(withApi(`/student-dashboard/choose-partner?${params.toString()}`));
     },
-    getCoursesInfo: () => api.get('/student-dashboard/courses-info'),
+    getCoursesInfo: () => api.get(withApi('/student-dashboard/courses-info')),
     getStudyProgress: (days = 30) => {
       const params = new URLSearchParams();
       if (days) params.append('days', days);
-      return api.get(`/student-dashboard/study-progress?${params.toString()}`);
+      return api.get(withApi(`/student-dashboard/study-progress?${params.toString()}`));
     },
-    updateWeeklyGoal: (goal) => api.put('/student-dashboard/weekly-goal', { weekly_goal: goal }),
+    updateWeeklyGoal: (goal) => api.put(withApi('/student-dashboard/weekly-goal'), { weekly_goal: goal }),
     getGrades: (courseId = null) => {
       const params = new URLSearchParams();
       if (courseId) params.append('course_id', courseId);
-      return api.get(`/student-dashboard/grades?${params.toString()}`);
+      return api.get(withApi(`/student-dashboard/grades?${params.toString()}`));
     },
-    getPartnerRequests: () => api.get('/student-dashboard/partner-requests'),
+    getPartnerRequests: () => api.get(withApi('/student-dashboard/partner-requests')),
     respondToPartnerRequest: (requestId, action) => {
       console.log('API Service - respondToPartnerRequest called:', { requestId, action });
-      return api.post(`/student-dashboard/partner-requests/${requestId}/respond`, { action });
+      return api.post(withApi(`/student-dashboard/partner-requests/${requestId}/respond`), { action });
     },
-    getStudentCourses: () => api.get('/student-dashboard/student-courses'),
-    addClass: (classData) => api.post('/student-dashboard/add-class', classData),
-    addExam: (examData) => api.post('/student-dashboard/add-exam', examData)
+    getStudentCourses: () => api.get(withApi('/student-dashboard/student-courses')),
+    addClass: (classData) => api.post(withApi('/student-dashboard/add-class'), classData),
+    addExam: (examData) => api.post(withApi('/student-dashboard/add-exam'), examData)
   },
 
   // Lecturer management
   lecturerManagement: {
-    getCourses: () => api.get('/lecturer-management/courses'),
-    createHomework: (data) => api.post('/lecturer-management/homework', data),
-    updateHomework: (id, data) => api.put(`/lecturer-management/homework/${id}`, data),
-    deleteHomework: (id) => api.delete(`/lecturer-management/homework/${id}`),
-    createClass: (data) => api.post('/lecturer-management/classes', data),
-    updateClass: (id, data) => api.put(`/lecturer-management/classes/${id}`, data),
-    deleteClass: (id) => api.delete(`/lecturer-management/classes/${id}`),
-    createExam: (data) => api.post('/lecturer-management/exams', data),
-    updateExam: (id, data) => api.put(`/lecturer-management/exams/${id}`, data),
-    deleteExam: (id) => api.delete(`/lecturer-management/exams/${id}`)
+    getCourses: () => api.get(withApi('/lecturer-management/courses')),
+    createHomework: (data) => api.post(withApi('/lecturer-management/homework'), data),
+    updateHomework: (id, data) => api.put(withApi(`/lecturer-management/homework/${id}`), data),
+    deleteHomework: (id) => api.delete(withApi(`/lecturer-management/homework/${id}`)),
+    createClass: (data) => api.post(withApi('/lecturer-management/classes'), data),
+    updateClass: (id, data) => api.put(withApi(`/lecturer-management/classes/${id}`), data),
+    deleteClass: (id) => api.delete(withApi(`/lecturer-management/classes/${id}`)),
+    createExam: (data) => api.post(withApi('/lecturer-management/exams'), data),
+    updateExam: (id, data) => api.put(withApi(`/lecturer-management/exams/${id}`), data),
+    deleteExam: (id) => api.delete(withApi(`/lecturer-management/exams/${id}`))
   },
 
   // Student submission
   studentSubmission: {
-    getHomeworkDetails: (homeworkId) => api.get(`/student-submission/homework/${homeworkId}`),
-    submitHomework: (homeworkId, formData) => api.post(`/student-submission/homework/${homeworkId}/submit`, formData, {
+    getHomeworkDetails: (homeworkId) => api.get(withApi(`/student-submission/homework/${homeworkId}`)),
+    submitHomework: (homeworkId, formData) => api.post(withApi(`/student-submission/homework/${homeworkId}/submit`), formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     }),
-    getSubmittedFiles: (homeworkId) => api.get(`/student-submission/homework/${homeworkId}/files`),
-    downloadFile: (fileId) => api.get(`/student-submission/files/${fileId}/download`),
-    deleteFile: (fileId) => api.delete(`/student-submission/files/${fileId}`),
-    updateSubmission: (homeworkId, formData) => api.put(`/student-submission/homework/${homeworkId}/submission`, formData, {
+    getSubmittedFiles: (homeworkId) => api.get(withApi(`/student-submission/homework/${homeworkId}/files`)),
+    downloadFile: (fileId) => api.get(withApi(`/student-submission/files/${fileId}/download`)),
+    deleteFile: (fileId) => api.delete(withApi(`/student-submission/files/${fileId}`)),
+    updateSubmission: (homeworkId, formData) => api.put(withApi(`/student-submission/homework/${homeworkId}/submission`), formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     }),
-    deleteSubmission: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/submission`),
+    deleteSubmission: (homeworkId) => api.delete(withApi(`/student-submission/homework/${homeworkId}/submission`)),
     selectPartner: (homeworkId, partnerId, notes) => {
       console.log('API selectPartner called with:', { homeworkId, partnerId, notes });
       console.log('URL will be:', `/student-submission/homework/${homeworkId}/partner`);
-      return api.post(`/student-submission/homework/${homeworkId}/partner`, { partner_id: partnerId, notes: notes || '' });
+      return api.post(withApi(`/student-submission/homework/${homeworkId}/partner`), { partner_id: partnerId, notes: notes || '' });
     },
-    removePartner: (homeworkId) => api.delete(`/student-submission/homework/${homeworkId}/partner`),
+    removePartner: (homeworkId) => api.delete(withApi(`/student-submission/homework/${homeworkId}/partner`)),
     verifyGrade: (homeworkId, claimedGrade, screenshotFile) => {
       const formData = new FormData();
       formData.append('homeworkId', homeworkId);
       formData.append('claimedGrade', claimedGrade);
       formData.append('screenshot', screenshotFile);
-      return api.post('/student-submission/verify-grade', formData, {
+      return api.post(withApi('/student-submission/verify-grade'), formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
     },
-    saveStudySession: (data) => api.post('/student-dashboard/study-timer/session', data)
+    saveStudySession: (data) => api.post(withApi('/student-dashboard/study-timer/session'), data)
   },
 
     // Student Homework endpoints
     studentHomework: {
-      getHomework: () => api.get('/student-homework'),
-      getLecturerHomework: () => api.get('/student-homework/lecturer/all'),
-      createHomework: (data) => api.post('/student-homework', data),
-      updateHomework: (id, data) => api.put(`/student-homework/${id}`, data),
-      startHomework: (homeworkId) => api.put(`/student-homework/${homeworkId}/start`),
-      completeHomework: (homeworkId, claimedGrade, isLate = false) => api.put(`/student-homework/${homeworkId}/complete`, { claimed_grade: claimedGrade, is_late: isLate }),
-      getVerifications: () => api.get('/student-homework/lecturer/verifications'),
-      verifyDeadline: (homeworkId, data) => api.put(`/student-homework/${homeworkId}/verify-deadline`, data),
-      deleteHomework: (homeworkId) => api.delete(`/student-homework/${homeworkId}`)
+      getHomework: () => api.get(withApi('/student-homework')),
+      getLecturerHomework: () => api.get(withApi('/student-homework/lecturer/all')),
+      createHomework: (data) => api.post(withApi('/student-homework'), data),
+      updateHomework: (id, data) => api.put(withApi(`/student-homework/${id}`), data),
+      startHomework: (homeworkId) => api.put(withApi(`/student-homework/${homeworkId}/start`)),
+      completeHomework: (homeworkId, claimedGrade, isLate = false) => api.put(withApi(`/student-homework/${homeworkId}/complete`), { claimed_grade: claimedGrade, is_late: isLate }),
+      getVerifications: () => api.get(withApi('/student-homework/lecturer/verifications')),
+      verifyDeadline: (homeworkId, data) => api.put(withApi(`/student-homework/${homeworkId}/verify-deadline`), data),
+      deleteHomework: (homeworkId) => api.delete(withApi(`/student-homework/${homeworkId}`))
     },
 
   // Test data endpoints
   testData: {
-    getStatus: () => api.get('/test-data/status'),
-    createSample: () => api.post('/test-data/create-sample')
+    getStatus: () => api.get(withApi('/test-data/status')),
+    createSample: () => api.post(withApi('/test-data/create-sample'))
   },
   
   // Homework endpoints (to be implemented)
   homework: {
-    getAll: (params) => api.get('/homework', { params }),
-    getById: (id) => api.get(`/homework/${id}`),
-    create: (data) => api.post('/homework', data),
-    update: (id, data) => api.put(`/homework/${id}`, data),
-    delete: (id) => api.delete(`/homework/${id}`),
-    getByCourse: (courseId) => api.get(`/homework/course/${courseId}`),
-    getUpcoming: (days) => api.get(`/homework/upcoming?days=${days}`)
+    getAll: (params) => api.get(withApi('/homework'), { params }),
+    getById: (id) => api.get(withApi(`/homework/${id}`)),
+    create: (data) => api.post(withApi('/homework'), data),
+    update: (id, data) => api.put(withApi(`/homework/${id}`), data),
+    delete: (id) => api.delete(withApi(`/homework/${id}`)),
+    getByCourse: (courseId) => api.get(withApi(`/homework/course/${courseId}`)),
+    getUpcoming: (days) => api.get(withApi(`/homework/upcoming?days=${days}`))
   },
   
   // Grade endpoints (to be implemented)
   grades: {
-    getAll: (params) => api.get('/grades', { params }),
-    getById: (id) => api.get(`/grades/${id}`),
-    create: (data) => api.post('/grades', data),
-    update: (id, data) => api.put(`/grades/${id}`, data),
-    delete: (id) => api.delete(`/grades/${id}`),
-    getByStudent: (studentId) => api.get(`/grades/student/${studentId}`),
-    getByHomework: (homeworkId) => api.get(`/grades/homework/${homeworkId}`)
+    getAll: (params) => api.get(withApi('/grades'), { params }),
+    getById: (id) => api.get(withApi(`/grades/${id}`)),
+    create: (data) => api.post(withApi('/grades'), data),
+    update: (id, data) => api.put(withApi(`/grades/${id}`), data),
+    delete: (id) => api.delete(withApi(`/grades/${id}`)),
+    getByStudent: (studentId) => api.get(withApi(`/grades/student/${studentId}`)),
+    getByHomework: (homeworkId) => api.get(withApi(`/grades/homework/${homeworkId}`))
   },
   
   // Study Progress endpoints (to be implemented)
   studyProgress: {
-    getAll: (params) => api.get('/study-progress', { params }),
-    getById: (id) => api.get(`/study-progress/${id}`),
-    create: (data) => api.post('/study-progress', data),
-    update: (id, data) => api.put(`/study-progress/${id}`, data),
-    delete: (id) => api.delete(`/study-progress/${id}`),
-    getByStudent: (studentId) => api.get(`/study-progress/student/${studentId}`),
+    getAll: (params) => api.get(withApi('/study-progress'), { params }),
+    getById: (id) => api.get(withApi(`/study-progress/${id}`)),
+    create: (data) => api.post(withApi('/study-progress'), data),
+    update: (id, data) => api.put(withApi(`/study-progress/${id}`), data),
+    delete: (id) => api.delete(withApi(`/study-progress/${id}`)),
+    getByStudent: (studentId) => api.get(withApi(`/study-progress/student/${studentId}`)),
     getWeeklySummary: (studentId, weekStart) => 
-      api.get(`/study-progress/weekly/${studentId}?week=${weekStart}`),
+      api.get(withApi(`/study-progress/weekly/${studentId}?week=${weekStart}`)),
     getMonthlySummary: (studentId, year, month) => 
-      api.get(`/study-progress/monthly/${studentId}?year=${year}&month=${month}`)
+      api.get(withApi(`/study-progress/monthly/${studentId}?year=${year}&month=${month}`))
   },
   
   // File endpoints (to be implemented)
   files: {
-    upload: (formData) => api.post('/files/upload', formData, {
+    upload: (formData) => api.post(withApi('/files/upload'), formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
-    getById: (id) => api.get(`/files/${id}`),
-    download: (id) => api.get(`/files/${id}/download`, { responseType: 'blob' }),
-    delete: (id) => api.delete(`/files/${id}`),
-    getByHomework: (homeworkId) => api.get(`/files/homework/${homeworkId}`),
-    getByClass: (classId) => api.get(`/files/class/${classId}`)
+    getById: (id) => api.get(withApi(`/files/${id}`)),
+    download: (id) => api.get(withApi(`/files/${id}/download`), { responseType: 'blob' }),
+    delete: (id) => api.delete(withApi(`/files/${id}`)),
+    getByHomework: (homeworkId) => api.get(withApi(`/files/homework/${homeworkId}`)),
+    getByClass: (classId) => api.get(withApi(`/files/class/${classId}`))
   }
 };
 
