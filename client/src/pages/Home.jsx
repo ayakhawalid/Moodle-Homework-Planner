@@ -5,6 +5,12 @@ import { useUserSyncContext } from '../contexts/UserSyncContext'
 import FallingLeaves from '../Components/FallingLeaves'
 import '../styles/Home.css'
 
+// Import images properly
+import screenshot1 from '../assets/Screenshot (823).png'
+import screenshot2 from '../assets/Screenshot (824).png'
+import screenshot3 from '../assets/Screenshot (825).png'
+import arrowImage from '../assets/—Pngtree—hand drawn scribble curved arrow_21731770.png'
+
 function Home() {
   const navigate = useNavigate()
   const { isLoading, isAuthenticated, userRole } = useAuth()
@@ -13,9 +19,9 @@ function Home() {
   // Slideshow state
   const [currentSlide, setCurrentSlide] = useState(0)
   const screenshots = [
-    { src: '/src/assets/Screenshot (823).png', alt: 'Dashboard Overview' },
-    { src: '/src/assets/Screenshot (824).png', alt: 'Homework Management' },
-    { src: '/src/assets/Screenshot (825).png', alt: 'Progress Tracking' }
+    { src: screenshot1, alt: 'Dashboard Overview' },
+    { src: screenshot2, alt: 'Homework Management' },
+    { src: screenshot3, alt: 'Progress Tracking' }
   ]
 
   // Slideshow functions
@@ -103,7 +109,7 @@ function Home() {
           </button>
           
           <img 
-            src="/src/assets/—Pngtree—hand drawn scribble curved arrow_21731770.png" 
+            src={arrowImage} 
             alt="Pointing Arrow" 
             className="pointing-arrow"
           />
