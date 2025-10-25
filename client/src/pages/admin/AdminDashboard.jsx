@@ -60,10 +60,10 @@ const AdminDashboard = () => {
     try {
       console.log('Testing direct API call...');
       const token = await getAccessTokenSilently({
-        audience: 'http://localhost:5000',
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api',
         scope: 'read:users read:stats'
       });
-      const response = await fetch('http://localhost:5000/api/users/profile', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com/api'}/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -55,7 +55,7 @@ const UserManagement = () => {
     try {
       token = await getAccessTokenSilently({
         authorizationParams: {
-          audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000',
+          audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api',
           scope: 'openid profile email offline_access'
         },
         ignoreCache: true
@@ -86,7 +86,7 @@ const UserManagement = () => {
       setLoading(true);
       // Don't clear error - let fetchWithToken handle error state
 
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const base = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com/api';
       const url = `${base.replace(/\/$/, '')}/users?page=${pageNum}&limit=10`;
 
       // use fetchWithToken to avoid sending an expired token
@@ -140,7 +140,7 @@ const UserManagement = () => {
 
     try {
       setLoading(true);
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const base = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com/api';
       const url = `${base.replace(/\/$/, '')}/users/${selectedUser._id}/role`;
 
       console.log('Updating role for user:', selectedUser);
@@ -197,7 +197,7 @@ const UserManagement = () => {
     if (window.confirm(confirmMessage)) {
       try {
         setLoading(true);
-        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+        const base = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com/api';
         // Server expects DELETE /api/users/:id
         const url = `${base.replace(/\/$/, '')}/users/${userId}`;
 
@@ -222,7 +222,7 @@ const UserManagement = () => {
     try {
       console.log('Refreshing roles from Auth0 on page load...');
       
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const base = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com/api';
       const url = `${base.replace(/\/$/, '')}/users/refresh-roles`;
 
       const resp = await fetchWithToken(url, { method: 'POST' });

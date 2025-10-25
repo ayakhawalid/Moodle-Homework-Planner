@@ -11,7 +11,7 @@ export const useAuthToken = () => {
         try {
           const token = await getAccessTokenSilently({
             authorizationParams: {
-              audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'http://localhost:5000'
+              audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com/api'
             },
             // Use cached token normally; individual calls can set ignoreCache:true
             ignoreCache: false
