@@ -24,7 +24,13 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
       // First find the student's MongoDB ObjectId
       const student = await User.findOne({ auth0_id: userId });
       if (!student) {
-        return res.status(404).json({ error: 'Student not found' });
+        console.error('Student not found in database for auth0_id:', userId);
+        return res.status(500).json({ 
+          error: 'User profile not synced',
+          message: 'Your user profile is not yet synced with the database. Please try again in a moment.',
+          auth0_id: userId,
+          role: userRole
+        });
       }
       
       // Get courses the student is enrolled in
@@ -35,7 +41,13 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
       // First find the lecturer's MongoDB ObjectId
       const lecturer = await User.findOne({ auth0_id: userId });
       if (!lecturer) {
-        return res.status(404).json({ error: 'Lecturer not found' });
+        console.error('Lecturer not found in database for auth0_id:', userId);
+        return res.status(500).json({ 
+          error: 'User profile not synced',
+          message: 'Your user profile is not yet synced with the database. Please try again in a moment.',
+          auth0_id: userId,
+          role: userRole
+        });
       }
       
       // Get courses the lecturer teaches
@@ -100,7 +112,13 @@ router.get('/:id', checkJwt, extractUser, async (req, res) => {
       // Find the student's MongoDB ObjectId
       const student = await User.findOne({ auth0_id: auth0UserId });
       if (!student) {
-        return res.status(404).json({ error: 'Student not found' });
+        console.error('Student not found in database for auth0_id:', auth0UserId);
+        return res.status(500).json({ 
+          error: 'User profile not synced',
+          message: 'Your user profile is not yet synced with the database. Please try again in a moment.',
+          auth0_id: auth0UserId,
+          role: userRole
+        });
       }
       
       const isEnrolled = homework.course_id.students.some(studentId => studentId.equals(student._id));
@@ -111,7 +129,13 @@ router.get('/:id', checkJwt, extractUser, async (req, res) => {
       // Find the lecturer's MongoDB ObjectId
       const lecturer = await User.findOne({ auth0_id: auth0UserId });
       if (!lecturer) {
-        return res.status(404).json({ error: 'Lecturer not found' });
+        console.error('Lecturer not found in database for auth0_id:', auth0UserId);
+        return res.status(500).json({ 
+          error: 'User profile not synced',
+          message: 'Your user profile is not yet synced with the database. Please try again in a moment.',
+          auth0_id: auth0UserId,
+          role: userRole
+        });
       }
       
       if (!homework.course_id.lecturer_id.equals(lecturer._id)) {
