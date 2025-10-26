@@ -56,45 +56,79 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration
+// CORS configuration - Prevents CORS errors
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+    if (!origin) {
+      console.log('✅ CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
     
+    // Build list of allowed origins
     const allowedOrigins = [
+      // Local development
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:3000',
       'http://localhost:3001',
-      'https://moodle-homework-planner.vercel.app', // Vercel production URL
-      'https://*.vercel.app', // Any Vercel preview deployment
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
+      
+      // Vercel production (exact match)
+      'https://moodle-homework-planner.vercel.app',
+      
+      // Environment variables (can be set for custom domains)
       process.env.CLIENT_URL,
-      process.env.PRODUCTION_CLIENT_URL
+      process.env.PRODUCTION_CLIENT_URL,
+      process.env.FRONTEND_URL
     ].filter(Boolean);
     
-    // Check exact match
+    // Check if origin matches exactly
     if (allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS: Allowed origin: ${origin}`);
       return callback(null, true);
     }
     
-    // Check if origin is a Vercel deployment (preview or production)
-    if (origin && origin.includes('.vercel.app')) {
+    // Check if it's a Vercel deployment (any *.vercel.app URL)
+    if (origin && origin.match(/^https:\/\/.*\.vercel\.app$/)) {
+      console.log(`✅ CORS: Allowed Vercel deployment: ${origin}`);
       return callback(null, true);
     }
     
-    // For development, allow any localhost origin
+    // For development mode, allow localhost from any port
     if (process.env.NODE_ENV === 'development' && origin.includes('localhost')) {
+      console.log(`✅ CORS: Allowed localhost origin (dev mode): ${origin}`);
       return callback(null, true);
     }
     
-    // For production, be more strict but allow if it's in our allowed list
-    console.log(`CORS: Origin "${origin}" not in allowed list`);
-    return callback(null, true); // Allow for now to avoid blocking
+    // Log rejected origins for debugging
+    console.warn(`⚠️  CORS: Rejected origin: ${origin}`);
+    console.log('Allowed origins:', allowedOrigins);
+    
+    // In production, reject unknown origins
+    if (process.env.NODE_ENV === 'production') {
+      const error = new Error(`Origin ${origin} not allowed by CORS policy`);
+      console.error('CORS Error:', error.message);
+      return callback(error, false);
+    }
+    
+    // In development, allow everything to avoid blocking during testing
+    console.log(`⚠️  CORS: Allowing origin in dev mode: ${origin}`);
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin',
+    'Access-Control-Allow-Headers'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // Cache preflight response for 24 hours
 }));
 
 // Add CORS preflight handling

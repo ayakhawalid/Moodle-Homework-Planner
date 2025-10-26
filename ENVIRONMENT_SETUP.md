@@ -75,6 +75,11 @@ VITE_AUTH0_REDIRECT_URI=https://your-frontend-domain.com/callback
    - Allowed Logout URLs
    - Allowed Web Origins
    - Allowed Origins (CORS)
+5. **CORS Configuration:** The backend automatically allows:
+   - All localhost URLs (development)
+   - All Vercel deployments (*.vercel.app)
+   - URLs set via `CLIENT_URL` or `PRODUCTION_CLIENT_URL` environment variables
+   - See `CORS_CONFIGURATION.md` for details
 
 ## Deployment Checklist
 
