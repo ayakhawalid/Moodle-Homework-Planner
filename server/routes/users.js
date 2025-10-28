@@ -188,15 +188,29 @@ router.put('/profile', checkJwt, async (req, res) => {
 router.get('/profile', checkJwt, extractUser, async (req, res) => {
   try {
     const auth0_id = req.auth.sub;
+    console.log('[GET /profile] Fetching profile for auth0_id:', auth0_id);
+    
     const user = await User.findOne({ auth0_id });
 
     if (!user) {
+      console.log('[GET /profile] User not found for auth0_id:', auth0_id);
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    res.json(user);
+    // Convert to plain object and ensure all fields are included
+    const userObject = user.toObject ? user.toObject() : user;
+    
+    console.log('[GET /profile] User found:', {
+      _id: userObject._id,
+      email: userObject.email,
+      role: userObject.role,
+      auth0_id: userObject.auth0_id,
+      name: userObject.name
+    });
+
+    res.json(userObject);
   } catch (error) {
-    console.error('Error getting user profile:', error);
+    console.error('[GET /profile] Error getting user profile:', error);
     res.status(500).json({ error: 'Failed to get user profile' });
   }
 });
