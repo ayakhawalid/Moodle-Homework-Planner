@@ -13,9 +13,14 @@ export const useApi = () => {
     if (isAuthenticated) {
       const getToken = async () => {
         try {
+          // Auth0 identifier does NOT include /api
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+          const baseUrlWithoutApi = apiBaseUrl.replace(/\/api$/, '');
+          const audience = import.meta.env.VITE_AUTH0_AUDIENCE || baseUrlWithoutApi;
+          
           return await getAccessTokenSilently({
             authorizationParams: {
-              audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+              audience: audience,
             },
           });
         } catch (error) {

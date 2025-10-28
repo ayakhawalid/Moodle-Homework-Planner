@@ -26,8 +26,13 @@ const AuthDebugPanel = () => {
 
   const getToken = async () => {
     try {
+      // Auth0 identifier does NOT include /api
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const baseUrlWithoutApi = apiBaseUrl.replace(/\/api$/, '');
+      const audience = import.meta.env.VITE_AUTH0_AUDIENCE || baseUrlWithoutApi;
+      
       const accessToken = await getAccessTokenSilently({
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com',
+        audience: audience,
         scope: 'read:users read:stats'
       });
       setToken(accessToken);
@@ -38,8 +43,13 @@ const AuthDebugPanel = () => {
 
   const testProfileEndpoint = async () => {
     try {
+      // Auth0 identifier does NOT include /api
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const baseUrlWithoutApi = apiBaseUrl.replace(/\/api$/, '');
+      const audience = import.meta.env.VITE_AUTH0_AUDIENCE || baseUrlWithoutApi;
+      
       const token = await getAccessTokenSilently({
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com',
+        audience: audience,
         scope: 'read:users read:stats'
       });
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com'}/api/users/profile`, {

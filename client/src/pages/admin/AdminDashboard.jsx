@@ -23,7 +23,7 @@ import StatCard from '../../Components/charts/StatCard';
 import PermissionError from '../../Components/PermissionError';
 
 const AdminDashboard = () => {
-  const { user, isAdmin, refreshUser } = useUserSyncContext();
+  const { user, isAdmin, refreshUser, syncStatus, error: syncError } = useUserSyncContext();
   const { getAccessTokenSilently } = useAuth0();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -36,8 +36,21 @@ const AdminDashboard = () => {
   const [isRealAdmin, setIsRealAdmin] = useState(false);
   const [roleRequests, setRoleRequests] = useState([]);
 
+  // Wait for sync to complete before checking access
   // Check if user has admin access (either real admin or debug mode)
-  const hasAdminAccess = isAdmin || debugMode;
+  const hasAdminAccess = (syncStatus === 'synced' && isAdmin) || debugMode;
+  const isStillSyncing = syncStatus === 'syncing' || syncStatus === 'idle';
+
+  // Log user data for debugging
+  useEffect(() => {
+    console.log('AdminDashboard - User sync status:', syncStatus);
+    console.log('AdminDashboard - User data:', user);
+    console.log('AdminDashboard - Is Admin:', isAdmin);
+    console.log('AdminDashboard - Has Admin Access:', hasAdminAccess);
+    if (syncError) {
+      console.error('AdminDashboard - Sync error:', syncError);
+    }
+  }, [user, syncStatus, isAdmin, hasAdminAccess, syncError]);
 
   useEffect(() => {
     if (hasAdminAccess) {
@@ -59,8 +72,13 @@ const AdminDashboard = () => {
   const testDirectAPI = async () => {
     try {
       console.log('Testing direct API call...');
+      // Auth0 identifier does NOT include /api
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const baseUrlWithoutApi = apiBaseUrl.replace(/\/api$/, '');
+      const audience = import.meta.env.VITE_AUTH0_AUDIENCE || baseUrlWithoutApi;
+      
       const token = await getAccessTokenSilently({
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com',
+        audience: audience,
         scope: 'read:users read:stats'
       });
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com'}/api/users/profile`, {
@@ -131,6 +149,21 @@ const AdminDashboard = () => {
     }
   };
 
+  // Show loading state while syncing
+  if (isStillSyncing) {
+    return (
+      <DashboardLayout userRole="admin">
+        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+          <CircularProgress sx={{ mb: 2 }} />
+          <Typography variant="body1">Syncing user profile...</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Please wait while we verify your permissions.
+          </Typography>
+        </Box>
+      </DashboardLayout>
+    );
+  }
+
   if (!hasAdminAccess) {
     return (
       <DashboardLayout userRole="admin">
@@ -153,14 +186,47 @@ const AdminDashboard = () => {
             </div>
             <div className="card-content">
               <Typography variant="body2" paragraph>
+                Sync Status: <strong>{syncStatus || 'unknown'}</strong>
+              </Typography>
+              <Typography variant="body2" paragraph>
                 Current user role: <strong>{user?.role || 'null'}</strong>
               </Typography>
               <Typography variant="body2" paragraph>
                 Is Admin: <strong>{isAdmin ? 'true' : 'false'}</strong>
               </Typography>
               <Typography variant="body2" paragraph>
-                Auth0 ID: <strong>{user?.auth0_id || 'N/A'}</strong>
+                Auth0 ID: <strong>{user?.auth0_id || user?.auth0User?.sub || 'N/A'}</strong>
               </Typography>
+              <Typography variant="body2" paragraph>
+                User Email: <strong>{user?.email || user?.auth0User?.email || 'N/A'}</strong>
+              </Typography>
+              {syncError && (
+                <Typography variant="body2" paragraph color="error">
+                  Sync Error: <strong>{syncError.message || JSON.stringify(syncError)}</strong>
+                </Typography>
+              )}
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
+                <Typography variant="body2" paragraph sx={{ mb: 1 }}>
+                  <strong>Full User Object:</strong>
+                </Typography>
+                <Box
+                  component="pre"
+                  sx={{
+                    fontSize: '0.75rem',
+                    overflow: 'auto',
+                    maxHeight: '200px',
+                    m: 0,
+                    p: 1,
+                    bgcolor: 'rgba(0,0,0,0.02)',
+                    borderRadius: 0.5,
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {JSON.stringify(user, null, 2)}
+                </Box>
+              </Box>
 
               <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
                 <Button

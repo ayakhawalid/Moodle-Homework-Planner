@@ -9,9 +9,15 @@ export const useAuthToken = () => {
     setTokenProvider(async () => {
       if (isAuthenticated) {
         try {
+          // Determine the correct audience - Auth0 identifier does NOT include /api
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+          // Remove /api if present since Auth0 identifier is just the base URL
+          const baseUrlWithoutApi = apiBaseUrl.replace(/\/api$/, '');
+          const audience = import.meta.env.VITE_AUTH0_AUDIENCE || baseUrlWithoutApi;
+          
           const token = await getAccessTokenSilently({
             authorizationParams: {
-              audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com'
+              audience: audience
             },
             // Use cached token normally; individual calls can set ignoreCache:true
             ignoreCache: false

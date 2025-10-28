@@ -20,8 +20,15 @@ export const UserSyncProvider = ({ children }) => {
       console.log('UserSyncContext - Token provider called, isAuthenticated:', isAuthenticated);
       if (isAuthenticated) {
         try {
+          // Determine the correct audience - Auth0 identifier does NOT include /api
+          const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+          // Remove /api if present since Auth0 identifier is just the base URL
+          const baseUrlWithoutApi = apiBaseUrl.replace(/\/api$/, '');
+          const audience = import.meta.env.VITE_AUTH0_AUDIENCE || baseUrlWithoutApi;
+          
+          console.log('UserSyncContext - Requesting token with audience:', audience);
           const token = await getAccessTokenSilently({
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE || 'https://moodle-homework-planner.onrender.com',
+            audience: audience,
             scope: 'read:users read:stats'
           });
           console.log('UserSyncContext - Token retrieved successfully:', !!token);
@@ -90,12 +97,17 @@ export const UserSyncProvider = ({ children }) => {
         console.log('Created and retrieved new user profile:', freshUser);
       }
 
+      // Log the full user object to debug role issues
+      console.log('User synced successfully:', freshUser);
+      console.log('User role from API:', freshUser?.role);
+      console.log('Full user object from API:', JSON.stringify(freshUser, null, 2));
+      
       setUser({
         ...freshUser,
         auth0User: auth0User
       });
       setSyncStatus('synced');
-      console.log('User synced successfully:', freshUser);
+      console.log('User state set with role:', freshUser?.role);
     } catch (error) {
       console.error('Failed to sync user profile after retries:', error);
       
@@ -158,14 +170,31 @@ export const UserSyncProvider = ({ children }) => {
     }
   };
 
+  // Compute role-based flags - these need to be recomputed when user changes
+  const isAdmin = user?.role === 'admin';
+  const isLecturer = user?.role === 'lecturer';
+  const isStudent = user?.role === 'student';
+  
+  // Log role computation for debugging
+  useEffect(() => {
+    console.log('[UserSyncContext] Role computation:', {
+      userRole: user?.role,
+      isAdmin,
+      isLecturer,
+      isStudent,
+      hasUser: !!user,
+      syncStatus
+    });
+  }, [user, isAdmin, isLecturer, isStudent, syncStatus]);
+
   const value = {
     user,
     syncStatus,
     error,
     isAuthenticated,
-    isAdmin: user?.role === 'admin',
-    isLecturer: user?.role === 'lecturer',
-    isStudent: user?.role === 'student',
+    isAdmin,
+    isLecturer,
+    isStudent,
     hasRole: (role) => user?.role === role,
     hasAnyRole: (roles) => roles.includes(user?.role),
     refreshUser,
