@@ -20,11 +20,23 @@ const logo = '/favicon.svg';
 import '../styles/Login.css';
 
 const Auth0Login = () => {
-  const { loginWithRedirect, isLoading, error, isAuthenticated } = useAuth0();
+  const { loginWithRedirect, isLoading, error, isAuthenticated, user } = useAuth0();
   const { redirectToDashboard, userRole } = useAuth();
   const { syncStatus } = useUserSyncContext();
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Auth0Login - Auth State:', { 
+      isAuthenticated, 
+      isLoading, 
+      hasUser: !!user,
+      userEmail: user?.email,
+      syncStatus,
+      userRole
+    });
+  }, [isAuthenticated, isLoading, user, syncStatus, userRole]);
 
   const [selectedRole, setSelectedRole] = useState('student');
   const [username, setUsername] = useState('');
@@ -130,9 +142,25 @@ const Auth0Login = () => {
     );
   }
 
+  // Clear stale localStorage if Auth0 says not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      // Auth0 says not authenticated, but check if localStorage has stale data
+      const hasStaleToken = localStorage.getItem('token');
+      if (hasStaleToken) {
+        console.log('Clearing stale authentication data from localStorage');
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user_synced');
+      }
+    }
+  }, [isLoading, isAuthenticated]);
+
   // Redirect authenticated users to dashboard
   useEffect(() => {
-    if (isAuthenticated && !isLoading) {
+    // Only proceed if Auth0 confirms user is authenticated, has user object, AND not loading
+    if (isAuthenticated && user && !isLoading) {
       // Wait for user sync to complete, then redirect
       if (syncStatus === 'synced' && userRole) {
         console.log('User already authenticated, redirecting to dashboard...');
@@ -163,9 +191,11 @@ const Auth0Login = () => {
       }
       // If syncing, wait - the useEffect will trigger again when syncStatus changes
     }
-  }, [isAuthenticated, isLoading, syncStatus, userRole, redirectToDashboard, navigate]);
+  }, [isAuthenticated, isLoading, user, syncStatus, userRole, redirectToDashboard, navigate]);
 
-  if (isAuthenticated && !isLoading) {
+  // Only show "already logged in" if Auth0 confirms user exists AND not loading
+  // Require both isAuthenticated AND user object to prevent false positives
+  if (isAuthenticated && user && !isLoading) {
     return (
       <div className="login-container">
         <Box 
