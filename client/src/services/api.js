@@ -2,9 +2,10 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 // Note: The baseURL should be the Render backend URL without /api if Render serves at root
+// Increased timeout to handle Render free tier cold starts (can take 30-60 seconds)
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com',
-  timeout: 10000, // 10 seconds for most requests
+  timeout: 60000, // 60 seconds - handles Render cold starts on all pages
   headers: {
     'Content-Type': 'application/json',
   },
