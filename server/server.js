@@ -32,6 +32,10 @@ const testDataRoutes = require('./routes/testData');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy - Required when running behind a reverse proxy (like Render)
+// This allows Express to correctly identify client IPs from X-Forwarded-For header
+app.set('trust proxy', true);
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://aia-user1:aia@cluster0.y9gor0a.mongodb.net/plannerDB', {
   useNewUrlParser: true,
@@ -48,11 +52,18 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://aia-user1:aia@cluster
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - Configured for proxy environments (Render, Heroku, etc.)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // keyGenerator uses req.ip, which works correctly with 'trust proxy' setting
+  keyGenerator: (req) => {
+    // req.ip is now correctly set from X-Forwarded-For header due to trust proxy
+    return req.ip || req.connection.remoteAddress;
+  }
 });
 app.use('/api/', limiter);
 
