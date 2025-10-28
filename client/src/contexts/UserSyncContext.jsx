@@ -36,6 +36,26 @@ export const UserSyncProvider = ({ children }) => {
     });
   }, [isAuthenticated, getAccessTokenSilently]);
 
+  // Helper function to retry API calls with exponential backoff
+  const retryWithBackoff = async (apiCall, maxRetries = 2, delay = 2000) => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await apiCall();
+      } catch (error) {
+        const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+        const isLastAttempt = attempt === maxRetries;
+        
+        if (isLastAttempt || !isTimeout) {
+          throw error;
+        }
+        
+        console.log(`Sync attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      }
+    }
+  };
+
   // Sync user profile with backend
   const syncUserProfile = async () => {
     if (!isAuthenticated || !auth0User) {
@@ -48,13 +68,14 @@ export const UserSyncProvider = ({ children }) => {
     setError(null);
 
     try {
-      // First, try to get existing user profile
+      // First, try to get existing user profile with retry
       let freshUser;
       try {
-        freshUser = await apiService.user.getProfile();
+        freshUser = await retryWithBackoff(() => apiService.user.getProfile());
       } catch (profileError) {
+        console.log('Profile fetch failed, attempting to create profile...');
 
-        // If profile doesn't exist, sync/create it first
+        // If profile doesn't exist, sync/create it first with retry
         const userData = {
           email: auth0User.email,
           name: auth0User.name,
@@ -62,10 +83,10 @@ export const UserSyncProvider = ({ children }) => {
           email_verified: auth0User.email_verified
         };
 
-        await apiService.user.syncProfile(userData);
+        await retryWithBackoff(() => apiService.user.syncProfile(userData));
 
-        // Then get the fresh user data
-        freshUser = await apiService.user.getProfile();
+        // Then get the fresh user data with retry
+        freshUser = await retryWithBackoff(() => apiService.user.getProfile());
         console.log('Created and retrieved new user profile:', freshUser);
       }
 
@@ -76,8 +97,22 @@ export const UserSyncProvider = ({ children }) => {
       setSyncStatus('synced');
       console.log('User synced successfully:', freshUser);
     } catch (error) {
-      console.error('Failed to sync user profile:', error);
-      setError(error);
+      console.error('Failed to sync user profile after retries:', error);
+      
+      // Check if it's a timeout error
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        console.error('User sync timed out after all retries - backend may be too slow or unresponsive');
+        setError({
+          ...error,
+          isTimeout: true,
+          message: 'Connection timeout - the server is taking too long to respond. This may happen on first request after inactivity. The request will retry automatically.'
+        });
+        // Don't set status to error immediately - allow user to retry
+        // The UI can show a retry button
+      } else {
+        setError(error);
+      }
+      
       setSyncStatus('error');
     }
   };
@@ -96,14 +131,29 @@ export const UserSyncProvider = ({ children }) => {
   const refreshUser = async () => {
     if (isAuthenticated && auth0User) {
       try {
-        const refreshedUser = await apiService.user.getProfile();
+        const refreshedUser = await retryWithBackoff(() => apiService.user.getProfile());
         setUser({
           ...refreshedUser,
           auth0User: auth0User
         });
+        setSyncStatus('synced');
+        setError(null);
         console.log('User refreshed successfully:', refreshedUser);
       } catch (error) {
-        console.error('Failed to refresh user:', error);
+        console.error('Failed to refresh user after retries:', error);
+        
+        // Check if it's a timeout error
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          console.error('User refresh timed out - backend may be slow or unresponsive');
+          setError({
+            ...error,
+            isTimeout: true,
+            message: 'Connection timeout - the server is taking too long to respond. Please try again.'
+          });
+        } else {
+          setError(error);
+        }
+        setSyncStatus('error');
       }
     }
   };
