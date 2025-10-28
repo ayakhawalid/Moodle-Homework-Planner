@@ -34,21 +34,41 @@ function StudentDashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const response = await apiService.studentDashboard.getOverview();
-        setDashboardData(response.data);
         setError(null);
         
+        // Performance logging
+        const startTime = performance.now();
+        console.log('🔄 Fetching student dashboard data...');
+        
+        const response = await apiService.studentDashboard.getOverview();
+        
+        const endTime = performance.now();
+        const loadTime = (endTime - startTime) / 1000;
+        console.log(`✅ Dashboard loaded in ${loadTime.toFixed(2)} seconds`);
+        
+        // Show warning if load time is high
+        if (loadTime > 5) {
+          console.warn(`⚠️ Dashboard load time is ${loadTime.toFixed(2)}s - consider backend optimization`);
+        }
+        
+        setDashboardData(response.data);
+        
         // Debug logging for dashboard data
-        console.log('=== STUDENT DASHBOARD DATA DEBUG ===');
-        console.log('Dashboard data received:', response.data);
-        console.log('Homework data:', response.data.homework);
-        console.log('Pending tasks (upcoming):', response.data.homework?.upcoming);
-        console.log('Completed homework:', response.data.homework?.completed);
-        console.log('Total homework:', response.data.homework?.total);
-        console.log('=== END STUDENT DASHBOARD DATA DEBUG ===');
+        console.log('Dashboard data received:', {
+          homework: response.data.homework,
+          courses: response.data.courses?.length || 0
+        });
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data');
+        const errorTime = performance.now();
+        console.error('❌ Error fetching dashboard data:', err);
+        console.error('Error occurred after:', (errorTime - performance.timing.fetchStart) / 1000, 'seconds');
+        
+        // Show user-friendly error
+        if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+          setError('Request timed out. The server may be slow. Please try refreshing the page.');
+        } else {
+          setError(err.userMessage || err.message || 'Failed to load dashboard data');
+        }
       } finally {
         setLoading(false);
       }
