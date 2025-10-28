@@ -13,12 +13,16 @@ import {
   TextField
 } from '@mui/material';
 import { Login as LoginIcon, School as StudentIcon, MenuBook as LecturerIcon } from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
+import { useUserSyncContext } from '../contexts/UserSyncContext';
 // Using favicon as logo
 const logo = '/favicon.svg';
 import '../styles/Login.css';
 
 const Auth0Login = () => {
   const { loginWithRedirect, isLoading, error, isAuthenticated } = useAuth0();
+  const { redirectToDashboard, userRole } = useAuth();
+  const { syncStatus } = useUserSyncContext();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -126,7 +130,42 @@ const Auth0Login = () => {
     );
   }
 
-  if (isAuthenticated) {
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      // Wait for user sync to complete, then redirect
+      if (syncStatus === 'synced' && userRole) {
+        console.log('User already authenticated, redirecting to dashboard...');
+        redirectToDashboard();
+      } else if (syncStatus === 'error') {
+        // If sync failed, still try to redirect (might have partial data)
+        console.warn('User sync failed, attempting redirect anyway...');
+        setTimeout(() => {
+          if (userRole) {
+            redirectToDashboard();
+          } else {
+            // No role assigned, redirect to role pending
+            navigate('/role-pending');
+          }
+        }, 1000);
+      } else if (syncStatus === 'syncing') {
+        // Set a timeout fallback (5 seconds) in case sync hangs
+        const timeoutId = setTimeout(() => {
+          console.warn('User sync taking too long, redirecting anyway...');
+          if (userRole) {
+            redirectToDashboard();
+          } else {
+            navigate('/role-pending');
+          }
+        }, 5000);
+        
+        return () => clearTimeout(timeoutId);
+      }
+      // If syncing, wait - the useEffect will trigger again when syncStatus changes
+    }
+  }, [isAuthenticated, isLoading, syncStatus, userRole, redirectToDashboard, navigate]);
+
+  if (isAuthenticated && !isLoading) {
     return (
       <div className="login-container">
         <Box 
@@ -134,9 +173,17 @@ const Auth0Login = () => {
           flexDirection="column" 
           alignItems="center" 
           justifyContent="center"
+          gap={2}
           minHeight="100vh"
         >
-          <Typography variant="h6">You are already logged in. Redirecting...</Typography>
+          <CircularProgress />
+          <Typography variant="h6">
+            {syncStatus === 'syncing' 
+              ? 'Syncing your profile...' 
+              : syncStatus === 'error'
+              ? 'Redirecting...'
+              : 'You are already logged in. Redirecting...'}
+          </Typography>
         </Box>
       </div>
     );
