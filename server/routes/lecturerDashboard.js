@@ -23,42 +23,70 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
     
     const lecturerId = user._id;
     
-    // Get lecturer's courses
+    // Performance optimization: Get courses first (needed for courseIds)
     const courses = await Course.find({ lecturer_id: lecturerId, is_active: true })
       .populate('students', 'name email full_name')
       .populate('homework')
       .populate('classes')
-      .populate('exams');
+      .populate('exams')
+      .lean(); // Use lean() for better performance
     
     // Get homework statistics from BOTH tables
     const courseIds = courses.map(course => course._id);
     
-    // Query traditional homework
-    const traditionalHomework = await Homework.find({ 
-      course_id: { $in: courseIds }, 
-      is_active: true 
-    }).populate('course_id', 'course_name course_code');
+    // Performance optimization: Parallelize all queries
+    const now = new Date();
+    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     
-    // Query student homework
-    const studentHomework = await StudentHomework.find({
-      course_id: { $in: courseIds }
-    }).populate('course_id', 'course_name course_code')
-      .populate('uploaded_by', 'name email');
+    const [
+      traditionalHomework,
+      studentHomework,
+      recentTraditional,
+      recentStudentCreated
+    ] = await Promise.all([
+      // Traditional homework query
+      Homework.find({ 
+        course_id: { $in: courseIds }, 
+        is_active: true 
+      })
+      .populate('course_id', 'course_name course_code')
+      .lean(),
+      
+      // Student homework query
+      StudentHomework.find({
+        course_id: { $in: courseIds }
+      })
+      .populate('course_id', 'course_name course_code')
+      .populate('uploaded_by', 'name email')
+      .lean(),
+      
+      // Recent traditional homework activity
+      Homework.find({ course_id: { $in: courseIds } })
+        .populate('course_id', 'course_name')
+        .sort({ updatedAt: -1 })
+        .limit(10)
+        .lean(),
+      
+      // Recent student-created homework activity
+      StudentHomework.find({ course_id: { $in: courseIds } })
+        .populate('course_id', 'course_name')
+        .populate('uploaded_by', 'name email')
+        .sort({ updatedAt: -1 })
+        .limit(10)
+        .lean()
+    ]);
     
     // Combine both types
     const allHomework = [...traditionalHomework, ...studentHomework];
     const allHomeworkIds = allHomework.map(hw => hw._id);
     
     // Calculate statistics
-    const totalStudents = courses.reduce((sum, course) => sum + course.students.length, 0);
+    const totalStudents = courses.reduce((sum, course) => sum + (course.students?.length || 0), 0);
     const totalHomework = allHomework.length;
-    const totalClasses = courses.reduce((sum, course) => sum + course.classes.length, 0);
-    const totalExams = courses.reduce((sum, course) => sum + course.exams.length, 0);
+    const totalClasses = courses.reduce((sum, course) => sum + (course.classes?.length || 0), 0);
+    const totalExams = courses.reduce((sum, course) => sum + (course.exams?.length || 0), 0);
     
     // Calculate upcoming deadlines (next 7 days)
-    const now = new Date();
-    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
     const upcomingDeadlines = allHomework.filter(hw => {
       const deadline = hw.due_date || hw.claimed_deadline;
       return deadline && deadline >= now && deadline <= nextWeek;
@@ -69,20 +97,6 @@ router.get('/overview', checkJwt, extractUser, requireLecturer, async (req, res)
       const deadline = hw.due_date || hw.claimed_deadline;
       return deadline && deadline < now;
     }).length;
-    
-    // Build recent activity (last updates across homework and grades)
-    const recentTraditional = await Homework.find({ course_id: { $in: courseIds } })
-      .populate('course_id', 'course_name')
-      .sort({ updatedAt: -1 })
-      .limit(10)
-      .lean();
-
-    const recentStudentCreated = await StudentHomework.find({ course_id: { $in: courseIds } })
-      .populate('course_id', 'course_name')
-      .populate('uploaded_by', 'name email')
-      .sort({ updatedAt: -1 })
-      .limit(10)
-      .lean();
 
     const recent_activity = [
       ...recentTraditional.map(hw => ({

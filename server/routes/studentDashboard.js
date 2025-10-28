@@ -30,7 +30,7 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     console.log('Student ID toString:', studentId.toString());
     console.log('=== END USER LOOKUP DEBUG ===');
     
-    // Get student's enrolled courses
+    // Performance optimization: Get student's enrolled courses first (needed for courseIds)
     const courses = await Course.find({ 
       students: studentId, 
       is_active: true 
@@ -38,36 +38,72 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
     .populate('lecturer_id', 'name email full_name')
     .populate('homework')
     .populate('classes')
-    .populate('exams');
+    .populate('exams')
+    .lean(); // Use lean() for better performance
     
     // Get homework from BOTH tables
     const courseIds = courses.map(course => course._id);
     console.log('Student enrolled in courses:', courseIds.map(id => id.toString()));
     
-    const traditionalHomework = await Homework.find({ 
-      course_id: { $in: courseIds }, 
-      is_active: true 
-    })
-    .populate('course_id', 'course_name course_code')
-    .sort({ due_date: 1 });
-    
-    const studentHomework = await StudentHomework.find({
-      course_id: { $in: courseIds },
-      $or: [
-        // Student's own homework
-        { uploaded_by: studentId },
-        // Lecturer-created homework
-        { uploader_role: 'lecturer' },
-        // Other students' homework (both verified and unverified)
-        { 
-          uploader_role: 'student',
-          uploaded_by: { $ne: studentId }
-        }
-      ]
-    })
-    .populate('course_id', 'course_name course_code')
-    .populate('uploaded_by', 'name email')
-    .sort({ claimed_deadline: 1 });
+    // Performance optimization: Parallelize all queries that don't depend on each other
+    const [
+      traditionalHomework,
+      studentHomework,
+      grades,
+      exams,
+      studyProgress
+    ] = await Promise.all([
+      // Traditional homework query
+      Homework.find({ 
+        course_id: { $in: courseIds }, 
+        is_active: true 
+      })
+      .populate('course_id', 'course_name course_code')
+      .sort({ due_date: 1 })
+      .lean(),
+      
+      // Student homework query (no .lean() because we use .equals() later)
+      StudentHomework.find({
+        course_id: { $in: courseIds },
+        $or: [
+          { uploaded_by: studentId },
+          { uploader_role: 'lecturer' },
+          { 
+            uploader_role: 'student',
+            uploaded_by: { $ne: studentId }
+          }
+        ]
+      })
+      .populate('course_id', 'course_name course_code')
+      .populate('uploaded_by', 'name email')
+      .sort({ claimed_deadline: 1 }),
+      
+      // Grades query
+      Grade.find({ student_id: studentId })
+        .populate('exam_id', 'exam_title due_date points_possible')
+        .select('homework_id exam_id completion_status grade homework_type graded_at')
+        .lean(),
+      
+      // Exams query
+      Exam.find({ 
+        course_id: { $in: courseIds }, 
+        is_active: true 
+      })
+      .populate('course_id', 'course_name course_code')
+      .sort({ due_date: 1 })
+      .lean(),
+      
+      // Study progress query
+      (async () => {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+        return StudyProgress.find({ 
+          student_id: studentId,
+          date: { $gte: startDate, $lte: endDate }
+        }).lean();
+      })()
+    ]);
     
     // Convert traditional homework to consistent format
     const convertedTraditionalHomework = traditionalHomework.map(hw => ({
@@ -123,49 +159,17 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
       verified_other_homework: studentHomework.filter(hw => hw.uploader_role === 'student' && !hw.uploaded_by.equals(studentId) && hw.deadline_verification_status === 'verified').length
     });
     
-    // Get student's grades
+    // Grades, exams, and study progress are now fetched in parallel above
+    // (Already included in Promise.all for better performance)
     console.log('=== GRADE QUERY DEBUG ===');
-    console.log('Querying grades for student_id:', studentId);
-    console.log('Student ID type:', typeof studentId);
-    console.log('Student ID toString:', studentId.toString());
-    
-    // Let's also check if there are ANY grades in the database
-    const allGrades = await Grade.find({}).limit(5);
-    console.log('Sample grades in database:', allGrades.map(g => ({
-      _id: g._id,
-      student_id: g.student_id,
-      homework_id: g.homework_id,
-      homework_type: g.homework_type
-    })));
-    
-    const grades = await Grade.find({ student_id: studentId })
-      .populate('exam_id', 'exam_title due_date points_possible')
-      .select('homework_id exam_id completion_status grade homework_type graded_at');
     console.log('Grade query result count:', grades.length);
     console.log('=== END GRADE QUERY DEBUG ===');
     
-    // Get exams for enrolled courses
-    const exams = await Exam.find({ 
-      course_id: { $in: courseIds }, 
-      is_active: true 
-    })
-    .populate('course_id', 'course_name course_code')
-    .sort({ due_date: 1 });
-
-    // Get study progress for the last 7 days
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7);
-    
-    const studyProgress = await StudyProgress.find({ 
-      student_id: studentId,
-      date: { $gte: startDate, $lte: endDate }
-    })
-    .sort({ date: 1 }); // Sort by date ascending for weekly chart
+    // Sort study progress by date for weekly chart
+    studyProgress.sort((a, b) => new Date(a.date) - new Date(b.date));
     
     console.log('=== DASHBOARD OVERVIEW STUDY PROGRESS DEBUG ===');
     console.log('Student ID:', studentId);
-    console.log('Date range:', startDate, 'to', endDate);
     console.log('Found study progress records:', studyProgress.length);
     console.log('Study progress data:', studyProgress);
     console.log('=== END DASHBOARD OVERVIEW STUDY PROGRESS DEBUG ===');

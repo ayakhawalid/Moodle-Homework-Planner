@@ -2,21 +2,19 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 // Note: The baseURL should be the Render backend URL without /api if Render serves at root
-// Increased timeout to handle Render free tier cold starts (can take 30-60 seconds)
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com',
-  timeout: 60000, // 60 seconds - handles Render cold starts on all pages
+  timeout: 20000, // 20 seconds - reasonable timeout for most requests
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 // Create a separate axios instance with longer timeout for user sync operations
-// These operations may take longer, especially on cold starts (Render free tier)
-// Render free tier cold starts can take 30-60 seconds, so we use 60 seconds
+// These may need more time during initial load or cold starts
 const apiSync = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com',
-  timeout: 60000, // 60 seconds for sync operations (handles Render cold starts)
+  timeout: 30000, // 30 seconds for sync operations (first request might be slow)
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,14 +28,26 @@ export const setTokenProvider = (provider) => {
   tokenProvider = provider;
 };
 
+// Helper to add timeout to token provider
+const withTimeout = (promise, timeoutMs = 5000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Token retrieval timeout after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   async (config) => {
     console.log('API Request Interceptor - Token Provider:', !!tokenProvider);
+    console.log('API Request Config - Timeout:', config.timeout, 'URL:', config.baseURL + config.url);
     
     if (tokenProvider) {
       try {
-        const token = await tokenProvider();
+        // Add timeout to token retrieval so it doesn't hang forever
+        const token = await withTimeout(tokenProvider(), 5000);
         console.log('API Request Interceptor - Token retrieved:', !!token);
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -47,13 +57,14 @@ api.interceptors.request.use(
         }
       } catch (error) {
         console.error('Failed to get access token for request:', error);
-        // Optionally, you could cancel the request here
+        // Don't block the request, just log the error
+        // Some endpoints might work without auth
       }
     } else {
       console.warn('API Request Interceptor - No token provider set');
     }
 
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    console.log('API Request:', config.method?.toUpperCase(), config.url, 'Timeout:', config.timeout);
     return config;
   },
   (error) => {
@@ -71,7 +82,48 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status || 'No Status';
     const data = error.response?.data || error.message || 'No Data';
-    console.error('API Response Error:', status, data);
+    const url = error.config?.url || 'Unknown URL';
+    const baseURL = error.config?.baseURL || '';
+    const fullUrl = baseURL + url;
+    const timeout = error.config?.timeout || 'Unknown';
+    
+    // Enhanced error logging for diagnostics
+    console.error('API Response Error:', {
+      status,
+      message: error.message,
+      code: error.code,
+      url: fullUrl,
+      timeout: timeout,
+      responseData: data
+    });
+    
+    // Check for network errors (backend not reachable)
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      console.error('⏱️  TIMEOUT ERROR - Request took too long');
+      console.error('   URL:', fullUrl);
+      console.error('   Configured Timeout:', timeout + 'ms');
+      console.error('   Backend URL:', baseURL);
+      console.error('   This could mean:');
+      console.error('   1. Backend is not running');
+      console.error('   2. Backend URL is incorrect');
+      console.error('   3. Network connectivity issue');
+      console.error('   4. Backend is too slow (cold start)');
+      
+      // Add more helpful error message
+      error.userMessage = `Request to ${url} timed out after ${timeout}ms. Check if backend at ${baseURL} is running.`;
+    }
+    
+    // Check for network errors (no connection)
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
+      console.error('🌐 NETWORK ERROR - Cannot reach backend');
+      console.error('   URL:', fullUrl);
+      console.error('   Backend URL:', baseURL);
+      console.error('   Check:');
+      console.error('   1. Is backend running?');
+      console.error('   2. Is the URL correct?');
+      console.error('   3. CORS configuration?');
+      error.userMessage = `Cannot connect to backend at ${baseURL}. Is the server running?`;
+    }
     
     // Handle specific error cases
     if (error.response?.status === 401) {
@@ -87,9 +139,10 @@ api.interceptors.response.use(
 // Request interceptor for sync instance - same logic as api but with longer timeout
 apiSync.interceptors.request.use(
   async (config) => {
+    console.log('API Sync Request - Timeout:', config.timeout, 'URL:', config.baseURL + config.url);
     if (tokenProvider) {
       try {
-        const token = await tokenProvider();
+        const token = await withTimeout(tokenProvider(), 5000);
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -114,7 +167,28 @@ apiSync.interceptors.response.use(
   (error) => {
     const status = error.response?.status || 'No Status';
     const data = error.response?.data || error.message || 'No Data';
-    console.error('API Sync Response Error:', status, data);
+    const url = error.config?.url || 'Unknown URL';
+    const baseURL = error.config?.baseURL || '';
+    const fullUrl = baseURL + url;
+    const timeout = error.config?.timeout || 'Unknown';
+    
+    console.error('API Sync Response Error:', {
+      status,
+      message: error.message,
+      code: error.code,
+      url: fullUrl,
+      timeout: timeout,
+      responseData: data
+    });
+    
+    // Same diagnostic logging for sync errors
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      console.error('⏱️  SYNC TIMEOUT ERROR');
+      console.error('   URL:', fullUrl);
+      console.error('   Configured Timeout:', timeout + 'ms');
+      console.error('   Backend URL:', baseURL);
+      error.userMessage = `Sync request to ${url} timed out after ${timeout}ms. Check backend at ${baseURL}.`;
+    }
     
     if (error.response?.status === 401) {
       console.log('Unauthorized access - redirecting to login');
@@ -504,6 +578,67 @@ export const handleApiError = (error) => {
       status: -1,
       message: error.message || 'An unexpected error occurred',
       details: error
+    };
+  }
+};
+
+// Diagnostic function to test backend connectivity and check configuration
+export const testBackendConnection = async () => {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com';
+  const healthUrl = `${baseURL}/api/health`;
+  
+  console.log('🔍 Backend Connection Test');
+  console.log('Backend URL:', baseURL);
+  console.log('Health Check URL:', healthUrl);
+  console.log('API Instance Timeout:', api.defaults.timeout, 'ms');
+  console.log('API Sync Instance Timeout:', apiSync.defaults.timeout, 'ms');
+  
+  try {
+    // Test with simple fetch first (no axios)
+    console.log('Testing with fetch...');
+    const fetchStart = Date.now();
+    const fetchResponse = await fetch(healthUrl, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(10000) // 10s timeout for quick test
+    });
+    const fetchTime = Date.now() - fetchStart;
+    const fetchData = await fetchResponse.json();
+    
+    console.log('✅ Fetch test successful:', {
+      status: fetchResponse.status,
+      time: fetchTime + 'ms',
+      data: fetchData
+    });
+    
+    // Test with axios
+    console.log('Testing with axios...');
+    const axiosStart = Date.now();
+    const axiosResponse = await api.get('/api/health');
+    const axiosTime = Date.now() - axiosStart;
+    
+    console.log('✅ Axios test successful:', {
+      status: axiosResponse.status,
+      time: axiosTime + 'ms',
+      timeout: api.defaults.timeout,
+      data: axiosResponse.data
+    });
+    
+    return {
+      success: true,
+      backendUrl: baseURL,
+      fetchTime,
+      axiosTime,
+      axiosTimeout: api.defaults.timeout,
+      data: axiosResponse.data
+    };
+  } catch (error) {
+    console.error('❌ Backend connection test failed:', error);
+    return {
+      success: false,
+      backendUrl: baseURL,
+      error: error.message,
+      code: error.code,
+      axiosTimeout: api.defaults.timeout
     };
   }
 };
