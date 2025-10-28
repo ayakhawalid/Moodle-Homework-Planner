@@ -4,7 +4,18 @@ import axios from 'axios';
 // Note: The baseURL should be the Render backend URL without /api if Render serves at root
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com',
-  timeout: 10000,
+  timeout: 10000, // 10 seconds for most requests
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Create a separate axios instance with longer timeout for user sync operations
+// These operations may take longer, especially on cold starts (Render free tier)
+// Render free tier cold starts can take 30-60 seconds, so we use 60 seconds
+const apiSync = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com',
+  timeout: 60000, // 60 seconds for sync operations (handles Render cold starts)
   headers: {
     'Content-Type': 'application/json',
   },
@@ -72,6 +83,46 @@ api.interceptors.response.use(
   }
 );
 
+// Request interceptor for sync instance - same logic as api but with longer timeout
+apiSync.interceptors.request.use(
+  async (config) => {
+    if (tokenProvider) {
+      try {
+        const token = await tokenProvider();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Failed to get access token for sync request:', error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    console.error('API Sync Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for sync instance
+apiSync.interceptors.response.use(
+  (response) => {
+    console.log('API Sync Response:', response.status, response.config.url);
+    return response;
+  },
+  (error) => {
+    const status = error.response?.status || 'No Status';
+    const data = error.response?.data || error.message || 'No Data';
+    console.error('API Sync Response Error:', status, data);
+    
+    if (error.response?.status === 401) {
+      console.log('Unauthorized access - redirecting to login');
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 // Helper function to add /api prefix if not already present
 const withApi = (path) => {
   if (path.startsWith('/api/')) return path;
@@ -96,7 +147,8 @@ export const apiService = {
   // User endpoints
   user: {
     getProfile: async () => {
-      const response = await api.get(withApi('/users/profile'));
+      // Use apiSync for longer timeout (30s) - important for user sync operations
+      const response = await apiSync.get(withApi('/users/profile'));
       return response.data;
     },
     updateProfile: async (data) => {
@@ -132,7 +184,8 @@ export const apiService = {
       return response.data;
     },
     syncProfile: async (data) => {
-      const response = await api.post(withApi('/users'), data);
+      // Use apiSync for longer timeout (30s) - important for user sync operations
+      const response = await apiSync.post(withApi('/users'), data);
       return response.data;
     },
     deleteAccount: async () => {
