@@ -49,25 +49,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://aia-user1:aia@cluster
   })
   .catch(err => console.error('❌ MongoDB connection error:', err.message));
 
-// Security middleware
-app.use(helmet());
-
-// Rate limiting - Configured for proxy environments (Render, Heroku, etc.)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // keyGenerator uses req.ip, which works correctly with 'trust proxy' setting
-  keyGenerator: (req) => {
-    // req.ip is now correctly set from X-Forwarded-For header due to trust proxy
-    return req.ip || req.connection.remoteAddress;
-  }
-});
-app.use('/api/', limiter);
-
-// CORS configuration for Railway deployment
+// CORS configuration - MUST be before other middleware
 // Follow Railway's step 4: Configure CORS for Vercel frontend
 const corsOrigins = [
   'https://moodle-homework-planner.vercel.app',
@@ -84,9 +66,50 @@ const corsOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (corsOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // For development, be more permissive with localhost
+      if ((process.env.NODE_ENV === 'development' || !process.env.NODE_ENV || process.env.NODE_ENV !== 'production') && origin.startsWith('http://localhost:')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Security middleware - configure helmet to allow CORS
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate limiting - Configured for proxy environments (Render, Heroku, etc.)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // keyGenerator uses req.ip, which works correctly with 'trust proxy' setting
+  keyGenerator: (req) => {
+    // req.ip is now correctly set from X-Forwarded-For header due to trust proxy
+    return req.ip || req.connection.remoteAddress;
+  }
+});
+app.use('/api/', limiter);
 
 // Add request logging middleware
 app.use((req, res, next) => {
