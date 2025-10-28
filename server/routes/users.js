@@ -72,11 +72,40 @@ router.post('/', checkJwt, async (req, res) => {
       user.last_login = new Date();
 
       // Sync role from Auth0 Management API (authoritative source)
+      // Make this non-blocking with timeout to prevent slow Auth0 API from blocking user sync
       const tokenRoles = req.auth['https://my-app.com/roles'] || [];
       console.log(`Token roles for ${user.email}:`, tokenRoles);
 
-      // Use Management API to get authoritative roles
-      await syncUserRoleFromAuth0(user, tokenRoles);
+      // Try to sync role, but don't let it block the response for more than 5 seconds
+      const syncRoleWithTimeout = async () => {
+        return Promise.race([
+          syncUserRoleFromAuth0(user, tokenRoles),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Role sync timeout')), 5000)
+          )
+        ]);
+      };
+
+      try {
+        await syncRoleWithTimeout();
+        console.log(`✅ Role synced successfully for ${user.email}`);
+      } catch (syncError) {
+        console.warn(`⚠️ Role sync failed or timed out for ${user.email}, using token roles:`, syncError.message);
+        // Fallback to token roles if Management API sync fails
+        if (tokenRoles.length > 0) {
+          let roleFromToken = 'student';
+          if (tokenRoles.includes('admin')) {
+            roleFromToken = 'admin';
+          } else if (tokenRoles.includes('lecturer')) {
+            roleFromToken = 'lecturer';
+          }
+          if (user.role !== roleFromToken) {
+            console.log(`Setting role from token: ${roleFromToken}`);
+            user.role = roleFromToken;
+          }
+        }
+        // Continue even if role sync fails - user can still log in
+      }
     }
 
     await user.save();
