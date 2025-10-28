@@ -11,6 +11,11 @@ router.get('/overview', checkJwt, extractUser, requireAdminOrReadStats, async (r
     const now = new Date();
     const startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
+    // Get total user count before the start date (baseline)
+    const totalUsersBeforeStart = await User.countDocuments({ 
+      createdAt: { $lt: startDate } 
+    });
+
     const growth = await User.aggregate([
       { $match: { createdAt: { $gte: startDate } } },
       {
@@ -34,6 +39,14 @@ router.get('/overview', checkJwt, extractUser, requireAdminOrReadStats, async (r
       monthLabels.push(label);
       monthCounts.push(found ? found.count : 0);
     }
+    
+    // Calculate cumulative totals (total users up to each month)
+    const cumulativeCounts = [];
+    let runningTotal = totalUsersBeforeStart;
+    monthCounts.forEach((count) => {
+      runningTotal += count;
+      cumulativeCounts.push(runningTotal);
+    });
 
     // Weekly activity: last 7 days: new users (createdAt) only
     const startWeek = new Date(now);
@@ -76,7 +89,11 @@ router.get('/overview', checkJwt, extractUser, requireAdminOrReadStats, async (r
     }
 
     res.json({
-      userGrowth: { labels: monthLabels, counts: monthCounts },
+      userGrowth: { 
+        labels: monthLabels, 
+        counts: monthCounts, // New users per month
+        cumulativeCounts: cumulativeCounts // Total users (cumulative)
+      },
       weeklyActivity: { labels: dayLabels, newUsers: signupCounts }
     });
   } catch (e) {

@@ -67,100 +67,25 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Helper function to check if origin is allowed
-function isOriginAllowed(origin) {
-  if (!origin) return true; // Allow requests with no origin
-  
-  // Build list of allowed origins
-  const allowedOrigins = [
-    // Local development
+// CORS configuration for Railway deployment
+// Follow Railway's step 4: Configure CORS for Vercel frontend
+const corsOrigins = [
+  'https://moodle-homework-planner.vercel.app',
+  // Support environment variable for custom domains
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+  // Add localhost for local development
+  ...(process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production' ? [
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:3000',
-    'http://localhost:3001',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
-    
-    // Vercel production (exact match)
-    'https://moodle-homework-planner.vercel.app',
-    
-    // Environment variables (can be set for custom domains)
-    process.env.CLIENT_URL,
-    process.env.PRODUCTION_CLIENT_URL,
-    process.env.FRONTEND_URL
-  ].filter(Boolean);
-  
-  // Check if origin matches exactly
-  if (allowedOrigins.includes(origin)) {
-    console.log(`✅ CORS: Allowed origin (exact match): ${origin}`);
-    return true;
-  }
-  
-  // Check if it's a Vercel deployment (any *.vercel.app URL)
-  if (origin && origin.match(/^https:\/\/.*\.vercel\.app$/)) {
-    console.log(`✅ CORS: Allowed Vercel deployment: ${origin}`);
-    return true;
-  }
-  
-  // For development mode, allow localhost from any port
-  if (process.env.NODE_ENV === 'development' && origin.includes('localhost')) {
-    console.log(`✅ CORS: Allowed localhost origin (dev mode): ${origin}`);
-    return true;
-  }
-  
-  // Log rejected origins for debugging
-  console.warn(`⚠️  CORS: Rejected origin: ${origin}`);
-  console.log('Allowed origins:', allowedOrigins);
-  
-  // In production, reject unknown origins
-  if (process.env.NODE_ENV === 'production') {
-    return false;
-  }
-  
-  // In development, allow everything to avoid blocking during testing
-  console.log(`⚠️  CORS: Allowing origin in dev mode: ${origin}`);
-  return true;
-}
+    'http://127.0.0.1:5173'
+  ] : [])
+].filter(Boolean);
 
-// Manual CORS middleware to ensure headers are always set
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  if (isOriginAllowed(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Headers, Access-Control-Request-Method');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-  }
-  
-  next();
-});
-
-// Also use the cors library for additional configuration
 app.use(cors({
-  origin: isOriginAllowed,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With', 
-    'Accept', 
-    'Origin',
-    'Access-Control-Request-Headers',
-    'Access-Control-Request-Method'
-  ],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400,
-  preflightContinue: false,
-  optionsSuccessStatus: 200
+  origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
+  credentials: true
 }));
 
 // Add request logging middleware
@@ -209,9 +134,50 @@ app.use((err, req, res, next) => {
 
   // JWT errors
   if (err.name === 'UnauthorizedError') {
+    console.error('[JWT Error] Unauthorized:', {
+      name: err.name,
+      message: err.message,
+      code: err.code,
+      status: err.status,
+      expectedAudience: process.env.AUTH0_AUDIENCE,
+      expectedIssuer: `https://${process.env.AUTH0_DOMAIN}/`
+    });
+    
+    // Decode token if possible to see what audience it has
+    const authHeader = req.headers?.authorization || req.get?.('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.decode(token, { complete: true });
+        if (decoded && decoded.payload) {
+          console.error('🚨 [JWT Error] Token Audience Mismatch:');
+          console.error('   Token Audience (actual):', decoded.payload.aud);
+          console.error('   Expected Audience (server):', process.env.AUTH0_AUDIENCE);
+          console.error('   Token Issuer:', decoded.payload.iss);
+          console.error('   Expected Issuer:', `https://${process.env.AUTH0_DOMAIN}/`);
+          console.error('   Token Subject:', decoded.payload.sub);
+          console.error('   Token Expiry:', new Date(decoded.payload.exp * 1000).toLocaleString());
+          
+          if (decoded.payload.aud !== process.env.AUTH0_AUDIENCE) {
+            console.error('\n💡 SOLUTION:');
+            console.error('   1. Clear browser localStorage:');
+            console.error('      Object.keys(localStorage).forEach(key => key.startsWith("@@auth0spajs@@") && localStorage.removeItem(key));');
+            console.error('   2. Log out and log back in to get new tokens');
+            console.error('   3. OR check Auth0 Dashboard → APIs → Ensure identifier matches:', process.env.AUTH0_AUDIENCE);
+          }
+        }
+      } catch (e) {
+        console.error('[JWT Error] Could not decode token:', e.message);
+      }
+    } else {
+      console.error('[JWT Error] No Authorization header found in request');
+    }
+    
     return res.status(401).json({
       error: 'Invalid token',
-      message: err.message
+      message: err.message,
+      hint: `Expected audience: ${process.env.AUTH0_AUDIENCE}. Make sure your Auth0 tokens are issued for this audience.`
     });
   }
 
@@ -252,6 +218,9 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`Client URL: ${process.env.CLIENT_URL}`);
+  console.log(`Auth0 Audience: ${process.env.AUTH0_AUDIENCE}`);
+  console.log(`Auth0 Domain: ${process.env.AUTH0_DOMAIN}`);
+  console.log(`\n⚠️  IMPORTANT: If you changed .env, make sure the server was restarted!`);
 });
 
 module.exports = app;

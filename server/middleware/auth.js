@@ -3,6 +3,14 @@ const jwksRsa = require('jwks-rsa');
 const { jwtDecode } = require('jwt-decode');
 
 // Auth0 JWT verification middleware
+// Log configuration on startup for debugging
+console.log('[JWT Middleware] Auth0 Configuration:', {
+  domain: process.env.AUTH0_DOMAIN,
+  audience: process.env.AUTH0_AUDIENCE,
+  issuer: `https://${process.env.AUTH0_DOMAIN}/`,
+  jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
+});
+
 const checkJwt = jwt({
   secret: jwksRsa.expressJwtSecret({
     cache: true,
