@@ -1146,7 +1146,13 @@ router.get('/homework-checker', checkJwt, extractUser, requireLecturer, async (r
         },
         status: homeworkStatus,
         is_overdue: new Date() > hw.due_date,
-        days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        days_until_due: (() => {
+          const today = new Date();
+          const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const dueDate = new Date(hw.due_date);
+          const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          return Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+        })()
       };
     });
     
