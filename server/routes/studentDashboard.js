@@ -10,6 +10,14 @@ const Exam = require('../models/Exam');
 const Class = require('../models/Class');
 const { checkJwt, extractUser, requireStudent } = require('../middleware/auth');
 
+// Helper function to calculate calendar days until due date
+const calculateDaysUntilDue = (dueDate) => {
+  const today = new Date();
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+  return Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+};
+
 // GET /api/student-dashboard/overview - Get student dashboard overview
 router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {
@@ -339,7 +347,10 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
           .filter(hw => {
             const dueDate = new Date(hw.due_date);
             const today = new Date();
-            const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+            // Normalize dates to midnight for accurate calendar day comparison
+            const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+            const daysUntilDue = Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
             
             // Only show upcoming homework that is not completed
             if (daysUntilDue < 0) return false;
@@ -369,13 +380,22 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
           })
           .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))
           .slice(0, 5)
-          .map(hw => ({
-            _id: hw._id,
-            title: hw.title,
-            due_date: hw.due_date,
-            course: hw.course, // Use the already formatted course object from conversion
-            days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
-          }))
+          .map(hw => {
+            // Calculate days until due with proper calendar day comparison
+            const dueDate = new Date(hw.due_date);
+            const today = new Date();
+            const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+            const daysUntilDue = Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+            
+            return {
+              _id: hw._id,
+              title: hw.title,
+              due_date: hw.due_date,
+              course: hw.course, // Use the already formatted course object from conversion
+              days_until_due: daysUntilDue
+            };
+          })
       },
       exams: {
         total: totalExams,
@@ -389,7 +409,7 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
             name: exam.course_id.course_name,
             code: exam.course_id.course_code
           },
-          days_until_due: Math.floor((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+          days_until_due: calculateDaysUntilDue(new Date(exam.due_date))
         }))
       },
       study_progress: {
@@ -660,7 +680,7 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
         is_submitted: isSubmitted,
         is_graded: isGraded,
         grade: isGraded ? grade.grade : null,
-        days_until_due: Math.floor((new Date(hw.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        days_until_due: calculateDaysUntilDue(new Date(hw.due_date))
       };
     });
     
@@ -1359,7 +1379,7 @@ router.get('/exams', checkJwt, extractUser, requireStudent, async (req, res) => 
         is_completed: isCompleted,
         is_graded: isGraded,
         grade: isGraded ? grade.grade : null,
-        days_until_due: Math.floor((new Date(exam.due_date) - new Date()) / (1000 * 60 * 60 * 24))
+        days_until_due: calculateDaysUntilDue(new Date(exam.due_date))
       };
     });
     
