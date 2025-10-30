@@ -36,18 +36,26 @@ const PORT = process.env.PORT || 5000;
 // This allows Express to correctly identify client IPs from X-Forwarded-For header
 app.set('trust proxy', true);
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://aia-user1:aia@cluster0.y9gor0a.mongodb.net/plannerDB', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-})
-  .then(() => {
-    console.log('✅ Connected to MongoDB Atlas');
-    console.log(`Database: ${mongoose.connection.name || 'moodle-homework-planner'}`);
+// Connect to MongoDB and start server only after successful connection
+(async () => {
+  try {
+    await connectDB();
+    console.log('✅ MongoDB connected. Starting background jobs and server...');
     startPeriodicSync(15); // Start periodic sync every 15 minutes
-  })
-  .catch(err => console.error('❌ MongoDB connection error:', err.message));
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`Client URL: ${process.env.CLIENT_URL}`);
+      console.log(`Auth0 Audience: ${process.env.AUTH0_AUDIENCE}`);
+      console.log(`Auth0 Domain: ${process.env.AUTH0_DOMAIN}`);
+      console.log(`\n⚠️  IMPORTANT: If you changed .env, make sure the server was restarted!`);
+    });
+  } catch (err) {
+    console.error('❌ Failed to initialize server due to DB connection error:', err?.message || err);
+    process.exit(1);
+  }
+})();
 
 // CORS configuration - MUST be before other middleware
 // Follow Railway's step 4: Configure CORS for Vercel frontend
@@ -237,13 +245,6 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Client URL: ${process.env.CLIENT_URL}`);
-  console.log(`Auth0 Audience: ${process.env.AUTH0_AUDIENCE}`);
-  console.log(`Auth0 Domain: ${process.env.AUTH0_DOMAIN}`);
-  console.log(`\n⚠️  IMPORTANT: If you changed .env, make sure the server was restarted!`);
-});
+// app.listen is started after DB connection above
 
 module.exports = app;

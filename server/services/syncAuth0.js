@@ -4,12 +4,8 @@ const axios = require('axios');
 const { getMgmtToken } = require('./auth0Management');
 const User = require('../models/User');
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-})
-  .then(() => console.log('✅ MongoDB connected!'))
-  .catch(err => console.error('❌ MongoDB connection error:', err.message));
+// Do NOT create a separate connection here. The app-level connection is managed in server.js via config/database.js
+// This module assumes mongoose is already connected before startPeriodicSync() is invoked.
 
 // Sync users from Auth0
 async function syncUsers() {
