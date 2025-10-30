@@ -2,9 +2,16 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://aia-user1:aia@cluster0.y9gor0a.mongodb.net/plannerDB', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+    const uri = process.env.MONGODB_URI || 'mongodb+srv://aia-user1:aia@cluster0.y9gor0a.mongodb.net/plannerDB';
+    // Basic visibility into which URI form is being used (mask credentials)
+    const masked = uri.replace(/:\/\/([^:@]+):([^@]+)@/,'://$1:****@');
+    console.log(`🗄️  Connecting to MongoDB at: ${masked}`);
+
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      heartbeatFrequencyMS: 10000,
     });
 
     console.log(`✅ Connected to MongoDB Atlas: ${conn.connection.host}`);
@@ -30,6 +37,7 @@ const connectDB = async () => {
 
   } catch (error) {
     console.error('Error connecting to MongoDB:', error.message);
+    console.error('Ensure MONGODB_URI is set correctly and the cluster is reachable.');
     process.exit(1);
   }
 };
