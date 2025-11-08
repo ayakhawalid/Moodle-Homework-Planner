@@ -485,9 +485,9 @@ const AdminDashboard = () => {
                             }
                           }}
                           sx={{ 
-                            backgroundColor: '#95E1D3', 
-                            color: 'white',
-                            '&:hover': { backgroundColor: '#7dd3c0' }
+                            backgroundColor: '#D6F7AD', 
+                            color: '#333',
+                            '&:hover': { backgroundColor: '#c8f299', color: '#333' }
                           }}
                         >
                           Approve
@@ -505,9 +505,13 @@ const AdminDashboard = () => {
                             }
                           }}
                           sx={{ 
-                            borderColor: '#F38181', 
-                            color: '#F38181',
-                            '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                            borderColor: 'rgba(0,0,0,0.2)', 
+                            color: '#333',
+                            '&:hover': { 
+                              borderColor: 'rgba(0,0,0,0.3)', 
+                              backgroundColor: 'rgba(0,0,0,0.04)', 
+                              color: '#333' 
+                            }
                           }}
                         >
                           Reject

@@ -142,11 +142,11 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     const dueDate = new Date(event.start);
     const today = new Date();
     
-    // Normalize dates to midnight for accurate comparison
-    today.setHours(0, 0, 0, 0);
-    dueDate.setHours(0, 0, 0, 0);
+    // Normalize dates to midnight for accurate calendar day comparison
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
     
-    const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+    const daysUntilDue = Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
 
     let backgroundColor = '#95E1D3'; // Default light teal
 
@@ -156,10 +156,9 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         if (daysUntilDue < 0) {
           backgroundColor = '#F38181'; // Light coral for overdue
         } else if (daysUntilDue <= 1) {
-          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-        } else if (daysUntilDue <= 3) {
-          backgroundColor = '#FCE38A'; // Light yellow for warning
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow only)
         } else {
+          // All upcoming items (2+ days) use upcoming colors
           // Differentiate between lecturer-created and student-created assignments
           if (eventData?.uploader_role === 'lecturer') {
             backgroundColor = '#D6F7AD'; // Light green for lecturer-created assignments
@@ -174,11 +173,9 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         } else if (daysUntilDue < 0) {
           backgroundColor = '#F38181'; // Light coral for overdue
         } else if (daysUntilDue <= 1) {
-          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-        } else if (daysUntilDue <= 3) {
-          backgroundColor = '#FCE38A'; // Light yellow for warning
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow only)
         } else {
-          backgroundColor = '#D6F7AD'; // Light green for normal/upcoming
+          backgroundColor = '#D6F7AD'; // Light green for upcoming (2+ days)
         }
       }
     } else if (eventType === 'class') {
@@ -246,11 +243,11 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
     const dueDate = new Date(event.start);
     const today = new Date();
     
-    // Normalize dates to midnight for accurate comparison
-    today.setHours(0, 0, 0, 0);
-    dueDate.setHours(0, 0, 0, 0);
+    // Normalize dates to midnight for accurate calendar day comparison
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
     
-    const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+    const daysUntilDue = Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
 
     // Determine color based on event type and status
     let backgroundColor = '#95E1D3'; // Default light teal
@@ -262,10 +259,9 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         if (daysUntilDue < 0) {
           backgroundColor = '#F38181'; // Light coral for overdue
         } else if (daysUntilDue <= 1) {
-          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-        } else if (daysUntilDue <= 3) {
-          backgroundColor = '#FCE38A'; // Light yellow for warning
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow only)
         } else {
+          // All upcoming items (2+ days) use upcoming colors
           // Differentiate between lecturer-created and student-created assignments
           if (eventData?.uploader_role === 'lecturer') {
             backgroundColor = '#D6F7AD'; // Light green for lecturer-created assignments
@@ -280,11 +276,9 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
         } else if (daysUntilDue < 0) {
           backgroundColor = '#F38181'; // Light coral for overdue
         } else if (daysUntilDue <= 1) {
-          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow)
-        } else if (daysUntilDue <= 3) {
-          backgroundColor = '#FCE38A'; // Light yellow for warning
+          backgroundColor = '#FCE38A'; // Light yellow for urgent (today/tomorrow only)
         } else {
-          backgroundColor = '#D6F7AD'; // Light green for normal/upcoming
+          backgroundColor = '#D6F7AD'; // Light green for upcoming (2+ days)
         }
       }
     } else if (eventType === 'class') {
@@ -346,7 +340,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
             whiteSpace: 'nowrap',
             marginTop: '2px'
           }}>
-            {daysUntilDue < 0 ? 'Overdue!' : daysUntilDue === 0 ? 'Due Today!' : 'Due Tomorrow!'}
+            {daysUntilDue < 0 ? 'Overdue!' : daysUntilDue === 0 ? 'Due Today!' : daysUntilDue === 1 ? 'Due Tomorrow!' : `Due in ${daysUntilDue} days`}
           </div>
         )}
       </div>

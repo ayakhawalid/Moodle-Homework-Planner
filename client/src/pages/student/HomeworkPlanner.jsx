@@ -120,7 +120,10 @@ function HomeworkPlanner() {
                   const upcomingHomework = homeworkData.homework?.filter(hw => {
                     const dueDate = new Date(hw.due_date);
                     const today = new Date();
-                    const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+                    // Normalize dates to midnight for accurate calendar day comparison
+                    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+                    const daysUntilDue = Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
                     
                     // Show all homework that is not completed (regardless of due date)
                     return hw.status !== 'graded';
@@ -130,7 +133,10 @@ function HomeworkPlanner() {
                     upcomingHomework.slice(0, 3).map((hw, index) => {
                       const dueDate = new Date(hw.due_date);
                       const today = new Date();
-                      const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+                      // Normalize dates to midnight for accurate calendar day comparison
+                      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                      const dueDateMidnight = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+                      const daysUntilDue = Math.round((dueDateMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
                       
                       // Determine background color based on urgency
                       let bgColor = 'rgba(149, 225, 211, 0.3)'; // Default teal

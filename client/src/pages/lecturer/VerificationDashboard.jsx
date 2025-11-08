@@ -12,13 +12,10 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Alert,
   CircularProgress,
   Paper,
+  IconButton,
   Divider,
   Accordion,
   AccordionSummary,
@@ -36,6 +33,31 @@ import {
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
 import '../../styles/HomeworkCard.css';
+import { CheckCircle as PhCheckCircle, XCircle as PhXCircle } from 'phosphor-react';
+
+const formatDateTimeForInput = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+const formatDateTimeForDisplay = (value) => {
+  if (!value) return 'No deadline provided';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+  const formatted = new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date);
+  return formatted.replace(',', '');
+};
 
 const VerificationDashboard = () => {
   const { isAuthenticated } = useAuth0();
@@ -50,9 +72,7 @@ const VerificationDashboard = () => {
   
   // Form states
   const [verificationData, setVerificationData] = useState({
-    verified_deadline: '',
-    verification_status: 'verified',
-    notes: ''
+    verified_deadline: ''
   });
   
   const [submitting, setSubmitting] = useState(false);
@@ -90,14 +110,18 @@ const VerificationDashboard = () => {
       setSubmitting(true);
       setError(null);
       
-      await apiService.studentHomework.verifyDeadline(selectedVerification._id, verificationData);
+      const payload = {
+        verified_deadline: verificationData.verified_deadline
+          ? new Date(verificationData.verified_deadline).toISOString()
+          : null
+      };
+
+      await apiService.studentHomework.verifyDeadline(selectedVerification._id, payload);
       setSuccess('Verification updated successfully!');
       setVerifyDialogOpen(false);
       setSelectedVerification(null);
       setVerificationData({
-        verified_deadline: '',
-        verification_status: 'verified',
-        notes: ''
+        verified_deadline: ''
       });
       fetchVerifications();
     } catch (err) {
@@ -111,9 +135,7 @@ const VerificationDashboard = () => {
   const openVerifyDialog = (verification) => {
     setSelectedVerification(verification);
     setVerificationData({
-      verified_deadline: verification.claimed_deadline,
-      verification_status: 'verified',
-      notes: ''
+      verified_deadline: formatDateTimeForInput(verification.verified_deadline || verification.claimed_deadline)
     });
     setVerifyDialogOpen(true);
   };
@@ -179,6 +201,31 @@ const VerificationDashboard = () => {
 
                     {/* Verification Content */}
                     <div className="homework-content">
+                      {/* Action Icons - Top Right Corner */}
+                      <div className="homework-actions-top">
+                        <IconButton 
+                          className="action-button edit"
+                          onClick={() => openVerifyDialog(verification)}
+                          aria-label="Verify"
+                          title="Verify"
+                          sx={{
+                            backgroundColor: 'transparent !important',
+                            color: '#555',
+                            border: 'none !important',
+                            padding: '8px',
+                            margin: '0 2px',
+                            minWidth: '40px',
+                            width: '40px',
+                            height: '40px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(0, 0, 0, 0.1) !important',
+                              transform: 'scale(1.05)'
+                            }
+                          }}
+                        >
+                          <PhCheckCircle size={24} weight="thin" />
+                        </IconButton>
+                      </div>
                       <div className="homework-title">{verification.title}</div>
                       
                       {/* Student Info */}
@@ -200,8 +247,13 @@ const VerificationDashboard = () => {
                         {/* Deadline Box - Always show */}
                         <div className="deadline-box">
                           <span className="deadline-text">
-                            {new Date(verification.claimed_deadline).toLocaleDateString()}
+                            {formatDateTimeForDisplay(verification.claimed_deadline)}
                           </span>
+                          {verification.verified_deadline && (
+                            <span className="deadline-text verified">
+                              {`Verified: ${formatDateTimeForDisplay(verification.verified_deadline)}`}
+                            </span>
+                          )}
                           {/* Verification Status */}
                           <div 
                             className={`verification-indicator ${verification.deadline_verification_status === 'verified' ? 'verified' : 'unverified'}`}
@@ -214,21 +266,7 @@ const VerificationDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="homework-actions">
-                    <button
-                      className="action-button edit"
-                      onClick={() => openVerifyDialog(verification)}
-                    >
-                      Verify
-                    </button>
-                    <button
-                      className="action-button delete"
-                      onClick={() => openVerifyDialog(verification)}
-                    >
-                      Reject
-                    </button>
-                  </div>
+                  
                 </div>
             ))}
           </div>
@@ -248,34 +286,19 @@ const VerificationDashboard = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                label="Student Claimed Deadline"
+                value={formatDateTimeForDisplay(selectedVerification?.claimed_deadline)}
+                InputProps={{ readOnly: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 label="Verified Deadline"
                 type="datetime-local"
                 value={verificationData.verified_deadline}
                 onChange={(e) => setVerificationData({ ...verificationData, verified_deadline: e.target.value })}
                 InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Verification Status</InputLabel>
-                <Select
-                  value={verificationData.verification_status}
-                  onChange={(e) => setVerificationData({ ...verificationData, verification_status: e.target.value })}
-                >
-                  <MenuItem value="verified">Verified</MenuItem>
-                  <MenuItem value="rejected">Rejected</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Notes"
-                multiline
-                rows={3}
-                value={verificationData.notes}
-                onChange={(e) => setVerificationData({ ...verificationData, notes: e.target.value })}
-                placeholder="Add any notes about this verification..."
               />
             </Grid>
           </Grid>
@@ -284,8 +307,8 @@ const VerificationDashboard = () => {
           <Button 
             onClick={() => setVerifyDialogOpen(false)}
             sx={{ 
-              color: '#95E1D3',
-              '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+              color: '#000',
+              '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)', color: '#000' }
             }}
           >
             Cancel
@@ -296,8 +319,8 @@ const VerificationDashboard = () => {
             disabled={submitting}
             sx={{ 
               backgroundColor: '#D6F7AD',
-              color: '#333',
-              '&:hover': { backgroundColor: '#c8f299' }
+              color: '#000',
+              '&:hover': { backgroundColor: '#c8f299', color: '#000' }
             }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Update Verification'}
