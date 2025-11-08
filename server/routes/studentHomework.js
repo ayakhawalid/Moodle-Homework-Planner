@@ -428,6 +428,25 @@ router.put('/:id', checkJwt, extractUser, requireStudent, async (req, res) => {
       if (max_partners !== undefined) homework.max_partners = max_partners;
     }
 
+    if (isStudentHomework && isStudent) {
+      const contentFieldsUpdated = [
+        title,
+        description,
+        course_id,
+        claimed_deadline,
+        allow_partners,
+        max_partners
+      ].some(field => field !== undefined);
+
+      if (contentFieldsUpdated) {
+        homework.deadline_verification_status = 'unverified';
+        homework.verified_deadline = undefined;
+        homework.deadline_verified_by = undefined;
+        homework.deadline_verified_at = undefined;
+        homework.deadline_verification_notes = undefined;
+      }
+    }
+
     await homework.save();
 
     // Update Grade table if completion_status is provided

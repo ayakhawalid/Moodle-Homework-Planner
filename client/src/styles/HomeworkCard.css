@@ -87,37 +87,27 @@
   margin-bottom: 0.5rem;
 }
 
+/* Ensure homework items maintain white background regardless of page background */
+.homework-item .homework-card {
+  background: #ffffff !important;
+}
+
 .homework-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(15px);
+  background: #ffffff !important; /* Solid white background - important to override any page background */
+  backdrop-filter: none; /* Remove blur effect */
   border-radius: 12px;
   padding: 1rem;
   min-height: 300px;
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
   overflow: visible;
 }
 
-/* Status-based border colors */
-.homework-card.not-started {
-  border-right-color: #F38181; /* Coral */
-}
-
-.homework-card.in-progress {
-  border-right-color: #FCE38A; /* Yellow */
-}
-
-.homework-card.completed {
-  border-right-color: #D6F7AD; /* Green */
-}
-
-.homework-card.graded {
-  border-right-color: #95E1D3; /* Teal */
-}
+/* Status-based border colors - removed, using border-left in status-based section below */
 
 .homework-card:hover {
   transform: translateY(-6px);
@@ -194,21 +184,25 @@
   background: #95E1D3; /* Teal */
 }
 
-/* Lighter background colors for homework cards based on status */
+/* Status-based border accent - keep white background for all cards */
 .homework-card.not-started {
-  background-color: rgba(243, 129, 129, 0.1); /* Light coral */
+  background-color: #ffffff !important; /* Solid white - not affected by page background */
+  border-left: 3px solid #F38181; /* Coral accent */
 }
 
 .homework-card.in-progress {
-  background-color: rgba(252, 227, 138, 0.1); /* Light yellow */
+  background-color: #ffffff !important; /* Solid white - not affected by page background */
+  border-left: 3px solid #FCE38A; /* Yellow accent */
 }
 
 .homework-card.completed {
-  background-color: rgba(214, 247, 173, 0.1); /* Light green */
+  background-color: #ffffff !important; /* Solid white - not affected by page background */
+  border-left: 3px solid #D6F7AD; /* Green accent */
 }
 
 .homework-card.graded {
-  background-color: rgba(149, 225, 211, 0.1); /* Light teal */
+  background-color: #ffffff !important; /* Solid white - not affected by page background */
+  border-left: 3px solid #95E1D3; /* Teal accent */
 }
 
 /* Homework Content */

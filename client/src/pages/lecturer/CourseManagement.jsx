@@ -37,13 +37,15 @@ import {
   Delete as DeleteIcon,
   Group as GroupIcon,
   School as SchoolIcon,
-  Visibility as ViewIcon,
-  CalendarToday as CalendarIcon,
-  Person as PersonIcon,
-  Description as DescriptionIcon
+  Visibility as ViewIcon
 } from '@mui/icons-material';
 import {
-  Plus as AddIcon
+  Plus as AddIcon,
+  ChalkboardTeacher as ChalkboardTeacherIcon,
+  CalendarBlank as CalendarBlankIcon,
+  Users as UsersIcon,
+  TextAlignLeft as TextAlignLeftIcon,
+  Notebook as NotebookIcon
 } from 'phosphor-react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
@@ -59,20 +61,25 @@ const CourseManagement = () => {
   const [viewingCourse, setViewingCourse] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
+  const semesters = ['fall', 'spring', 'summer', 'winter'];
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear + i - 2);
+
   const [formData, setFormData] = useState({
     course_name: '',
     course_code: '',
     description: '',
     syllabus: '',
     credits: '',
-    semester: '',
-    year: new Date().getFullYear()
+    semester: semesters[0],
+    year: currentYear
   });
 
-  const semesters = ['fall', 'spring', 'summer', 'winter'];
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear + i - 2);
+  const semesterLabelId = 'course-management-semester-label';
+  const semesterSelectId = 'course-management-semester-select';
+  const yearLabelId = 'course-management-year-label';
+  const yearSelectId = 'course-management-year-select';
 
   useEffect(() => {
     loadCourses();
@@ -94,14 +101,17 @@ const CourseManagement = () => {
   const handleOpenDialog = (course = null) => {
     setEditingCourse(course);
     if (course) {
+      const normalizedSemester = course.semester
+        ? course.semester.toString().toLowerCase()
+        : semesters[0];
       setFormData({
         course_name: course.course_name || '',
         course_code: course.course_code || '',
         description: course.description || '',
         syllabus: course.syllabus || '',
         credits: course.credits || '',
-        semester: course.semester || '',
-        year: course.year || new Date().getFullYear()
+        semester: semesters.includes(normalizedSemester) ? normalizedSemester : semesters[0],
+        year: course.year || currentYear
       });
     } else {
       setFormData({
@@ -110,8 +120,8 @@ const CourseManagement = () => {
         description: '',
         syllabus: '',
         credits: '',
-        semester: '',
-        year: new Date().getFullYear()
+        semester: semesters[0],
+        year: currentYear
       });
     }
     setDialogOpen(true);
@@ -442,12 +452,17 @@ const CourseManagement = () => {
               </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Semester</InputLabel>
+                  <InputLabel id={semesterLabelId}>Semester</InputLabel>
                   <Select
+                    labelId={semesterLabelId}
+                    id={semesterSelectId}
                     name="semester"
                     value={formData.semester}
                     onChange={handleInputChange}
                     label="Semester"
+                    renderValue={(value) =>
+                      value ? value.charAt(0).toUpperCase() + value.slice(1) : ''
+                    }
                   >
                     {semesters.map((semester) => (
                       <MenuItem key={semester} value={semester}>
@@ -459,8 +474,10 @@ const CourseManagement = () => {
               </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Year</InputLabel>
+                  <InputLabel id={yearLabelId}>Year</InputLabel>
                   <Select
+                    labelId={yearLabelId}
+                    id={yearSelectId}
                     name="year"
                     value={formData.year}
                     onChange={handleInputChange}
@@ -485,7 +502,13 @@ const CourseManagement = () => {
           <DialogActions>
             <Button 
               onClick={handleCloseDialog}
-              sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
+              sx={{
+                color: '#333',
+                '&:hover': {
+                  backgroundColor: 'rgba(0,0,0,0.04)',
+                  color: '#333'
+                }
+              }}
             >
               Cancel
             </Button>
@@ -507,7 +530,7 @@ const CourseManagement = () => {
         <Dialog open={viewDialogOpen} onClose={handleCloseViewDialog} maxWidth="md" fullWidth>
           <DialogTitle>
             <Box display="flex" alignItems="center">
-              <SchoolIcon sx={{ mr: 1 }} />
+              <ChalkboardTeacherIcon size={28} weight="duotone" style={{ marginRight: 8 }} />
               Course Details
             </Box>
           </DialogTitle>
@@ -540,7 +563,7 @@ const CourseManagement = () => {
                     <Card variant="outlined">
                       <CardContent>
                         <Typography variant="h6" gutterBottom>
-                          <CalendarIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          <CalendarBlankIcon size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle' }} />
                           Course Information
                         </Typography>
                         <List dense>
@@ -577,11 +600,11 @@ const CourseManagement = () => {
                     <Card variant="outlined">
                       <CardContent>
                         <Typography variant="h6" gutterBottom>
-                          <GroupIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          <UsersIcon size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle' }} />
                           Enrollment
                         </Typography>
                         <Box display="flex" alignItems="center" mb={2}>
-                          <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                          <UsersIcon size={20} weight="duotone" style={{ marginRight: 8, color: 'rgba(0,0,0,0.54)' }} />
                           <Typography variant="body1">
                             {viewingCourse.students?.length || 0} students enrolled
                           </Typography>
@@ -620,7 +643,7 @@ const CourseManagement = () => {
                       <Card variant="outlined">
                         <CardContent>
                           <Typography variant="h6" gutterBottom>
-                            <DescriptionIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                            <TextAlignLeftIcon size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle' }} />
                             Description
                           </Typography>
                           <Typography variant="body1">
@@ -636,7 +659,7 @@ const CourseManagement = () => {
                       <Card variant="outlined">
                         <CardContent>
                           <Typography variant="h6" gutterBottom>
-                            <DescriptionIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                            <NotebookIcon size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle' }} />
                             Syllabus
                           </Typography>
                           <Typography variant="body1">
@@ -653,7 +676,13 @@ const CourseManagement = () => {
           <DialogActions>
             <Button 
               onClick={handleCloseViewDialog}
-              sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
+              sx={{
+                color: '#333',
+                '&:hover': {
+                  backgroundColor: 'rgba(0,0,0,0.04)',
+                  color: '#333'
+                }
+              }}
             >
               Close
             </Button>
@@ -664,9 +693,9 @@ const CourseManagement = () => {
               }} 
               variant="contained"
               sx={{ 
-                backgroundColor: '#FCE38A',
+                backgroundColor: '#D6F7AD',
                 color: '#333',
-                '&:hover': { backgroundColor: '#fbd65e' }
+                '&:hover': { backgroundColor: '#c8f299' }
               }}
             >
               Edit Course

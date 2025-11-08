@@ -10,7 +10,6 @@ import {
 import Chart from 'react-apexcharts';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { apiService } from '../../services/api';
-import api from '../../services/api';
 
 const SystemAnalytics = () => {
   const [loading, setLoading] = useState(false);
@@ -20,7 +19,7 @@ const SystemAnalytics = () => {
   const [userGrowthData, setUserGrowthData] = useState({
     series: [{
       name: 'Users',
-      data: [30, 40, 35, 50, 49, 60, 70, 91, 125, 150, 180, 200]
+      data: [] // Will be populated from backend
     }],
     options: {
       chart: {
@@ -177,45 +176,53 @@ const SystemAnalytics = () => {
         }));
         // Fetch analytics overview (growth + weekly activity)
         try {
-          const overview = await api.get('/analytics/overview').then(r => r.data);
+          console.log('Fetching analytics overview...');
+          const overview = await apiService.analytics.getOverview();
+          console.log('Analytics overview received:', overview);
+          
           if (overview?.userGrowth?.labels && overview?.userGrowth?.counts) {
-            // Ensure we always have 12 months with proper labels
-            const fullMonthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const fullMonthCounts = new Array(12).fill(0);
-            
-            // Map the backend data to the full 12-month array
-            overview.userGrowth.labels.forEach((label, index) => {
-              const monthIndex = fullMonthLabels.indexOf(label);
-              if (monthIndex !== -1 && overview.userGrowth.counts[index] !== undefined) {
-                fullMonthCounts[monthIndex] = overview.userGrowth.counts[index];
-              }
-            });
+            // Use cumulative counts from backend if available, otherwise calculate from monthly counts
+            const displayCounts = overview.userGrowth.cumulativeCounts || 
+              (() => {
+                let runningTotal = 0;
+                return overview.userGrowth.counts.map(count => {
+                  runningTotal += count;
+                  return runningTotal;
+                });
+              })();
             
             console.log('Backend labels:', overview.userGrowth.labels);
-            console.log('Backend counts:', overview.userGrowth.counts);
-            console.log('Full month labels:', fullMonthLabels);
-            console.log('Full month counts:', fullMonthCounts);
+            console.log('Backend counts (new users per month):', overview.userGrowth.counts);
+            console.log('Cumulative counts (total users):', displayCounts);
             
-            setUserGrowthData(prev => ({
-              ...prev,
-              options: { 
-                ...prev.options, 
-                xaxis: { 
-                  categories: fullMonthLabels,
-                  labels: {
-                    style: {
-                      colors: '#666',
-                      fontSize: '12px',
-                      fontFamily: 'Arial, sans-serif'
-                    },
-                    rotate: -45,
-                    rotateAlways: false
+            // Ensure we have valid data arrays
+            if (displayCounts && displayCounts.length > 0 && overview.userGrowth.labels.length > 0) {
+              setUserGrowthData(prev => ({
+                ...prev,
+                options: { 
+                  ...prev.options, 
+                  xaxis: { 
+                    categories: overview.userGrowth.labels, // Use backend labels directly
+                    labels: {
+                      style: {
+                        colors: '#666',
+                        fontSize: '12px',
+                        fontFamily: 'Arial, sans-serif'
+                      },
+                      rotate: -45,
+                      rotateAlways: false
+                    }
                   }
-                }
-              },
-              series: [{ name: 'Users', data: fullMonthCounts }]
-            }));
+                },
+                series: [{ name: 'Total Users', data: displayCounts }]
+              }));
+            } else {
+              console.warn('Invalid user growth data received:', { labels: overview.userGrowth.labels, counts: displayCounts });
+            }
+          } else {
+            console.warn('User growth data missing in overview:', overview);
           }
+          
           if (overview?.weeklyActivity?.labels) {
             setActivityData(prev => ({
               ...prev,
@@ -232,7 +239,13 @@ const SystemAnalytics = () => {
             }));
           }
         } catch (e) {
-          console.warn('Analytics overview fetch failed', e?.message);
+          console.error('Analytics overview fetch failed:', e);
+          console.error('Error details:', {
+            message: e?.message,
+            response: e?.response?.data,
+            status: e?.response?.status
+          });
+          setError(`Failed to load analytics: ${e?.message || 'Unknown error'}`);
         }
       } catch (e) {
         setError('Failed to load analytics');
