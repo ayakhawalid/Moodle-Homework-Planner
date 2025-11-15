@@ -324,7 +324,10 @@ export const apiService = {
     getByStudent: (studentId) => api.get(withApi(`/courses/student/${studentId}`)),
     addStudent: (courseId, studentId) => api.post(withApi(`/courses/${courseId}/students`), { student_id: studentId }),
     updatePartnerSettings: (id, settings) => api.put(withApi(`/courses/${id}/partner-settings`), settings),
-    removeStudent: (courseId, studentId) => api.delete(withApi(`/courses/${courseId}/students/${studentId}`))
+    removeStudent: (courseId, studentId) => api.delete(withApi(`/courses/${courseId}/students/${studentId}`)),
+    getPendingVerifications: () => api.get(withApi('/courses/pending-verifications')),
+    verify: (courseId, verificationStatus) => api.put(withApi(`/courses/${courseId}/verify`), { verification_status: verificationStatus }),
+    getLecturers: () => api.get(withApi('/courses/lecturers'))
   },
 
   // Lecturer dashboard

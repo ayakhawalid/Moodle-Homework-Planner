@@ -26,17 +26,20 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
         if (lecturer) filter.lecturer_id = lecturer._id;
       }
     } else if (userRole === 'student') {
-      // Students can see courses they're enrolled in, or all courses (for enrollment purposes)
+      // Students can see courses they're enrolled in, or all verified courses (for enrollment purposes)
       if (student_id) {
         // Security check: students can only query their own courses
         const currentStudent = await User.findOne({ auth0_id: req.auth.sub });
         if (currentStudent && currentStudent._id.toString() === student_id) {
           filter.students = student_id;
+          // Students can see their enrolled courses regardless of verification status
         } else {
           return res.status(403).json({ error: 'Access denied' });
         }
+      } else {
+        // For browsing/enrollment, only show verified courses
+        filter.verification_status = 'verified';
       }
-      // If no student_id specified, return all courses (for browsing/enrollment)
     } else if (userRole === 'admin') {
       // Admins can filter by any lecturer_id or student_id
       if (lecturer_id) filter.lecturer_id = lecturer_id;
@@ -55,6 +58,78 @@ router.get('/', checkJwt, extractUser, async (req, res) => {
   } catch (error) {
     console.error('Error fetching courses:', error);
     res.status(500).json({ error: 'Failed to fetch courses' });
+  }
+});
+
+// GET /api/courses/lecturers - Get all lecturers (for course creation)
+// MUST be before /:id route to avoid route conflict
+router.get('/lecturers', checkJwt, extractUser, async (req, res) => {
+  try {
+    console.log('Fetching lecturers...');
+    console.log('Request user:', req.userInfo);
+    
+    // Use case-insensitive regex search for lecturer role
+    // Include users where is_active is true, undefined, or null (treat undefined/null as active)
+    const lecturers = await User.find({ 
+      role: { $regex: /^lecturer$/i },
+      $or: [
+        { is_active: true },
+        { is_active: { $exists: false } },
+        { is_active: null }
+      ]
+    })
+      .select('_id name email full_name role')
+      .sort({ name: 1 });
+    
+    console.log(`Found ${lecturers.length} lecturers`);
+    if (lecturers.length > 0) {
+      console.log('First lecturer:', JSON.stringify(lecturers[0], null, 2));
+    } else {
+      // Debug: Check what users exist
+      const allUsers = await User.find({}).select('_id name email role is_active').limit(10);
+      console.log('Sample users in database:', JSON.stringify(allUsers, null, 2));
+      
+      // Also check specifically for lecturer role variations
+      const lecturerVariations = await User.find({
+        $or: [
+          { role: 'lecturer' },
+          { role: 'Lecturer' },
+          { role: 'LECTURER' }
+        ]
+      }).select('_id name email role is_active').limit(10);
+      console.log('Users with lecturer role variations:', JSON.stringify(lecturerVariations, null, 2));
+    }
+    
+    res.json(lecturers);
+  } catch (error) {
+    console.error('Error fetching lecturers:', error);
+    res.status(500).json({ error: 'Failed to fetch lecturers', details: error.message });
+  }
+});
+
+// GET /api/courses/pending-verifications - Get courses pending verification for lecturer
+// MUST be before /:id route to avoid route conflict
+router.get('/pending-verifications', checkJwt, extractUser, requireLecturer, async (req, res) => {
+  try {
+    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
+    if (!lecturer) {
+      return res.status(404).json({ error: 'Lecturer not found' });
+    }
+    
+    const courses = await Course.find({
+      lecturer_id: lecturer._id,
+      verification_status: 'unverified',
+      is_active: true
+    })
+      .populate('lecturer_id', 'name email full_name')
+      .populate('created_by_user', 'name email full_name')
+      .populate('students', 'name email full_name')
+      .sort({ createdAt: -1 });
+    
+    res.json(courses);
+  } catch (error) {
+    console.error('Error fetching pending verifications:', error);
+    res.status(500).json({ error: 'Failed to fetch pending verifications' });
   }
 });
 
@@ -123,8 +198,8 @@ router.get('/:id', checkJwt, extractUser, async (req, res) => {
   }
 });
 
-// POST /api/courses - Create new course (Lecturer/Admin only)
-router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
+// POST /api/courses - Create new course (Lecturer/Admin/Student)
+router.post('/', checkJwt, extractUser, async (req, res) => {
   try {
     const {
       course_name,
@@ -134,13 +209,42 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       credits,
       semester,
       year,
-      students = []
+      students = [],
+      lecturer_id
     } = req.body;
     
-    // Find lecturer user
-    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
-    if (!lecturer) {
-      return res.status(404).json({ error: 'Lecturer not found' });
+    const userRole = req.userInfo.roles[0];
+    const currentUser = await User.findOne({ auth0_id: req.auth.sub });
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    let courseLecturerId;
+    let createdBy = 'lecturer';
+    let verificationStatus = 'verified';
+    
+    if (userRole === 'student') {
+      // Students can create courses but need to select a lecturer
+      if (!lecturer_id) {
+        return res.status(400).json({ error: 'Lecturer selection is required when creating a course as a student' });
+      }
+      
+      // Verify the lecturer exists and is actually a lecturer
+      const selectedLecturer = await User.findById(lecturer_id);
+      if (!selectedLecturer || selectedLecturer.role !== 'lecturer') {
+        return res.status(400).json({ error: 'Invalid lecturer selected' });
+      }
+      
+      courseLecturerId = lecturer_id;
+      createdBy = 'student';
+      verificationStatus = 'unverified'; // Student-created courses need verification
+    } else if (userRole === 'lecturer' || userRole === 'admin') {
+      // Lecturers create courses for themselves
+      courseLecturerId = currentUser._id;
+      createdBy = 'lecturer';
+      verificationStatus = 'verified'; // Lecturer-created courses are auto-verified
+    } else {
+      return res.status(403).json({ error: 'Insufficient permissions to create courses' });
     }
     
     const course = new Course({
@@ -151,13 +255,17 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       credits,
       semester,
       year,
-      lecturer_id: lecturer._id,
-      students: students
+      lecturer_id: courseLecturerId,
+      students: students,
+      created_by: createdBy,
+      created_by_user: currentUser._id,
+      verification_status: verificationStatus
     });
     
     await course.save();
     await course.populate('lecturer_id', 'name email full_name');
     await course.populate('students', 'name email full_name');
+    await course.populate('created_by_user', 'name email full_name');
     
     res.status(201).json(course);
   } catch (error) {
@@ -438,6 +546,50 @@ router.delete('/:id', checkJwt, extractUser, async (req, res) => {
   } catch (error) {
     console.error('Error deleting course:', error);
     res.status(500).json({ error: 'Failed to delete course' });
+  }
+});
+
+// PUT /api/courses/:id/verify - Verify or reject course (Lecturer only)
+router.put('/:id/verify', checkJwt, extractUser, requireLecturer, async (req, res) => {
+  try {
+    const { verification_status } = req.body;
+    
+    if (!['verified', 'rejected'].includes(verification_status)) {
+      return res.status(400).json({ error: 'Invalid verification status. Must be "verified" or "rejected"' });
+    }
+    
+    const lecturer = await User.findOne({ auth0_id: req.auth.sub });
+    if (!lecturer) {
+      return res.status(404).json({ error: 'Lecturer not found' });
+    }
+    
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ error: 'Course not found' });
+    }
+    
+    // Verify the lecturer is the assigned lecturer for this course
+    if (!course.lecturer_id.equals(lecturer._id)) {
+      return res.status(403).json({ error: 'You can only verify courses assigned to you' });
+    }
+    
+    // Update verification status
+    course.verification_status = verification_status;
+    course.verified_at = new Date();
+    course.verified_by = lecturer._id;
+    
+    await course.save();
+    await course.populate('lecturer_id', 'name email full_name');
+    await course.populate('created_by_user', 'name email full_name');
+    await course.populate('students', 'name email full_name');
+    
+    res.json({
+      message: `Course ${verification_status === 'verified' ? 'verified' : 'rejected'} successfully`,
+      course
+    });
+  } catch (error) {
+    console.error('Error verifying course:', error);
+    res.status(500).json({ error: 'Failed to verify course' });
   }
 });
 

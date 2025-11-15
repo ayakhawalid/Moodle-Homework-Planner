@@ -659,10 +659,85 @@ router.get('/test-auth0', checkJwt, extractUser, requireAdmin, async (req, res) 
   }
 });
 
-// POST /api/users/refresh-roles - Refresh all user roles from Auth0 using Management API
-router.post('/refresh-roles', checkJwt, extractUser, requireAdminOrReadUsers, async (req, res) => {
+// POST /api/users/refresh-my-role - Refresh current user's role from Auth0 (any authenticated user)
+router.post('/refresh-my-role', checkJwt, extractUser, async (req, res) => {
   try {
-    console.log('Starting bulk role refresh from Auth0 using Management API...');
+    const auth0Id = req.userInfo.auth0_id;
+    
+    // Find the user in our database
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    console.log(`Refreshing role for user: ${user.email} (Auth0 ID: ${auth0Id})`);
+    
+    // Get roles from token
+    const tokenRoles = req.userInfo.roles || [];
+    console.log(`Token roles:`, tokenRoles);
+
+    // Sync role from Auth0 Management API
+    try {
+      await syncUserRoleFromAuth0(user, tokenRoles);
+      await user.save();
+      console.log(`✅ Role refreshed successfully for ${user.email}: ${user.role}`);
+      
+      res.json({
+        success: true,
+        email: user.email,
+        old_role: user.role,
+        new_role: user.role,
+        message: 'Role refreshed successfully'
+      });
+    } catch (syncError) {
+      console.warn(`⚠️ Role sync failed for ${user.email}, using token roles:`, syncError.message);
+      
+      // Fallback to token roles
+      if (tokenRoles.length > 0) {
+        let roleFromToken = 'student';
+        if (tokenRoles.includes('admin')) {
+          roleFromToken = 'admin';
+        } else if (tokenRoles.includes('lecturer')) {
+          roleFromToken = 'lecturer';
+        }
+        
+        const oldRole = user.role;
+        if (user.role !== roleFromToken) {
+          user.role = roleFromToken;
+          await user.save();
+          console.log(`Role updated from token: ${oldRole} -> ${roleFromToken}`);
+        }
+        
+        res.json({
+          success: true,
+          email: user.email,
+          old_role: oldRole,
+          new_role: user.role,
+          message: 'Role refreshed from token (Management API unavailable)'
+        });
+      } else {
+        res.json({
+          success: true,
+          email: user.email,
+          old_role: user.role,
+          new_role: user.role,
+          message: 'No role changes detected'
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error refreshing user role:', error);
+    res.status(500).json({ error: 'Failed to refresh role', details: error.message });
+  }
+});
+
+// POST /api/users/refresh-roles - Refresh all user roles from Auth0 using Management API
+// Accessible to all authenticated users - uses server's M2M credentials (not user's token)
+// This ensures users don't need admin permissions to trigger role refresh
+router.post('/refresh-roles', checkJwt, extractUser, async (req, res) => {
+  try {
+    console.log(`Starting bulk role refresh from Auth0 (triggered by user: ${req.userInfo.email})...`);
+    console.log('Note: This uses server M2M credentials, not user permissions');
 
     const users = await User.find({ is_active: true, auth0_id: { $exists: true, $ne: null } });
     const results = [];

@@ -51,6 +51,29 @@ const courseSchema = new mongoose.Schema({
   is_active: {
     type: Boolean,
     default: true
+  },
+  
+  // Course creation and verification
+  created_by: {
+    type: String,
+    enum: ['lecturer', 'student'],
+    default: 'lecturer'
+  },
+  created_by_user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  verification_status: {
+    type: String,
+    enum: ['verified', 'unverified', 'rejected'],
+    default: 'verified' // Lecturer-created courses are verified by default
+  },
+  verified_at: {
+    type: Date
+  },
+  verified_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 }, {
   timestamps: true,

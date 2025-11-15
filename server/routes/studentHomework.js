@@ -262,6 +262,14 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
 
+    // Check if course is verified (required for homework creation)
+    if (course.verification_status !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Course must be verified before creating homework',
+        verification_status: course.verification_status
+      });
+    }
+
     // Check if user has access to course
     if (userRole === 'student' && !course.students.includes(user._id)) {
       return res.status(403).json({ error: 'You are not enrolled in this course' });

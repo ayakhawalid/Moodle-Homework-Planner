@@ -169,6 +169,14 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
     
+    // Check if course is verified (required for homework creation)
+    if (course.verification_status !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Course must be verified before creating homework',
+        verification_status: course.verification_status
+      });
+    }
+    
     const lecturer = await User.findOne({ auth0_id: req.auth.sub });
     if (!course.lecturer_id.equals(lecturer._id)) {
       return res.status(403).json({ error: 'Access denied' });
