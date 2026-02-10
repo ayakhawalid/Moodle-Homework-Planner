@@ -36,7 +36,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Group as GroupIcon,
-  School as SchoolIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
 import {
@@ -45,7 +44,9 @@ import {
   CalendarBlank as CalendarBlankIcon,
   Users as UsersIcon,
   TextAlignLeft as TextAlignLeftIcon,
-  Notebook as NotebookIcon
+  Notebook as NotebookIcon,
+  CheckCircle as CheckCircleIcon,
+  XCircle as XCircleIcon
 } from 'phosphor-react';
 import DashboardLayout from '../../Components/DashboardLayout';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
@@ -54,6 +55,7 @@ import { apiService } from '../../services/api';
 const CourseManagement = () => {
   const { user } = useUserSyncContext();
   const [courses, setCourses] = useState([]);
+  const [pendingVerifications, setPendingVerifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -83,6 +85,7 @@ const CourseManagement = () => {
 
   useEffect(() => {
     loadCourses();
+    loadPendingVerifications();
   }, []);
 
   const loadCourses = async () => {
@@ -95,6 +98,34 @@ const CourseManagement = () => {
       setError('Failed to load courses');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPendingVerifications = async () => {
+    try {
+      const response = await apiService.courses.getPendingVerifications();
+      setPendingVerifications(response.data || response);
+    } catch (error) {
+      console.error('Error loading pending verifications:', error);
+    }
+  };
+
+  const handleVerifyCourse = async (courseId, status) => {
+    try {
+      if (status === 'rejected') {
+        // Delete the course when rejected
+        await apiService.courses.delete(courseId);
+        setSuccess('Course rejected and deleted successfully!');
+      } else {
+        // Verify the course
+        await apiService.courses.verify(courseId, status);
+        setSuccess('Course verified successfully!');
+      }
+      loadCourses();
+      loadPendingVerifications();
+    } catch (error) {
+      console.error('Error verifying/rejecting course:', error);
+      setError(error?.response?.data?.error || `Failed to ${status === 'rejected' ? 'reject' : 'verify'} course`);
     }
   };
 
@@ -265,31 +296,110 @@ const CourseManagement = () => {
           </Alert>
         )}
 
-        <div className="dashboard-card">
+        {/* Pending Verifications Section */}
+        {pendingVerifications.length > 0 && (
+          <div className="dashboard-card course-management-container" style={{ marginBottom: '24px', background: 'transparent', boxShadow: 'none', border: 'none' }}>
+            <div className="card-content">
+              <Typography variant="h6" gutterBottom sx={{ mb: 2, color: '#F38181', fontWeight: 'bold' }}>
+                Pending Course Verifications ({pendingVerifications.length})
+              </Typography>
+              <TableContainer sx={{ background: 'transparent' }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: 'rgba(149, 225, 211, 0.2)' }}>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Course Details</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Code</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Semester/Year</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Credits</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Created By</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {pendingVerifications.map((course) => (
+                      <TableRow key={course._id} hover>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              {course.course_name}
+                            </Typography>
+                            {course.description && (
+                              <Typography variant="body2" color="text.secondary">
+                                {course.description.substring(0, 100)}
+                                {course.description.length > 100 ? '...' : ''}
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={String(course.course_code || 'No Code')} 
+                            variant="outlined" 
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Box>
+                            {course.semester && (
+                              <Chip 
+                                label={String(course.semester).charAt(0).toUpperCase() + String(course.semester).slice(1)} 
+                                size="small"
+                                sx={{ mr: 1, ...getSemesterChipColor(course.semester) }}
+                              />
+                            )}
+                            <Typography variant="body2" color="text.secondary">
+                              {course.year}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {course.credits ? `${course.credits} credits` : 'Not specified'}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {course.created_by_user?.name || course.created_by_user?.email || 'Unknown'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box display="flex" gap={1}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleVerifyCourse(course._id, 'verified')}
+                              sx={{
+                                color: '#2E7D32',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(46, 125, 50, 0.1)'
+                                }
+                              }}
+                            >
+                              <CheckCircleIcon size={20} weight="fill" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleVerifyCourse(course._id, 'rejected')}
+                              sx={{
+                                color: '#D32F2F',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(211, 47, 47, 0.1)'
+                                }
+                              }}
+                            >
+                              <XCircleIcon size={20} weight="fill" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </div>
+          </div>
+        )}
+
+        {courses.length > 0 && (
+        <div className="dashboard-card course-management-container" style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}>
           <div className="card-content">
-            {courses.length === 0 ? (
-              <Box textAlign="center" py={4}>
-                <SchoolIcon sx={{ fontSize: 64, color: '#95E1D3', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  No courses found
-                </Typography>
-                <Typography variant="body2" color="text.secondary" mb={3}>
-                  Start by creating your first course to manage your classes and assignments.
-                </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => handleOpenDialog()}
-                  sx={{
-                    backgroundColor: '#D6F7AD',
-                    color: '#333',
-                    '&:hover': { backgroundColor: '#c8f299' }
-                  }}
-                >
-                  Create Your First Course
-                </Button>
-              </Box>
-            ) : (
               <TableContainer sx={{ background: 'transparent' }}>
                 <Table>
                   <TableHead>
@@ -384,9 +494,9 @@ const CourseManagement = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
-            )}
           </div>
         </div>
+        )}
 
         {/* Add/Edit Course Dialog */}
         <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>

@@ -1,14 +1,16 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUserSyncContext } from '../contexts/UserSyncContext';
 
 /**
- * Custom hook to handle authentication state and user roles
- * This hook uses Auth0 directly and falls back to localStorage for demo mode
+ * Custom hook to handle authentication state and user roles.
+ * Prefers backend (synced) role over JWT role so "Continue with Google" and role updates work.
  */
 export const useAuth = () => {
   const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0();
   const navigate = useNavigate();
+  const { user: syncedUser, syncStatus } = useUserSyncContext();
 
   const userRoles = useMemo(() => {
     // Use JWT roles from Auth0
@@ -22,6 +24,22 @@ export const useAuth = () => {
   }, [user]);
 
   const userRole = useMemo(() => (userRoles.length > 0 ? userRoles[0] : null), [userRoles]);
+
+  // Prefer backend/synced role. When sync has completed, backend is source of truth: null role = pending (do not use JWT).
+  const effectiveRole = useMemo(() => {
+    const fromCallback = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('postLoginRole') : null;
+    if (syncStatus === 'synced' && syncedUser != null) {
+      return syncedUser.role ?? null;
+    }
+    return fromCallback ?? userRole ?? null;
+  }, [syncedUser, syncStatus, userRole]);
+
+  // Clear post-login role once sync has a role so we don't use stale data on next visit
+  useEffect(() => {
+    if (syncedUser?.role && typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('postLoginRole');
+    }
+  }, [syncedUser?.role]);
 
   const userInfo = useMemo(() => {
     if (user) {
@@ -102,22 +120,21 @@ export const useAuth = () => {
     loginWithRedirect();
   }, [loginWithRedirect]);
 
-  // Check if user has specific role
+  // Check if user has specific role (use effective role from backend when available)
   const hasRole = useCallback((requiredRole) => {
-    return userRole === requiredRole;
-  }, [userRole]);
+    return effectiveRole === requiredRole;
+  }, [effectiveRole]);
 
   // Check if user has any of the specified roles
   const hasAnyRole = useCallback((roleList = []) => {
+    if (effectiveRole && roleList.includes(effectiveRole)) return true;
     return roleList.some(role => userRoles.includes(role));
-  }, [userRoles]);
+  }, [effectiveRole, userRoles]);
 
-  // Check if user has the required role, considering hierarchy
+  // Check if user has the required role, considering hierarchy (use effective role)
   const hasRequiredRole = useCallback((requiredRole) => {
-    console.log('Checking required role:', requiredRole);
-    console.log("User's current role(s):", userRoles);
-    if (!requiredRole) return true; // No role required
-    if (!userRole) return false; // User has no role
+    if (!requiredRole) return true;
+    if (!effectiveRole) return false;
 
     const roleHierarchy = {
       admin: ['admin', 'lecturer', 'student'],
@@ -125,51 +142,33 @@ export const useAuth = () => {
       student: ['student'],
     };
 
-    const allowedRoles = roleHierarchy[userRole] || [];
-    const hasRole = allowedRoles.includes(requiredRole);
-    console.log(`User has required role (${requiredRole}): ${hasRole}`);
-    return hasRole;
-  }, [userRole, userRoles]);
+    const allowedRoles = roleHierarchy[effectiveRole] || [];
+    return allowedRoles.includes(requiredRole);
+  }, [effectiveRole]);
 
-  // Auto-redirect based on role after Auth0 login
+  // Auto-redirect based on effective role (backend over JWT)
   const redirectToDashboard = useCallback(() => {
-    if (!userRole) {
+    if (!effectiveRole) {
       navigate('/role-pending');
       return;
     }
 
-    let dashboardPath;
-    switch (userRole) {
-      case 'student':
-        dashboardPath = '/student/dashboard';
-        break;
-      case 'lecturer':
-        dashboardPath = '/lecturer/dashboard';
-        break;
-      case 'admin':
-        dashboardPath = '/admin/dashboard';
-        break;
-      default:
-        dashboardPath = '/role-pending';
-    }
+    const path = effectiveRole === 'admin' ? '/admin/dashboard'
+      : effectiveRole === 'lecturer' ? '/lecturer/dashboard'
+      : '/student/dashboard';
+    window.location.href = path;
+  }, [effectiveRole, navigate]);
 
-    console.log('Redirecting to dashboard path:', dashboardPath);
-    // Use window.location for immediate redirect to prevent any flash
-    window.location.href = dashboardPath;
-  }, [userRole]);
-
-  // Store user data in localStorage for app-wide access
+  // Store user data in localStorage (use effective role so backend role is reflected)
   useEffect(() => {
     if (isAuthenticated && userInfo && userInfo.id) {
-      // Store in localStorage for compatibility with existing code
       localStorage.setItem('token', 'auth0-jwt');
-      localStorage.setItem('role', userInfo.primaryRole);
-      localStorage.setItem('user', JSON.stringify(userInfo));
+      localStorage.setItem('role', effectiveRole || userInfo.primaryRole);
+      localStorage.setItem('user', JSON.stringify({ ...userInfo, primaryRole: effectiveRole || userInfo.primaryRole }));
 
-      console.log('User authenticated with role:', userInfo.primaryRole);
-      console.log('User roles from useAuth:', userInfo.roles);
+      console.log('User authenticated with role:', effectiveRole || userInfo.primaryRole);
     }
-  }, [isAuthenticated, userInfo]);
+  }, [isAuthenticated, userInfo, effectiveRole]);
 
   return {
     // Auth state
@@ -177,9 +176,9 @@ export const useAuth = () => {
     isLoading: isLoading,
     user: userInfo,
 
-    // Role checking
-    userRole: userRole,
-    userRoles: userRoles,
+    // Role: prefer backend (synced) over JWT so app behaves consistently
+    userRole: effectiveRole,
+    userRoles: effectiveRole ? [effectiveRole, ...userRoles.filter(r => r !== effectiveRole)] : userRoles,
     hasRole,
     hasAnyRole,
     hasRequiredRole,

@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
@@ -33,6 +34,68 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   }
 });
+
+/**
+ * Sync completion status (and grade when graded) to all partners for this homework.
+ * When one partner updates status, the other partner's Grade entry is updated too.
+ */
+async function syncCompletionStatusToPartners(homeworkId, currentStudentId, completionStatus, options = {}) {
+  const { grade, isStudentHomework = true, isLate = false } = options;
+  const hid = mongoose.Types.ObjectId.isValid(homeworkId) ? new mongoose.Types.ObjectId(homeworkId) : homeworkId;
+  const cid = mongoose.Types.ObjectId.isValid(currentStudentId) ? new mongoose.Types.ObjectId(currentStudentId) : currentStudentId;
+  const partnerships = await Partner.find({
+    homework_id: hid,
+    $or: [
+      { student1_id: cid },
+      { student2_id: cid }
+    ],
+    partnership_status: { $in: ['accepted', 'active', 'completed'] }
+  });
+  if (partnerships.length === 0) {
+    console.log(`Sync: no partnerships found for homework ${hid}, current student ${cid}`);
+    return;
+  }
+  const htype = isStudentHomework ? 'student' : 'traditional';
+  for (const p of partnerships) {
+    const partnerId = p.student1_id.equals(cid) ? p.student2_id : p.student1_id;
+    if (completionStatus === 'not_started') {
+      const existing = await Grade.findOne({
+        student_id: partnerId,
+        homework_id: hid,
+        homework_type: htype
+      });
+      if (existing) await Grade.findByIdAndDelete(existing._id);
+      continue;
+    }
+    let partnerGrade = await Grade.findOne({
+      student_id: partnerId,
+      homework_id: hid,
+      homework_type: htype
+    });
+    if (!partnerGrade) {
+      partnerGrade = new Grade({
+        student_id: partnerId,
+        homework_id: hid,
+        homework_type: htype,
+        completion_status: completionStatus,
+        graded_by: cid,
+        graded_at: new Date()
+      });
+    } else {
+      partnerGrade.completion_status = completionStatus;
+      partnerGrade.graded_at = new Date();
+    }
+    if (completionStatus === 'completed' || completionStatus === 'graded') {
+      partnerGrade.submission_date = partnerGrade.submission_date || new Date();
+      partnerGrade.is_late = isLate;
+    }
+    if (completionStatus === 'graded' && grade !== undefined && grade !== null) {
+      partnerGrade.grade = grade;
+    }
+    await partnerGrade.save();
+    console.log(`Synced status ${completionStatus} to partner ${partnerId} for homework ${hid}`);
+  }
+}
 
 // GET /api/student-homework - Get all homework for student
 router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
@@ -112,6 +175,8 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
         name: 'Lecturer',
         email: 'lecturer@university.edu'
       },
+      allow_partners: hw.allow_partners || false,
+      max_partners: hw.max_partners ?? 1,
       // completion_status will be set from Grade table
       deadline_verification_status: 'verified', // Traditional homework is considered verified
       grade_verification_status: 'unverified',
@@ -130,25 +195,47 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
       course_code: hw.course?.code
     })));
 
-    // Combine both types
-    const homework = [...studentHomework, ...convertedTraditionalHomework];
+    // Combine both types; tag each with homework_type for correct Grade lookup
+    const studentHomeworkWithType = studentHomework.map(hw => {
+      const obj = hw.toObject ? hw.toObject() : { ...hw };
+      return { ...obj, _homework_type: 'student' };
+    });
+    const convertedWithType = convertedTraditionalHomework.map(hw => ({ ...hw, _homework_type: 'traditional' }));
+    const homework = [...studentHomeworkWithType, ...convertedWithType];
 
-    // Get all homework IDs for Grade lookup
-    const allHomeworkIds = homework.map(hw => hw._id);
+    // Get all homework IDs for Grade lookup (normalize to ObjectId so we match Grades saved by sync)
+    const allHomeworkIds = homework
+      .map(hw => hw._id)
+      .filter(Boolean)
+      .map(id => (mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id));
 
-    // Get completion status from Grade table for all homework
+    // Get completion status from Grade table (match by homework_id and homework_type so status is correct)
     const grades = await Grade.find({
       student_id: studentId,
       homework_id: { $in: allHomeworkIds }
     });
 
-    // Create a map of homework_id to completion_status and grade
     const completionStatusMap = new Map();
     const gradeMap = new Map();
+    const toKey = (hid, htype) => String(hid) + '_' + (htype || 'traditional');
     grades.forEach(grade => {
-      completionStatusMap.set(grade.homework_id.toString(), grade.completion_status);
-      gradeMap.set(grade.homework_id.toString(), grade.grade);
+      if (!grade.homework_id) return;
+      const key = toKey(grade.homework_id, grade.homework_type);
+      completionStatusMap.set(key, grade.completion_status);
+      gradeMap.set(key, grade.grade);
     });
+    const getCompletionStatus = (hw) => {
+      const preferredType = hw._homework_type || (hw.uploader_role === 'lecturer' ? 'traditional' : 'student');
+      const keyPreferred = toKey(hw._id, preferredType);
+      const keyOther = toKey(hw._id, preferredType === 'student' ? 'traditional' : 'student');
+      return completionStatusMap.get(keyPreferred) || completionStatusMap.get(keyOther) || 'not_started';
+    };
+    const getActualGrade = (hw) => {
+      const preferredType = hw._homework_type || (hw.uploader_role === 'lecturer' ? 'traditional' : 'student');
+      const keyPreferred = toKey(hw._id, preferredType);
+      const keyOther = toKey(hw._id, preferredType === 'student' ? 'traditional' : 'student');
+      return gradeMap.get(keyPreferred) ?? gradeMap.get(keyOther) ?? null;
+    };
 
     // Debug: Log grades data
     console.log('=== STUDENT HOMEWORK GRADES DEBUG ===');
@@ -217,14 +304,15 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
         claimed_deadline: hw.claimed_deadline,
         verified_deadline: hw.verified_deadline,
         deadline_verification_status: hw.deadline_verification_status,
-        completion_status: completionStatusMap.get(hw._id.toString()) || 'not_started',
-        actual_grade: gradeMap.get(hw._id.toString()) || null, // Add actual grade from Grade table
-        claimed_grade: hw.claimed_grade || null, // Keep claimed grade for student-created homework
+        completion_status: getCompletionStatus(hw),
+        actual_grade: getActualGrade(hw),
+        claimed_grade: hw.claimed_grade || null,
         days_until_deadline: hw.days_until_deadline,
         createdAt: hw.createdAt,
         completed_at: hw.completed_at,
         is_late: hw.is_late,
-        // Add partner information
+        allow_partners: hw.allow_partners === true || hw.allow_partners === 'true',
+        max_partners: hw.max_partners ?? 1,
         partner_info: partnershipMap.get(hw._id.toString()) || { has_partner: false }
       })),
       courses: courses
@@ -262,6 +350,14 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
 
+    // Check if course is verified (required for homework creation)
+    if (course.verification_status !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Course must be verified before creating homework',
+        verification_status: course.verification_status
+      });
+    }
+
     // Check if user has access to course
     if (userRole === 'student' && !course.students.includes(user._id)) {
       return res.status(403).json({ error: 'You are not enrolled in this course' });
@@ -271,7 +367,7 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       return res.status(403).json({ error: 'You are not the lecturer for this course' });
     }
 
-    // Create homework
+    // Create homework (coerce allow_partners to boolean so "true" from form is saved correctly)
     const homework = new StudentHomework({
       title,
       description,
@@ -279,9 +375,9 @@ router.post('/', checkJwt, extractUser, async (req, res) => {
       uploaded_by: user._id,
       uploader_role: userRole,
       claimed_deadline: new Date(claimed_deadline),
-      allow_partners: allow_partners || false,
-      max_partners: max_partners || 1,
-      deadline_verification_status: 'unverified' // Set to unverified for lecturer verification
+      allow_partners: allow_partners === true || allow_partners === 'true',
+      max_partners: typeof max_partners === 'number' && max_partners >= 1 ? max_partners : 1,
+      deadline_verification_status: 'unverified'
     });
 
     await homework.save();
@@ -464,6 +560,11 @@ router.put('/:id', checkJwt, extractUser, requireStudent, async (req, res) => {
           await Grade.findByIdAndDelete(gradeEntry._id);
           console.log(`Removed Grade entry for student ${user._id} and homework ${homeworkId} (status changed to not_started)`);
         }
+        try {
+          await syncCompletionStatusToPartners(homeworkId, user._id, 'not_started', { isStudentHomework });
+        } catch (syncErr) {
+          console.warn('Partner sync failed (non-fatal):', syncErr.message);
+        }
       } else {
         // For other statuses, create or update Grade entry
         if (!gradeEntry) {
@@ -496,6 +597,16 @@ router.put('/:id', checkJwt, extractUser, requireStudent, async (req, res) => {
 
         await gradeEntry.save();
         console.log(`Updated Grade entry for student ${user._id} and homework ${homeworkId} to status: ${completion_status}`);
+        // Sync status to partners so both see the same state
+        try {
+          await syncCompletionStatusToPartners(homeworkId, user._id, completion_status, {
+            grade: gradeEntry.grade,
+            isStudentHomework,
+            isLate: gradeEntry.is_late
+          });
+        } catch (syncErr) {
+          console.warn('Partner sync failed (non-fatal):', syncErr.message);
+        }
       }
     }
     await homework.populate('course_id', 'course_name course_code');
@@ -599,49 +710,25 @@ router.put('/:id/complete', checkJwt, extractUser, requireStudent, async (req, r
 
     await gradeEntry.save();
 
-    // Handle partnership grading
+    // Sync completion status (and grade) to partners so both see submitted/completed
     let updatedPartners = [];
-    if (claimed_grade !== null && claimed_grade !== undefined) {
-      // Check if student has partners for this homework
-      const partnership = await Partner.findOne({
+    try {
+      await syncCompletionStatusToPartners(homeworkId, user._id, completionStatus, {
+        grade: claimed_grade,
+        isStudentHomework,
+        isLate: is_late || false
+      });
+      const partnerships = await Partner.find({
         homework_id: homeworkId,
-        $or: [
-          { student1_id: user._id },
-          { student2_id: user._id }
-        ],
+        $or: [{ student1_id: user._id }, { student2_id: user._id }],
         partnership_status: { $in: ['accepted', 'active'] }
       });
-
-      if (partnership) {
-        // Get the partner's ID
-        const partnerId = partnership.student1_id.equals(user._id) 
-          ? partnership.student2_id 
-          : partnership.student1_id;
-
-        // Find partner's grade entry
-        const partnerGradeEntry = await Grade.findOne({
-          student_id: partnerId,
-          homework_id: homeworkId,
-          homework_type: isStudentHomework ? 'student' : 'traditional'
-        });
-
-        if (partnerGradeEntry) {
-          // Update partner's grade entry with the same grade
-          partnerGradeEntry.completion_status = completionStatus;
-          partnerGradeEntry.completed_at = new Date();
-          partnerGradeEntry.is_late = is_late || false;
-          partnerGradeEntry.grade = claimed_grade;
-          
-          await partnerGradeEntry.save();
-          
-          updatedPartners.push({
-            student_id: partnerId,
-            grade: claimed_grade
-          });
-          
-          console.log(`Grade ${claimed_grade} propagated to partner ${partnerId} for homework ${homeworkId}`);
-        }
-      }
+      updatedPartners = partnerships.map(p => ({
+        student_id: p.student1_id.equals(user._id) ? p.student2_id : p.student1_id,
+        grade: claimed_grade
+      }));
+    } catch (syncErr) {
+      console.warn('Partner sync failed (non-fatal):', syncErr.message);
     }
 
     // Return success response
@@ -719,6 +806,13 @@ router.put('/:id/start', checkJwt, extractUser, requireStudent, async (req, res)
     // Update completion status to 'in_progress'
     gradeEntry.completion_status = 'in_progress';
     await gradeEntry.save();
+
+    // Sync to partners so both see "in progress"
+    try {
+      await syncCompletionStatusToPartners(homeworkId, user._id, 'in_progress', { isStudentHomework });
+    } catch (syncErr) {
+      console.warn('Partner sync failed (non-fatal):', syncErr.message);
+    }
 
     res.json({
       message: 'Homework marked as started',
@@ -877,7 +971,9 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
         email: user.email,
         role: 'lecturer'
       },
-      deadline_verification_status: 'verified', // Traditional homework is considered verified
+      allow_partners: hw.allow_partners || false,
+      max_partners: hw.max_partners ?? 1,
+      deadline_verification_status: 'verified',
       grade_verification_status: 'unverified',
       tags: [],
       moodle_url: '',
@@ -909,6 +1005,8 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
         verified_deadline: hw.verified_deadline,
         deadline_verification_status: hw.deadline_verification_status,
         grade_verification_status: hw.grade_verification_status,
+        allow_partners: hw.allow_partners === true || hw.allow_partners === 'true',
+        max_partners: hw.max_partners ?? 1,
         createdAt: hw.createdAt,
         updatedAt: hw.updatedAt
       })),

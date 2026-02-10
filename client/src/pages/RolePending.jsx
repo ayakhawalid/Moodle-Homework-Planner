@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuth } from '../hooks/useAuth';
+import { useUserSyncContext } from '../contexts/UserSyncContext';
 import { 
   Box, 
   Card, 
@@ -20,6 +21,17 @@ import {
 const RolePending = () => {
   const { user, logout } = useAuth0();
   const { userRole, userRoles, logout: authLogout } = useAuth();
+  const { user: syncedUser, syncStatus } = useUserSyncContext();
+
+  // Redirect only when backend has assigned a role (sync completed). Do not use JWT role alone to avoid loop with student dashboard.
+  useEffect(() => {
+    if (syncStatus !== 'synced' || !syncedUser) return;
+    const backendRole = syncedUser.role;
+    if (backendRole && ['admin', 'lecturer', 'student'].includes(backendRole)) {
+      const path = backendRole === 'admin' ? '/admin/dashboard' : backendRole === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
+      window.location.href = path;
+    }
+  }, [syncStatus, syncedUser]);
 
   const handleRefresh = () => {
     // Refresh the page to check if roles have been assigned

@@ -212,11 +212,30 @@ const requireReadUsers = requirePermission('read:users');
 const requireWriteUsers = requirePermission('write:users');
 const requireReadStats = requirePermission('read:stats');
 
-// Combined middlewares (role OR permission)
-const requireAdminOrReadUsers = requireRoleOrPermission(['admin'], ['read:users']);
-const requireAdminOrReadStats = requireRoleOrPermission(['admin'], ['read:stats']);
-const requireAdminOrWriteUsers = requireRoleOrPermission(['admin'], ['write:users']);
-const requireAdminOrManageUsers = requireRoleOrPermission(['admin'], ['delete:users', 'write:users', 'manage:users']);
+// DB-first admin check: if user is admin in database, allow (so Google login works before JWT has role)
+const withDbAdminFallback = (roleOrPermissionMiddleware) => {
+  return async (req, res, next) => {
+    if (!req.userInfo) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    try {
+      const User = require('../models/User');
+      const user = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+      if (user && user.role === 'admin') {
+        return next();
+      }
+    } catch (e) {
+      console.warn('[Auth] DB admin check failed:', e.message);
+    }
+    return roleOrPermissionMiddleware(req, res, next);
+  };
+};
+
+// Combined middlewares (role OR permission); DB admin is accepted so Google-linked admins work
+const requireAdminOrReadUsers = withDbAdminFallback(requireRoleOrPermission(['admin'], ['read:users']));
+const requireAdminOrReadStats = withDbAdminFallback(requireRoleOrPermission(['admin'], ['read:stats']));
+const requireAdminOrWriteUsers = withDbAdminFallback(requireRoleOrPermission(['admin'], ['write:users']));
+const requireAdminOrManageUsers = withDbAdminFallback(requireRoleOrPermission(['admin'], ['delete:users', 'write:users', 'manage:users']));
 
 // Middleware to check if user owns resource or is admin
 const requireOwnershipOrAdmin = (userIdField = 'student_id') => {
@@ -225,9 +244,18 @@ const requireOwnershipOrAdmin = (userIdField = 'student_id') => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Admins can access everything
-    if (req.userInfo.roles.includes('admin')) {
+    // Admins can access everything (JWT or DB so Google-linked admins work)
+    if (req.userInfo.roles && req.userInfo.roles.includes('admin')) {
       return next();
+    }
+    try {
+      const User = require('../models/User');
+      const user = await User.findOne({ auth0_id: req.userInfo.auth0_id });
+      if (user && user.role === 'admin') {
+        return next();
+      }
+    } catch (e) {
+      console.warn('[Auth] DB admin check failed:', e.message);
     }
 
     // Get the user ID from the database record

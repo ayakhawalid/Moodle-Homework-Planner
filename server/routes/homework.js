@@ -169,6 +169,14 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
       return res.status(404).json({ error: 'Course not found' });
     }
     
+    // Check if course is verified (required for homework creation)
+    if (course.verification_status !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Course must be verified before creating homework',
+        verification_status: course.verification_status
+      });
+    }
+    
     const lecturer = await User.findOne({ auth0_id: req.auth.sub });
     if (!course.lecturer_id.equals(lecturer._id)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -231,13 +239,17 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
       title,
       description,
       due_date,
-      allow_late_submission
+      allow_late_submission,
+      allow_partners,
+      max_partners
     } = req.body;
     
     if (title) homework.title = title;
     if (description) homework.description = description;
     if (due_date) homework.due_date = due_date;
     if (allow_late_submission !== undefined) homework.allow_late_submission = allow_late_submission;
+    if (allow_partners !== undefined) homework.allow_partners = allow_partners;
+    if (max_partners !== undefined) homework.max_partners = max_partners;
     
     await homework.save();
     await homework.populate('course_id', 'course_name course_code');

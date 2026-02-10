@@ -37,7 +37,14 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
   // If a specific role is required, check if the user has it
   if (!hasRequiredRole(requiredRole)) {
-    // If not, redirect to the user's own dashboard
+    return <Navigate to={`/${userRole}/dashboard`} replace />;
+  }
+
+  // If user's role is higher than required (e.g. admin on student route), send to their dashboard
+  const roleOrder = { admin: 3, lecturer: 2, student: 1 };
+  const userLevel = roleOrder[userRole] || 0;
+  const requiredLevel = roleOrder[requiredRole] || 0;
+  if (requiredLevel > 0 && userLevel > requiredLevel) {
     return <Navigate to={`/${userRole}/dashboard`} replace />;
   }
 

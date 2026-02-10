@@ -103,6 +103,7 @@ graph TB
 | `name` | String | No | Display name |
 | `full_name` | String | No | Full legal name |
 | `username` | String | No | Username (unique when present) |
+| `student_id` | String | No | User/student display ID (e.g. 9-digit ID for identification in course lists and reports); sparse |
 | `role` | String | No | User role: 'student', 'lecturer', 'admin' |
 | `picture` | String | No | Profile picture URL |
 | `email_verified` | Boolean | No | Email verification status (default: false) |

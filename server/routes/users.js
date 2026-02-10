@@ -7,7 +7,9 @@ const {
   updateUserRoleInAuth0,
   updateAuth0UserProfile,
   updateAuth0UserMetadata,
-  getAllAuth0Users
+  getAllAuth0Users,
+  getAuth0User,
+  updateAuth0UserPassword
 } = require('../services/auth0Management');
 const {
   requireAdmin,
@@ -31,6 +33,22 @@ router.post('/', checkJwt, async (req, res) => {
       return res.status(400).json({ message: 'auth0_id, email, and name are required.' });
     }
 
+    const emailLocal = (email || '').split('@')[0];
+    let effectiveUsername = (username && username !== emailLocal) ? username : null;
+
+    // Prefer username from Auth0 Management API (what user entered on Auth0 signup) over client token/body
+    try {
+      const auth0User = await getAuth0User(auth0_id);
+      const fromAuth0 = auth0User?.username || auth0User?.nickname || auth0User?.user_metadata?.username;
+      const auth0Stored = (fromAuth0 && typeof fromAuth0 === 'string') ? fromAuth0.trim() : '';
+      if (auth0Stored && auth0Stored !== emailLocal) {
+        effectiveUsername = auth0Stored;
+        console.log(`Using username from Auth0 profile: ${effectiveUsername}`);
+      }
+    } catch (err) {
+      console.warn('Could not fetch Auth0 user for username:', err.message);
+    }
+
     console.log(`Syncing profile for auth0_id: ${auth0_id}`);
     console.log('Auth0 roles from token:', req.auth['https://my-app.com/roles']);
 
@@ -39,48 +57,68 @@ router.post('/', checkJwt, async (req, res) => {
 
     if (!user) {
       console.log(`No user found for auth0_id ${auth0_id} or email ${email}. Creating new user.`);
-      // Get roles from Auth0 token, default to 'student' if not present
+      // Do not default new users to 'student' — they must wait for admin to assign role (role-pending).
       const rolesFromAuth0 = req.auth['https://my-app.com/roles'] || [];
-      let initialRole = 'student'; // Default to student
+      let initialRole = null;
       if (rolesFromAuth0.includes('admin')) {
         initialRole = 'admin';
       } else if (rolesFromAuth0.includes('lecturer')) {
         initialRole = 'lecturer';
+      } else if (rolesFromAuth0.includes('student')) {
+        initialRole = 'student';
       } else if (rolesFromAuth0.length > 0) {
-        initialRole = rolesFromAuth0[0]; // Use the first role if no specific privilege found
+        initialRole = rolesFromAuth0[0];
       }
 
       user = new User({
         auth0_id,
         email,
         name,
-        full_name: full_name || name, // Use full_name if provided, otherwise use name
-        username: username || null,
+        full_name: full_name || name,
+        username: effectiveUsername,
         picture,
         email_verified,
-        role: initialRole, // Set initial role from Auth0 or default
+        role: initialRole, // null until admin assigns; or from Auth0 if already assigned
       });
     } else {
       console.log(`User found for auth0_id ${auth0_id} or email ${email}. Updating profile.`);
+      const wasFoundByEmail = (user.auth0_id !== auth0_id);
+      const existingRole = user.role;
+
       // Update user details, especially linking the auth0_id if it was found by email
       user.auth0_id = auth0_id;
       user.name = name;
       user.full_name = full_name || user.full_name || name;
-      user.username = username || user.username;
+      if (effectiveUsername !== null) {
+        user.username = effectiveUsername;
+      } else if (user.username === emailLocal) {
+        user.username = null;
+      }
       user.picture = picture;
       user.email_verified = email_verified || user.email_verified;
       user.last_login = new Date();
 
-      // Sync role from Auth0 Management API (authoritative source)
-      // Make this non-blocking with timeout to prevent slow Auth0 API from blocking user sync
       const tokenRoles = req.auth['https://my-app.com/roles'] || [];
       console.log(`Token roles for ${user.email}:`, tokenRoles);
 
-      // Try to sync role, but don't let it block the response for more than 5 seconds
+      // Account linking: same email, different Auth0 identity (e.g. "Continue with Google").
+      // Push existing role to this Auth0 identity so the JWT will include the role next time.
+      if (existingRole && ['admin', 'lecturer', 'student'].includes(existingRole)) {
+        if (wasFoundByEmail || !tokenRoles.length) {
+          try {
+            await updateUserRoleInAuth0(auth0_id, existingRole);
+            console.log(`✅ Linked/assigned role '${existingRole}' to auth0_id ${auth0_id}`);
+          } catch (linkErr) {
+            console.warn(`⚠️ Could not assign role to identity ${auth0_id}:`, linkErr.message);
+          }
+        }
+      }
+
+      // Sync role from Auth0 Management API (authoritative source)
       const syncRoleWithTimeout = async () => {
         return Promise.race([
           syncUserRoleFromAuth0(user, tokenRoles),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Role sync timeout')), 5000)
           )
         ]);
@@ -91,25 +129,46 @@ router.post('/', checkJwt, async (req, res) => {
         console.log(`✅ Role synced successfully for ${user.email}`);
       } catch (syncError) {
         console.warn(`⚠️ Role sync failed or timed out for ${user.email}, using token roles:`, syncError.message);
-        // Fallback to token roles if Management API sync fails
-        if (tokenRoles.length > 0) {
-          let roleFromToken = 'student';
-          if (tokenRoles.includes('admin')) {
-            roleFromToken = 'admin';
-          } else if (tokenRoles.includes('lecturer')) {
-            roleFromToken = 'lecturer';
+        if (existingRole && ['admin', 'lecturer', 'student'].includes(existingRole)) {
+          if (user.role !== existingRole) {
+            user.role = existingRole;
+            console.log(`Keeping existing role: ${existingRole}`);
           }
-          if (user.role !== roleFromToken) {
+        } else if (!existingRole || user.role === null || user.role === undefined) {
+          // Pending user (no role): do not assign from token — must wait for admin approval
+          console.log(`Keeping user ${user.email} as pending (no role from token when sync failed).`);
+        } else if (tokenRoles.length > 0) {
+          let roleFromToken = null;
+          if (tokenRoles.includes('admin')) roleFromToken = 'admin';
+          else if (tokenRoles.includes('lecturer')) roleFromToken = 'lecturer';
+          else if (tokenRoles.includes('student')) roleFromToken = 'student';
+          if (roleFromToken && user.role !== roleFromToken) {
             console.log(`Setting role from token: ${roleFromToken}`);
             user.role = roleFromToken;
           }
         }
-        // Continue even if role sync fails - user can still log in
+      }
+
+      // Never overwrite role when we linked by email (e.g. Continue with Google): Auth0 may
+      // still return no role or student; keep the existing account role.
+      if (wasFoundByEmail && existingRole && ['admin', 'lecturer', 'student'].includes(existingRole)) {
+        if (user.role !== existingRole) {
+          user.role = existingRole;
+          console.log(`Restoring linked-account role (do not overwrite): ${existingRole}`);
+        }
+      }
+
+      // Final safeguard: never wipe role for existing users (e.g. after password change). Ensure we never send them to role-pending.
+      if (existingRole && ['admin', 'lecturer', 'student'].includes(existingRole) && (user.role === null || user.role === undefined)) {
+        user.role = existingRole;
+        console.log(`[Sync] Restoring role before save (user had role): ${existingRole}`);
       }
     }
 
     await user.save();
-    res.status(200).json(user);
+    const payload = user.toObject ? user.toObject() : { ...user };
+    if (payload.role === undefined) payload.role = user.role;
+    res.status(200).json(payload);
 
   } catch (error) {
     console.error('Error syncing user profile:', error);
@@ -125,7 +184,7 @@ router.post('/', checkJwt, async (req, res) => {
 // PUT /api/users/profile - Update current user's profile
 router.put('/profile', checkJwt, async (req, res) => {
   try {
-    const { birth_date, gender, name, full_name, username, picture } = req.body;
+    const { birth_date, gender, name, full_name, username, picture, student_id } = req.body;
     const auth0_id = req.auth.sub;
 
     const user = await User.findOne({ auth0_id });
@@ -133,13 +192,25 @@ router.put('/profile', checkJwt, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Update allowed fields in database
+    // Update allowed fields in database. Do not store username when it's just the email local part.
+    const emailLocal = (user.email || '').split('@')[0];
     if (birth_date) user.birth_date = birth_date;
     if (gender) user.gender = gender;
     if (name) user.name = name;
     if (full_name) user.full_name = full_name;
-    if (username) user.username = username;
+    if (username && username !== emailLocal) {
+      user.username = username;
+    } else if (username === emailLocal || (username && username.trim() === emailLocal)) {
+      user.username = null;
+    }
     if (picture) user.picture = picture;
+    if (student_id !== undefined) {
+      const trimmed = typeof student_id === 'string' ? student_id.trim() : '';
+      if (trimmed && !/^\d{9}$/.test(trimmed)) {
+        return res.status(400).json({ error: 'ID must be exactly 9 digits' });
+      }
+      user.student_id = trimmed || null;
+    }
 
     await user.save();
 
@@ -197,18 +268,38 @@ router.get('/profile', checkJwt, extractUser, async (req, res) => {
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    // Convert to plain object and ensure all fields are included
+    // Convert to plain object and explicitly include username and all profile fields.
+    // If stored username is just the email local part, return null so client shows empty and user can set a real username.
     const userObject = user.toObject ? user.toObject() : user;
-    
-    console.log('[GET /profile] User found:', {
+    const emailLocal = (userObject.email || '').split('@')[0];
+    const storedUsername = userObject.username ?? null;
+    const usernameForClient = (storedUsername && storedUsername !== emailLocal) ? storedUsername : null;
+    const profileResponse = {
       _id: userObject._id,
-      email: userObject.email,
-      role: userObject.role,
       auth0_id: userObject.auth0_id,
-      name: userObject.name
+      email: userObject.email,
+      name: userObject.name,
+      full_name: userObject.full_name,
+      username: usernameForClient,
+      picture: userObject.picture,
+      role: userObject.role,
+      email_verified: userObject.email_verified,
+      student_id: userObject.student_id ?? null,
+      is_active: userObject.is_active,
+      last_login: userObject.last_login,
+      createdAt: userObject.createdAt,
+      updatedAt: userObject.updatedAt
+    };
+
+    console.log('[GET /profile] User found:', {
+      _id: profileResponse._id,
+      email: profileResponse.email,
+      role: profileResponse.role,
+      username_stored: storedUsername,
+      username_sent: profileResponse.username
     });
 
-    res.json(userObject);
+    res.json(profileResponse);
   } catch (error) {
     console.error('[GET /profile] Error getting user profile:', error);
     res.status(500).json({ error: 'Failed to get user profile' });
@@ -443,6 +534,40 @@ router.put('/:id/role', checkJwt, extractUser, requireAdmin, async (req, res) =>
   }
 });
 
+// PUT /api/users/:id/password - Set user password in Auth0 (Admin only)
+router.put('/:id/password', checkJwt, extractUser, requireAdmin, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (!user.auth0_id) {
+      return res.status(400).json({ error: 'User has no Auth0 account; cannot set password' });
+    }
+    await updateAuth0UserPassword(user.auth0_id, password);
+    // Re-assign role in Auth0 so it doesn't treat the user as new / strip roles after password change
+    if (user.role && ['admin', 'lecturer', 'student'].includes(user.role)) {
+      try {
+        await updateUserRoleInAuth0(user.auth0_id, user.role);
+        console.log(`✅ Re-assigned role '${user.role}' in Auth0 for ${user.email} after password change`);
+      } catch (roleErr) {
+        console.warn('Could not re-assign role in Auth0 after password change:', roleErr.message);
+      }
+    }
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error updating user password:', error);
+    res.status(500).json({ error: error.message || 'Failed to update password' });
+  }
+});
+
 // DELETE /api/users/:id - Delete user in DB and Auth0
 router.delete('/:id', checkJwt, extractUser, requireAdminOrManageUsers, async (req, res) => {
   try {
@@ -659,10 +784,85 @@ router.get('/test-auth0', checkJwt, extractUser, requireAdmin, async (req, res) 
   }
 });
 
-// POST /api/users/refresh-roles - Refresh all user roles from Auth0 using Management API
-router.post('/refresh-roles', checkJwt, extractUser, requireAdminOrReadUsers, async (req, res) => {
+// POST /api/users/refresh-my-role - Refresh current user's role from Auth0 (any authenticated user)
+router.post('/refresh-my-role', checkJwt, extractUser, async (req, res) => {
   try {
-    console.log('Starting bulk role refresh from Auth0 using Management API...');
+    const auth0Id = req.userInfo.auth0_id;
+    
+    // Find the user in our database
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in database' });
+    }
+
+    console.log(`Refreshing role for user: ${user.email} (Auth0 ID: ${auth0Id})`);
+    
+    // Get roles from token
+    const tokenRoles = req.userInfo.roles || [];
+    console.log(`Token roles:`, tokenRoles);
+
+    // Sync role from Auth0 Management API
+    try {
+      await syncUserRoleFromAuth0(user, tokenRoles);
+      await user.save();
+      console.log(`✅ Role refreshed successfully for ${user.email}: ${user.role}`);
+      
+      res.json({
+        success: true,
+        email: user.email,
+        old_role: user.role,
+        new_role: user.role,
+        message: 'Role refreshed successfully'
+      });
+    } catch (syncError) {
+      console.warn(`⚠️ Role sync failed for ${user.email}, using token roles:`, syncError.message);
+      
+      // Fallback to token roles
+      if (tokenRoles.length > 0) {
+        let roleFromToken = 'student';
+        if (tokenRoles.includes('admin')) {
+          roleFromToken = 'admin';
+        } else if (tokenRoles.includes('lecturer')) {
+          roleFromToken = 'lecturer';
+        }
+        
+        const oldRole = user.role;
+        if (user.role !== roleFromToken) {
+          user.role = roleFromToken;
+          await user.save();
+          console.log(`Role updated from token: ${oldRole} -> ${roleFromToken}`);
+        }
+        
+        res.json({
+          success: true,
+          email: user.email,
+          old_role: oldRole,
+          new_role: user.role,
+          message: 'Role refreshed from token (Management API unavailable)'
+        });
+      } else {
+        res.json({
+          success: true,
+          email: user.email,
+          old_role: user.role,
+          new_role: user.role,
+          message: 'No role changes detected'
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error refreshing user role:', error);
+    res.status(500).json({ error: 'Failed to refresh role', details: error.message });
+  }
+});
+
+// POST /api/users/refresh-roles - Refresh all user roles from Auth0 using Management API
+// Accessible to all authenticated users - uses server's M2M credentials (not user's token)
+// This ensures users don't need admin permissions to trigger role refresh
+router.post('/refresh-roles', checkJwt, extractUser, async (req, res) => {
+  try {
+    console.log(`Starting bulk role refresh from Auth0 (triggered by user: ${req.userInfo.email})...`);
+    console.log('Note: This uses server M2M credentials, not user permissions');
 
     const users = await User.find({ is_active: true, auth0_id: { $exists: true, $ne: null } });
     const results = [];

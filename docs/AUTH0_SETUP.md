@@ -163,6 +163,16 @@ After successful Auth0 login:
 - Existing localStorage-based authentication preserved
 - Seamless integration with existing components
 
+## Continue with Google (same email)
+
+If a user signs up with **email/password** (Auth0 Database) and later uses **Continue with Google** with the same email, Auth0 creates a second user (e.g. `google-oauth2|...`) while your app has one account by email. The app now:
+
+1. **Backend:** When a login matches an existing user by **email** (different Auth0 identity, e.g. Google), it treats this as account linking: it assigns the existing user’s role to the new Auth0 identity in Auth0 and keeps that role in the database. No need to request a role again.
+2. **Frontend:** After sync, the redirect uses the role from the backend if the JWT has no role yet, so the user goes to the correct dashboard instead of "role pending".
+
+**Optional (Auth0 Dashboard):** You can link identities in Auth0 so one user has both Database and Google logins:
+- User Management → Users → select the Auth0 Database user → **Linked Accounts** → Link with the Google account. After that, both logins use the same Auth0 user and roles.
+
 ## Troubleshooting
 
 ### Common Issues

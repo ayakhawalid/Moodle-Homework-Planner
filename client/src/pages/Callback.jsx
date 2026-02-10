@@ -18,9 +18,10 @@ const Callback = () => {
       console.log('Callback component loaded successfully');
 
       (async () => {
+        let syncedRole = null;
         try {
-          // Ensure user profile exists in our DB before proceeding
-          await apiService.user.syncProfile({
+          // Ensure user profile exists in our DB before proceeding (returns user with role)
+          const synced = await apiService.user.syncProfile({
             email: user.email,
             name: user.name,
             full_name: user.given_name || user.name,
@@ -28,41 +29,53 @@ const Callback = () => {
             picture: user.picture,
             email_verified: user.email_verified
           });
-
-          // If a preferred signup username exists, update profile once after signup/login
-          const preferredUsername = localStorage.getItem('signup_username');
-          if (preferredUsername) {
-            await apiService.user.updateProfile({ username: preferredUsername });
-            localStorage.removeItem('signup_username');
-          } else if (user.nickname) {
-            // If no preferred username, try to set Auth0 nickname as username
-            await apiService.user.updateProfile({ username: user.nickname });
+          syncedRole = synced?.role ?? synced?.data?.role;
+          if (!syncedRole && synced && (synced._id || synced.data?._id)) {
+            try {
+              const profile = await apiService.user.getProfile();
+              const p = profile?.data ?? profile;
+              if (p?.role && ['admin', 'lecturer', 'student'].includes(p.role)) syncedRole = p.role;
+            } catch (_) {}
           }
 
-          // If a signup role was selected, submit a role request
-          // Only submit role request if this is actually a signup (not a regular login)
+          // Username: use only Auth0 signup value (username field, nickname, or preferred_username). Ignore if it's just the email prefix.
+          const signupId = localStorage.getItem('signup_id');
+          const emailLocal = (user.email || '').split('@')[0];
+          const auth0Username = (user.username || user.nickname || user.preferred_username || '').trim();
+          const profileUpdates = {};
+          if (auth0Username && auth0Username !== emailLocal) {
+            profileUpdates.username = auth0Username;
+          }
+          if (signupId) {
+            profileUpdates.student_id = signupId;
+            localStorage.removeItem('signup_id');
+          }
+          if (Object.keys(profileUpdates).length > 0) {
+            await apiService.user.updateProfile(profileUpdates);
+          }
+
           const signupRole = localStorage.getItem('signup_role');
           const isSignupFlow = localStorage.getItem('is_signup_flow') === 'true';
-          
           if (signupRole && isSignupFlow) {
             console.log('Submitting role request for signup:', signupRole);
             await apiService.roleRequests.submit(signupRole);
             localStorage.removeItem('signup_role');
             localStorage.removeItem('is_signup_flow');
           } else if (signupRole && !isSignupFlow) {
-            // Clean up stale signup role from localStorage if this is not a signup flow
-            console.log('Cleaning up stale signup role from regular login');
             localStorage.removeItem('signup_role');
           }
-
         } catch (e) {
           console.warn('Failed during post-signup processing (username/role request):', e);
-        } finally {
-          // Immediate redirect without delay
-          console.log('Redirecting user with role:', userRole);
-          console.log('All user roles:', userRoles);
-          console.log('Current location:', window.location.href);
-          redirectToDashboard();
+        }
+        // Only use backend role for redirect. New signups (no role in DB) go to pending or home, not student dashboard.
+        console.log('Redirecting with role:', syncedRole, '(from backend; JWT role:', userRole, ')');
+        if (syncedRole && ['admin', 'lecturer', 'student'].includes(syncedRole)) {
+          sessionStorage.setItem('postLoginRole', syncedRole);
+          const path = syncedRole === 'admin' ? '/admin/dashboard' : syncedRole === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
+          window.location.href = path;
+        } else {
+          // No role assigned yet (e.g. new signup) -> role-pending or home, not student dashboard
+          navigate('/role-pending', { replace: true });
         }
       })();
     }

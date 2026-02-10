@@ -362,61 +362,7 @@ const AdminDashboard = () => {
         </Grid>
 
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={6}>
-            <div className="dashboard-card">
-              <div className="card-header">
-                <div className="card-icon primary">
-                  <PeopleIcon />
-                </div>
-                <div>
-                  <h3 className="card-title">Quick Actions</h3>
-                  <p className="card-subtitle">Manage your system</p>
-                </div>
-              </div>
-              <div className="card-content">
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Button 
-                    variant="contained" 
-                    href="/admin/users"
-                    fullWidth
-                    sx={{ 
-                      backgroundColor: '#95E1D3', 
-                      color: '#333',
-                      '&:hover': { backgroundColor: '#7dd3c0' }
-                    }}
-                  >
-                    Manage Users
-                  </Button>
-                  <Button 
-                    variant="contained" 
-                    href="/admin/analytics"
-                    fullWidth
-                    sx={{ 
-                      backgroundColor: '#D6F7AD', 
-                      color: '#333',
-                      '&:hover': { backgroundColor: '#c8f299' }
-                    }}
-                  >
-                    View Analytics
-                  </Button>
-                  <Button 
-                    variant="contained" 
-                    href="/admin/settings"
-                    fullWidth
-                    sx={{ 
-                      backgroundColor: '#FCE38A', 
-                      color: '#333',
-                      '&:hover': { backgroundColor: '#fbd65e' }
-                    }}
-                  >
-                    System Settings
-                  </Button>
-                </Box>
-              </div>
-            </div>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <div className="dashboard-card" style={{ minHeight: '400px' }}>
               <div className="card-header">
                 <div className="card-icon accent">
@@ -474,9 +420,7 @@ const AdminDashboard = () => {
                           variant="contained" 
                           onClick={async () => {
                             try {
-                              const result = await apiService.roleRequests.approve(rr._id);
-                              console.log('Role request approved:', result);
-                              alert(`✅ Role updated successfully!\n\nUser: ${rr.user?.email}\nOld Role: ${result.data?.oldRole}\nNew Role: ${result.data?.newRole}\n\nThe user needs to log out and log back in to see the new role.`);
+                              await apiService.roleRequests.approve(rr._id);
                               loadRoleRequests();
                               fetchStats();
                             } catch (error) {

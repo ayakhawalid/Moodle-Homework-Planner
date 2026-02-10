@@ -12,7 +12,7 @@ import {
   Divider,
   TextField
 } from '@mui/material';
-import { Login as LoginIcon, School as StudentIcon, MenuBook as LecturerIcon } from '@mui/icons-material';
+import { Login as LoginIcon } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { useUserSyncContext } from '../contexts/UserSyncContext';
 // Using favicon as logo
@@ -21,10 +21,12 @@ import '../styles/Login.css';
 
 const Auth0Login = () => {
   const { loginWithRedirect, isLoading, error, isAuthenticated, user } = useAuth0();
-  const { redirectToDashboard, userRole } = useAuth();
-  const { syncStatus } = useUserSyncContext();
+  const { userRole } = useAuth();
+  const { syncStatus, user: syncedUser } = useUserSyncContext();
   const location = useLocation();
   const navigate = useNavigate();
+  // Use backend role when JWT has no role (e.g. after "Continue with Google" account linking)
+  const effectiveRole = userRole || syncedUser?.role;
   
   // Debug logging
   useEffect(() => {
@@ -39,7 +41,8 @@ const Auth0Login = () => {
   }, [isAuthenticated, isLoading, user, syncStatus, userRole]);
 
   const [selectedRole, setSelectedRole] = useState('student');
-  const [username, setUsername] = useState('');
+  const [userId, setUserId] = useState('');
+  const isValidId = (val) => !val || /^\d{9}$/.test(val);
   
   // Get mode from URL parameters
   const getModeFromURL = () => {
@@ -72,12 +75,12 @@ const Auth0Login = () => {
   };
 
   const handleSignupWithRole = async () => {
-    console.log('Attempting signup with role:', selectedRole, 'username:', username);
+    console.log('Attempting signup with role:', selectedRole, 'id:', userId);
     try {
       localStorage.setItem('signup_role', selectedRole);
       localStorage.setItem('is_signup_flow', 'true'); // Mark this as a signup flow
-      if (username.trim()) {
-        localStorage.setItem('signup_username', username.trim());
+      if (userId.trim() && isValidId(userId.trim())) {
+        localStorage.setItem('signup_id', userId.trim());
       }
     } catch (_) {}
     loginWithRedirect({
@@ -157,41 +160,34 @@ const Auth0Login = () => {
     }
   }, [isLoading, isAuthenticated]);
 
-  // Redirect authenticated users to dashboard
+  // Redirect by effective role (JWT or synced backend role) so "Continue with Google" works
+  const redirectByRole = (role) => {
+    if (!role) {
+      navigate('/role-pending');
+      return;
+    }
+    const path = role === 'admin' ? '/admin/dashboard' : role === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
+    window.location.href = path;
+  };
+
   useEffect(() => {
-    // Only proceed if Auth0 confirms user is authenticated, has user object, AND not loading
     if (isAuthenticated && user && !isLoading) {
-      // Wait for user sync to complete, then redirect
-      if (syncStatus === 'synced' && userRole) {
-        console.log('User already authenticated, redirecting to dashboard...');
-        redirectToDashboard();
+      if (syncStatus === 'synced') {
+        if (effectiveRole) {
+          console.log('User already authenticated, redirecting to dashboard...');
+          redirectByRole(effectiveRole);
+        } else {
+          navigate('/role-pending');
+        }
       } else if (syncStatus === 'error') {
-        // If sync failed, still try to redirect (might have partial data)
         console.warn('User sync failed, attempting redirect anyway...');
-        setTimeout(() => {
-          if (userRole) {
-            redirectToDashboard();
-          } else {
-            // No role assigned, redirect to role pending
-            navigate('/role-pending');
-          }
-        }, 1000);
+        setTimeout(() => redirectByRole(effectiveRole), 1000);
       } else if (syncStatus === 'syncing') {
-        // Set a timeout fallback (5 seconds) in case sync hangs
-        const timeoutId = setTimeout(() => {
-          console.warn('User sync taking too long, redirecting anyway...');
-          if (userRole) {
-            redirectToDashboard();
-          } else {
-            navigate('/role-pending');
-          }
-        }, 5000);
-        
+        const timeoutId = setTimeout(() => redirectByRole(effectiveRole), 5000);
         return () => clearTimeout(timeoutId);
       }
-      // If syncing, wait - the useEffect will trigger again when syncStatus changes
     }
-  }, [isAuthenticated, isLoading, user, syncStatus, userRole, redirectToDashboard, navigate]);
+  }, [isAuthenticated, isLoading, user, syncStatus, effectiveRole, navigate]);
 
   // Only show "already logged in" if Auth0 confirms user exists AND not loading
   // Require both isAuthenticated AND user object to prevent false positives
@@ -247,16 +243,16 @@ const Auth0Login = () => {
               
               <Box display="flex" flexDirection="column" gap={1.5}>
                 <TextField
-                  label="Username (optional)"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                  placeholder="Enter your preferred username"
-                  helperText="3-30 characters: letters, numbers, underscore, dot"
-                  inputProps={{ pattern: '^[a-z0-9_.]{3,30}$' }}
+                  label="Your ID (optional)"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  placeholder="9 digits"
+                  helperText={userId && !isValidId(userId) ? 'Must be exactly 9 digits' : 'Used to identify you in course lists and reports'}
+                  error={!!userId && !isValidId(userId)}
+                  inputProps={{ maxLength: 9, inputMode: 'numeric', pattern: '[0-9]*' }}
                 />
                 <Button 
                   variant="contained"
-                  startIcon={<StudentIcon />} 
                   onClick={() => setSelectedRole('student')}
                   sx={{
                     backgroundColor: selectedRole === 'student' ? '#95E1D3' : 'rgba(149, 225, 211, 0.3)',
@@ -271,7 +267,6 @@ const Auth0Login = () => {
                 </Button>
                 <Button 
                   variant="contained"
-                  startIcon={<LecturerIcon />} 
                   onClick={() => setSelectedRole('lecturer')}
                   sx={{
                     backgroundColor: selectedRole === 'lecturer' ? '#D6F7AD' : 'rgba(214, 247, 173, 0.3)',
@@ -296,11 +291,12 @@ const Auth0Login = () => {
                     }
                   }}
                 >
-                  I'm an Admin (request)
+                  I'm an Admin
                 </Button>
                 <Button 
                   variant="contained" 
                   onClick={handleSignupWithRole}
+                  disabled={!!userId && !isValidId(userId)}
                   sx={{
                     backgroundColor: '#F38181',
                     color: 'white',

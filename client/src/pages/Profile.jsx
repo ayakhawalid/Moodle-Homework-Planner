@@ -9,31 +9,54 @@ import '../styles/HomeworkCard.css';
 
 function Profile() {
   const { user, refreshUser } = useUserSyncContext();
-  const { logout } = useAuth0();
+  const { logout, user: auth0User } = useAuth0();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [data, setData] = useState({ name: '', full_name: '', username: '', picture: '' });
+  const [data, setData] = useState({ name: '', full_name: '', username: '', picture: '', student_id: '' });
   const [usernameCheck, setUsernameCheck] = useState({ checking: false, available: null, message: '' });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [profileDebug, setProfileDebug] = useState(null);
 
   let usernameTimeout;
   const isValidUsername = (val) => /^[a-z0-9_.]{3,30}$/.test(val || '');
+  const isValidId = (val) => !val || /^\d{9}$/.test(val);
 
   const load = async () => {
     setLoading(true);
     setError(null);
+    setProfileDebug(null);
     try {
       const profile = await apiService.user.getProfile();
+      const dataFromApi = profile?.data ?? profile;
+      const emailLocal = (dataFromApi?.email || '').split('@')[0];
+      const rawUsername = dataFromApi?.username ?? '';
+      const isUsernameEmailPrefix = !!rawUsername && rawUsername === emailLocal;
+
+      if (typeof window !== 'undefined' && window.location.search.includes('profile_debug=1')) {
+        const debug = {
+          rawProfileKeys: profile ? Object.keys(profile) : [],
+          usedDataFromApi: !!profile?.data,
+          apiUsername: rawUsername,
+          apiEmail: dataFromApi?.email ?? '',
+          emailLocalPart: emailLocal,
+          isUsernameSameAsEmailStart: isUsernameEmailPrefix,
+          fullProfile: profile
+        };
+        setProfileDebug(debug);
+        console.log('[Profile debug]', debug);
+      }
+
       setData({
-        name: profile.name || '',
-        full_name: profile.full_name || '',
-        username: profile.username || '',
-        picture: profile.picture || ''
+        name: dataFromApi.name || '',
+        full_name: dataFromApi.full_name || '',
+        username: dataFromApi.username ?? '',
+        picture: dataFromApi.picture || '',
+        student_id: dataFromApi.student_id || ''
       });
     } catch (e) {
       setError('Failed to load profile');
@@ -70,7 +93,8 @@ function Profile() {
         name: data.name,
         full_name: data.full_name,
         username: data.username,
-        picture: data.picture
+        picture: data.picture,
+        student_id: data.student_id || null
       });
       setSuccess('Profile updated successfully! Your changes have been saved to both the database and Auth0.');
       
@@ -127,24 +151,29 @@ function Profile() {
   const content = (
     <div className="white-page-background">
       <Box sx={{ p: 2 }}>
-        <div className="dashboard-card" style={{ maxWidth: 'none', margin: '0 auto' }}>
+        <div className="dashboard-card profile-page-container" style={{ maxWidth: 'none', margin: '0 auto', background: 'transparent', boxShadow: 'none', border: 'none' }}>
           <div className="card-content">
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={3}>
-              <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                <Avatar src={data.picture} sx={{ width: 96, height: 96 }} />
-                <TextField
-                  label="Image URL"
-                  value={data.picture}
-                  onChange={(e) => setData({ ...data, picture: e.target.value })}
-                  fullWidth
-                />
+          {profileDebug && (
+            <Alert severity="info" sx={{ mb: 2, fontFamily: 'monospace', fontSize: '0.85rem' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}><strong>Profile debug</strong> (add ?profile_debug=1 to URL)</Typography>
+              <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', m: 0 }}>
+                API username: {JSON.stringify(profileDebug.apiUsername)}{"\n"}
+                API email: {JSON.stringify(profileDebug.apiEmail)}{"\n"}
+                Email local part: {JSON.stringify(profileDebug.emailLocalPart)}{"\n"}
+                Username same as email start? {String(profileDebug.isUsernameSameAsEmailStart)}{"\n"}
+                Response shape: used profile.data? {String(profileDebug.usedDataFromApi)}, top-level keys: {profileDebug.rawProfileKeys?.join(', ') || '—'}
               </Box>
-            </Grid>
-            <Grid item xs={12} sm={9}>
+            </Alert>
+          )}
+
+          <Box display="flex" justifyContent="flex-start" sx={{ mb: 3 }}>
+            <Avatar src={data.picture} sx={{ width: 96, height: 96 }} />
+          </Box>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
               <TextField
                 label="Display Name"
                 value={data.name}
@@ -180,31 +209,56 @@ function Profile() {
                 }
                 error={(data.username && !isValidUsername(data.username)) || usernameCheck.available === false}
                 fullWidth
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Your ID"
+                value={data.student_id}
+                onChange={(e) => setData({ ...data, student_id: e.target.value.replace(/\D/g, '').slice(0, 9) })}
+                placeholder="9 digits"
+                helperText={data.student_id && !isValidId(data.student_id) ? 'Must be exactly 9 digits' : 'Used to identify you in course lists and reports'}
+                error={!!data.student_id && !isValidId(data.student_id)}
+                fullWidth
+                inputProps={{ maxLength: 9, inputMode: 'numeric', pattern: '[0-9]*' }}
               />
             </Grid>
           </Grid>
 
+          {/* Password: only admin can change it — user sends admin a message */}
+          <Box mt={3} pt={2} borderTop="1px solid #e0e0e0">
+            <Typography variant="subtitle1" sx={{ color: '#000000', mb: 1 }}>
+              Password
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              To change your password, contact an administrator at{' '}
+              <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+                {import.meta.env.VITE_ADMIN_EMAIL || 'aia.khaw110@gmail.com'}
+              </Typography>
+              . They can set a new password for your account from User Management.
+            </Typography>
+          </Box>
+
           <Box mt={3} display="flex" gap={2}>
             <Button
-              variant="contained"
+              variant="outlined"
               onClick={save}
-              disabled={saving || (data.username && !isValidUsername(data.username)) || usernameCheck.available === false}
-              sx={{ 
-                backgroundColor: '#D6F7AD', 
+              disabled={saving || (data.username && !isValidUsername(data.username)) || usernameCheck.available === false || (data.student_id && !isValidId(data.student_id))}
+              sx={{
+                borderColor: '#333',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                '&:hover': { borderColor: '#000', backgroundColor: 'transparent' }
               }}
             >
               {saving ? <CircularProgress size={20} /> : 'Save Changes'}
             </Button>
-            <Button 
-              variant="contained" 
-              onClick={load} 
+            <Button
+              variant="outlined"
+              onClick={load}
               disabled={loading}
-              sx={{ 
-                backgroundColor: '#D6F7AD',
+              sx={{
+                borderColor: '#333',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                '&:hover': { borderColor: '#000', backgroundColor: 'transparent' }
               }}
             >
               Reset
@@ -223,10 +277,10 @@ function Profile() {
               variant="outlined"
               onClick={openDeleteDialog}
               disabled={deleting}
-              sx={{ 
-                borderColor: '#F38181', 
-                color: '#F38181',
-                '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+              sx={{
+                borderColor: '#333',
+                color: '#333',
+                '&:hover': { borderColor: '#000', backgroundColor: 'transparent' }
               }}
             >
               Delete Account
@@ -269,24 +323,26 @@ function Profile() {
           />
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={closeDeleteDialog} 
+          <Button
+            onClick={closeDeleteDialog}
+            variant="outlined"
             disabled={deleting}
-            sx={{ 
-              color: '#95E1D3',
-              '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+            sx={{
+              borderColor: '#333',
+              color: '#333',
+              '&:hover': { borderColor: '#000', backgroundColor: 'transparent' }
             }}
           >
             Cancel
           </Button>
           <Button
             onClick={handleDeleteAccount}
-            variant="contained"
+            variant="outlined"
             disabled={deleting || deleteConfirmation !== 'DELETE'}
-            sx={{ 
-              backgroundColor: '#F38181', 
-              color: 'white',
-              '&:hover': { backgroundColor: '#e85a6b' }
+            sx={{
+              borderColor: '#333',
+              color: '#333',
+              '&:hover': { borderColor: '#000', backgroundColor: 'transparent' }
             }}
           >
             {deleting ? <CircularProgress size={20} /> : 'Delete Account'}

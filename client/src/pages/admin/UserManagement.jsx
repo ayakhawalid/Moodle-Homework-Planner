@@ -22,13 +22,13 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
-  Pagination,
   IconButton,
   Avatar
 } from '@mui/material';
 import {
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Lock as LockIcon
 } from '@mui/icons-material';
 import PermissionError from '../../Components/PermissionError';
 
@@ -43,6 +43,10 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState('');
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [userForPassword, setUserForPassword] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({});
 
@@ -222,6 +226,36 @@ const UserManagement = () => {
     }
   };
 
+  const handlePasswordChange = async () => {
+    if (!userForPassword || !newPassword.trim()) return;
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+    try {
+      setPasswordLoading(true);
+      setError(null);
+      const base = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com';
+      const url = `${base.replace(/\/$/, '')}/api/users/${userForPassword._id}/password`;
+      const resp = await fetchWithToken(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword })
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to update password: ${resp.status}`);
+      }
+      setPasswordDialogOpen(false);
+      setUserForPassword(null);
+      setNewPassword('');
+    } catch (err) {
+      setError(err?.message || err);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   // Refresh roles from Auth0 when navigating to the page
   const refreshRolesFromAuth0 = async () => {
     try {
@@ -296,7 +330,7 @@ const UserManagement = () => {
         </Alert>
       )}
 
-      <div className="dashboard-card">
+      <div className="dashboard-card user-management-table-container" style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}>
         <TableContainer>
           <Table>
             <TableHead>
@@ -349,8 +383,21 @@ const UserManagement = () => {
                       setRoleDialogOpen(true);
                     }}
                     sx={{ color: '#95E1D3', '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.1)' } }}
+                    title="Change role"
                   >
                     <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setUserForPassword(u);
+                      setNewPassword('');
+                      setPasswordDialogOpen(true);
+                    }}
+                    sx={{ color: '#666', '&:hover': { backgroundColor: 'rgba(0,0,0,0.06)' } }}
+                    title="Set password"
+                  >
+                    <LockIcon />
                   </IconButton>
                   <IconButton
                     size="small"
@@ -375,14 +422,6 @@ const UserManagement = () => {
         </Table>
         </TableContainer>
       </div>
-        <Box display="flex" justifyContent="center" mt={3}>
-          <Pagination 
-            count={totalPages}
-            page={page}
-            onChange={(e, value) => setPage(value)}
-            color="primary"
-          />
-        </Box>
       </Box>
       {/* Role Change Dialog */}
       <Dialog open={roleDialogOpen} onClose={() => setRoleDialogOpen(false)}>
@@ -422,6 +461,40 @@ const UserManagement = () => {
             }}
           >
             Update Role
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Set password dialog (admin) */}
+      <Dialog open={passwordDialogOpen} onClose={() => { setPasswordDialogOpen(false); setUserForPassword(null); setNewPassword(''); }}>
+        <DialogTitle>Set password</DialogTitle>
+        <DialogContent>
+          {userForPassword && (
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Set a new password for {userForPassword.name || userForPassword.email}. They will use it to sign in (Auth0 database connection). Minimum 8 characters.
+            </Typography>
+          )}
+          <TextField
+            autoFocus
+            type="password"
+            label="New password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            fullWidth
+            margin="normal"
+            inputProps={{ minLength: 8 }}
+            helperText={newPassword && newPassword.length < 8 ? 'At least 8 characters' : ''}
+            error={newPassword.length > 0 && newPassword.length < 8}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setPasswordDialogOpen(false); setUserForPassword(null); setNewPassword(''); }}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handlePasswordChange}
+            disabled={passwordLoading || newPassword.length < 8}
+          >
+            {passwordLoading ? <CircularProgress size={20} /> : 'Set password'}
           </Button>
         </DialogActions>
       </Dialog>

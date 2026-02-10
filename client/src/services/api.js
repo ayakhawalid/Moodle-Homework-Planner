@@ -254,6 +254,10 @@ export const apiService = {
       const response = await api.put(withApi(`/users/${id}/role`), { role });
       return response.data;
     },
+    setPassword: async (id, password) => {
+      const response = await api.put(withApi(`/users/${id}/password`), { password });
+      return response.data;
+    },
     deactivate: async (id) => {
       const response = await api.delete(withApi(`/users/${id}`));
       return response.data;
@@ -324,7 +328,10 @@ export const apiService = {
     getByStudent: (studentId) => api.get(withApi(`/courses/student/${studentId}`)),
     addStudent: (courseId, studentId) => api.post(withApi(`/courses/${courseId}/students`), { student_id: studentId }),
     updatePartnerSettings: (id, settings) => api.put(withApi(`/courses/${id}/partner-settings`), settings),
-    removeStudent: (courseId, studentId) => api.delete(withApi(`/courses/${courseId}/students/${studentId}`))
+    removeStudent: (courseId, studentId) => api.delete(withApi(`/courses/${courseId}/students/${studentId}`)),
+    getPendingVerifications: () => api.get(withApi('/courses/pending-verifications')),
+    verify: (courseId, verificationStatus) => api.put(withApi(`/courses/${courseId}/verify`), { verification_status: verificationStatus }),
+    getLecturers: () => api.get(withApi('/courses/lecturers'))
   },
 
   // Lecturer dashboard
@@ -337,6 +344,7 @@ export const apiService = {
         getHomeworkStatusAny: (courseId) => api.get(withApi(`/lecturer-dashboard/homework-status-any/${courseId}`)),
         getAllHomeworkStatus: () => api.get(withApi('/lecturer-dashboard/all-homework-status')),
         getAllHomework: () => api.get(withApi('/lecturer-dashboard/all-homework')),
+        getAssignmentTimelineTable: (courseId = null) => api.get(withApi('/lecturer-dashboard/assignment-timeline-table' + (courseId ? `?course_id=${courseId}` : ''))),
     getHomeworkChecker: (status = 'pending', courseId = null) => {
       const params = new URLSearchParams();
       if (status) params.append('status', status);

@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   last_login: { type: Date }, // Last login date
   metadata: { type: Object, default: {} }, // Additional metadata
   lastSynced: { type: Date }, // Last sync timestamp
+  student_id: { type: String, sparse: true }, // Student display ID (e.g. for lecturers to identify students)
 }, { timestamps: true }); // Automatically add createdAt and updatedAt fields
 
 module.exports = mongoose.model('User', userSchema);

@@ -21,7 +21,16 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Button
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import {
@@ -48,6 +57,19 @@ import {
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
 
+const ROWS_PER_PAGE = 10;
+
+// Format ISO date (YYYY-MM-DD) for display as DD.MM.YYYY (e.g. 2026-10-02 → 02.10.2026)
+const formatDeadlineDisplay = (isoStr) => {
+  if (!isoStr) return '';
+  const d = new Date(isoStr + 'T12:00:00');
+  if (isNaN(d.getTime())) return isoStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
 const CourseWorkloadOverview = () => {
   const { isAuthenticated } = useAuth0();
   const [courses, setCourses] = useState([]);
@@ -55,10 +77,17 @@ const CourseWorkloadOverview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedTimeframe, setSelectedTimeframe] = useState('30'); // days
+  const [selectedCourseForTimeline, setSelectedCourseForTimeline] = useState(''); // filter Assignment Timeline by course
   const [selectedCourseForWorkload, setSelectedCourseForWorkload] = useState('');
   const [studentWorkloadData, setStudentWorkloadData] = useState(null);
   const [lecturerCourses, setLecturerCourses] = useState([]);
   const [homeworkStatusData, setHomeworkStatusData] = useState(null);
+  const [timelineTableRows, setTimelineTableRows] = useState([]);
+  const [timelineTableLoading, setTimelineTableLoading] = useState(false);
+  const [selectedTableColumn, setSelectedTableColumn] = useState(null); // 'student' | 'course' | 'deadline'
+  const [selectedTableValue, setSelectedTableValue] = useState(null); // { type, id/date, label }
+  const [tablePage, setTablePage] = useState(0);
+  const [timelineTableMyCoursesOnly, setTimelineTableMyCoursesOnly] = useState(false);
 
   // Helper function to get status color
   const getStatusColor = (status) => {
@@ -114,47 +143,23 @@ const CourseWorkloadOverview = () => {
       const lecturerId = userResponse._id;
       console.log('Lecturer ID:', lecturerId);
       
-      // Fetch ALL courses (not just lecturer's courses)
-      console.log('Fetching all courses...');
-      let allCourses = [];
-      
+      // Fetch lecturer's own courses only (for Student Workload dropdown).
+      // Four statuses, assignment distribution, and timeline use ALL courses from getAllHomework().
+      console.log('Fetching lecturer courses for dropdown...');
+      let myCourses = [];
       try {
         const allCoursesResponse = await apiService.courses.getAll();
-        console.log('All courses response:', allCoursesResponse);
-        
         if (allCoursesResponse && allCoursesResponse.data) {
-          allCourses = allCoursesResponse.data.filter(course => course.is_active);
+          myCourses = allCoursesResponse.data.filter(course => course.is_active);
         } else if (Array.isArray(allCoursesResponse)) {
-          // Handle case where response is directly an array
-          allCourses = allCoursesResponse.filter(course => course.is_active);
-        } else {
-          throw new Error('Invalid courses response format');
+          myCourses = allCoursesResponse.filter(course => course.is_active);
         }
       } catch (coursesError) {
-        console.error('Error fetching all courses:', coursesError);
-        throw coursesError;
+        console.error('Error fetching lecturer courses:', coursesError);
       }
-        console.log('Active courses:', allCourses);
-        console.log('Course details:', allCourses.map(c => ({
-          id: c._id,
-          name: c.course_name,
-          code: c.course_code,
-          lecturer_id: c.lecturer_id
-        })));
-        setCourses(allCourses);
-        
-        // Also get lecturer's own courses for the student workload dropdown
-        const myCoursesOnly = allCourses.filter(course => 
-          course.lecturer_id && course.lecturer_id._id === lecturerId
-        );
-        setLecturerCourses(myCoursesOnly);
-        console.log('Lecturer courses:', myCoursesOnly);
-
-      if (allCourses.length === 0) {
-        console.log('No active courses found');
-        setAllHomework([]);
-        return;
-      }
+      // Backend already returns only this lecturer's courses when role is lecturer
+      setLecturerCourses(myCourses);
+      console.log('Lecturer courses for dropdown:', myCourses.length);
 
 
     } catch (err) {
@@ -287,6 +292,102 @@ const CourseWorkloadOverview = () => {
       console.log('User not authenticated, skipping homework fetch');
     }
   }, [isAuthenticated]); // Run when authentication status changes
+
+  // Fetch assignment timeline table (student, course, deadline rows) - always all courses; timeline filter is only for the graph above
+  useEffect(() => {
+    const fetchTable = async () => {
+      setTimelineTableLoading(true);
+      try {
+        const res = await apiService.lecturerDashboard.getAssignmentTimelineTable();
+        setTimelineTableRows(res.data.rows || []);
+      } catch (err) {
+        console.error('Error fetching assignment timeline table:', err);
+        setTimelineTableRows([]);
+      } finally {
+        setTimelineTableLoading(false);
+      }
+    };
+    if (isAuthenticated) fetchTable();
+  }, [isAuthenticated]);
+
+  // Table data for overview/detail (replaces D3 graphs)
+  const countUniqueHomework = (arr) => new Set((arr || []).map(r => String(r.homework_id))).size;
+  const lecturerCourseIds = new Set((lecturerCourses || []).map(c => String(c._id)));
+  const timelineTableRowsFiltered = timelineTableMyCoursesOnly
+    ? (timelineTableRows || []).filter(r => lecturerCourseIds.has(String(r.course_id)))
+    : (timelineTableRows || []);
+  const getTimelineTableData = () => {
+    const rows = timelineTableRowsFiltered;
+    if (rows.length === 0 || (!selectedTableColumn && !selectedTableValue)) return { kind: null, columns: [], rows: [] };
+    if (selectedTableValue?.type === 'course') return { kind: 'course', columns: [], rows: [] }; // course uses the two tables above
+
+    if (selectedTableValue?.type === 'student') {
+      const studentRows = rows.filter(r => String(r.student_id) === String(selectedTableValue.id));
+      const byCourse = new Map();
+      studentRows.forEach(r => {
+        const k = r.course_name || r.course_code || '';
+        if (!byCourse.has(k)) byCourse.set(k, []);
+        byCourse.get(k).push(r);
+      });
+      const tableRows = Array.from(byCourse.entries()).map(([name, arr]) => ({ name, count: countUniqueHomework(arr) })).sort((a, b) => (b.count - a.count));
+      return { kind: 'detailCourse', columns: ['Course', 'Assignment count'], rows: tableRows };
+    }
+    if (selectedTableValue?.type === 'deadline') {
+      const dateRows = rows.filter(r => r.deadline_str === selectedTableValue.date);
+      const byCourse = new Map();
+      dateRows.forEach(r => {
+        const k = r.course_name || r.course_code || '';
+        if (!byCourse.has(k)) byCourse.set(k, []);
+        byCourse.get(k).push(r);
+      });
+      const tableRows = Array.from(byCourse.entries()).map(([name, arr]) => ({ name, count: countUniqueHomework(arr) })).sort((a, b) => (b.count - a.count));
+      return { kind: 'detailCourse', columns: ['Course', 'Assignment count'], rows: tableRows };
+    }
+
+    if (selectedTableColumn === 'student') {
+      const byStudent = new Map();
+      rows.forEach(r => {
+        const k = String(r.student_display_id || r.student_id);
+        if (!byStudent.has(k)) byStudent.set(k, { name: r.student_name, id: k, rows: [] });
+        byStudent.get(k).rows.push(r);
+      });
+      const tableRows = Array.from(byStudent.entries())
+        .map(([id, v]) => {
+          const displayId = v.rows[0]?.student_display_id;
+          const hasDisplayId = displayId != null && String(displayId).trim() !== '';
+          return { studentName: v.name, studentId: id, studentDisplayId: hasDisplayId ? String(displayId) : '', count: v.rows.length };
+        })
+        .sort((a, b) => b.count - a.count);
+      return { kind: 'overviewStudent', columns: ['Student', 'Student ID', 'Assignment count'], rows: tableRows };
+    }
+    if (selectedTableColumn === 'course') {
+      const byCourse = new Map();
+      rows.forEach(r => {
+        const k = String(r.course_id || '');
+        if (!k) return;
+        if (!byCourse.has(k)) byCourse.set(k, []);
+        byCourse.get(k).push(r);
+      });
+      const tableRows = Array.from(byCourse.entries()).map(([courseId, arr]) => {
+        const first = arr[0];
+        const name = first?.course_name && first?.course_code ? `${first.course_name} (${first.course_code})` : (first?.course_name || first?.course_code || courseId);
+        return { name, count: countUniqueHomework(arr), courseId, label: name };
+      }).sort((a, b) => (b.count - a.count));
+      return { kind: 'overviewCourse', columns: ['Course', 'Assignment count'], rows: tableRows };
+    }
+    if (selectedTableColumn === 'deadline') {
+      const byDate = new Map();
+      rows.forEach(r => {
+        const k = r.deadline_str || '';
+        if (!byDate.has(k)) byDate.set(k, []);
+        byDate.get(k).push(r);
+      });
+      const tableRows = Array.from(byDate.entries()).map(([date, arr]) => ({ date, count: countUniqueHomework(arr) })).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      return { kind: 'overviewDeadline', columns: ['Due date', 'Assignment count'], rows: tableRows };
+    }
+    return { kind: null, columns: [], rows: [] };
+  };
+  const timelineTableData = getTimelineTableData();
 
 
 
@@ -423,42 +524,78 @@ const CourseWorkloadOverview = () => {
     }
   };
 
+  const extractHomeworkCourseId = (hw) => {
+    if (!hw) return null;
+    if (hw.course_id && typeof hw.course_id === 'object') return hw.course_id._id || null;
+    return hw.course_id || (hw.course && hw.course._id) || null;
+  };
+
+  const COURSE_LINE_COLORS = ['#0D9488', '#15803D', '#B45309', '#B91C1C', '#0E7490', '#047857', '#BE123C', '#1D4ED8', '#6D28D9', '#9D174D'];
+
   const getTimelineData = () => {
     try {
       const now = new Date();
       const timeframeDays = parseInt(selectedTimeframe);
-      const endDate = new Date(now.getTime() + timeframeDays * 24 * 60 * 60 * 1000);
+      const courseFilter = selectedCourseForTimeline || null;
 
-      // Create daily timeline
+      const dayHomeworkFilter = (hw) => {
+        if (!hw) return false;
+        const deadlineDate = hw.claimed_deadline || hw.due_date;
+        if (!deadlineDate) return false;
+        if (courseFilter) {
+          const cid = extractHomeworkCourseId(hw);
+          if (!cid || cid.toString() !== courseFilter) return false;
+        }
+        return true;
+      };
+
+      const filteredHomework = allHomework.filter(dayHomeworkFilter);
+      const courseIdsInRange = [...new Set(filteredHomework.map(hw => {
+        const id = extractHomeworkCourseId(hw);
+        return id && id.toString ? id.toString() : id;
+      }).filter(Boolean))];
+      const courseIdToInfo = new Map();
+      courses.forEach(c => {
+        const id = c._id && c._id.toString ? c._id.toString() : c._id;
+        if (id) courseIdToInfo.set(id, { name: c.course_name, code: c.course_code });
+      });
+      const orderedCourseIds = courseIdsInRange.filter(id => courseIdToInfo.has(id));
+      orderedCourseIds.sort((a, b) => (courseIdToInfo.get(a)?.code || a).localeCompare(courseIdToInfo.get(b)?.code || b));
+
+      // Total per day is always across ALL courses (ignores course filter)
+      const allHomeworkWithDeadline = allHomework.filter(hw => hw && (hw.claimed_deadline || hw.due_date));
       const timelineData = [];
       for (let i = 0; i < timeframeDays; i++) {
         const date = new Date(now.getTime() + i * 24 * 60 * 60 * 1000);
         const dateStr = date.toISOString().split('T')[0];
-        
-        const dayHomework = allHomework.filter(hw => {
-          if (!hw) return false;
-          const deadlineDate = hw.claimed_deadline || hw.due_date;
-          if (!deadlineDate) return false;
-          const deadline = new Date(deadlineDate);
+        const dayHomework = filteredHomework.filter(hw => {
+          const deadline = new Date(hw.claimed_deadline || hw.due_date);
           return deadline.toISOString().split('T')[0] === dateStr;
         });
-
+        const total = allHomeworkWithDeadline.filter(hw => {
+          const deadline = new Date(hw.claimed_deadline || hw.due_date);
+          return deadline.toISOString().split('T')[0] === dateStr;
+        }).length;
+        const byCourse = {};
+        orderedCourseIds.forEach(cid => { byCourse[cid] = 0; });
+        dayHomework.forEach(hw => {
+          const cid = extractHomeworkCourseId(hw);
+          const key = cid && cid.toString ? cid.toString() : cid;
+          if (key && byCourse[key] !== undefined) byCourse[key]++;
+        });
         timelineData.push({
           date: dateStr,
           day: date.getDate(),
           month: date.getMonth() + 1,
-          assignments: dayHomework.length,
-          courses: [...new Set(dayHomework.map(hw => {
-            if (hw.course_id && typeof hw.course_id === 'object') return hw.course_id._id;
-            return hw.course_id || (hw.course && hw.course._id);
-          }).filter(Boolean))].length
+          total,
+          ...byCourse
         });
       }
 
-      return timelineData;
+      return { timelineData, timelineCourseIds: orderedCourseIds, courseIdToInfo };
     } catch (error) {
       console.error('Error in getTimelineData:', error);
-      return [];
+      return { timelineData: [], timelineCourseIds: [], courseIdToInfo: new Map() };
     }
   };
 
@@ -473,6 +610,8 @@ const CourseWorkloadOverview = () => {
   // Safely get data with error handling
   let workloadData = [];
   let timelineData = [];
+  let timelineCourseIds = [];
+  let courseIdToInfo = new Map();
   
   try {
     console.log('=== RENDER DATA PROCESSING ===');
@@ -493,7 +632,10 @@ const CourseWorkloadOverview = () => {
     })));
     
     workloadData = getWorkloadData();
-    timelineData = getTimelineData();
+    const timelineResult = getTimelineData();
+    timelineData = timelineResult.timelineData;
+    timelineCourseIds = timelineResult.timelineCourseIds || [];
+    courseIdToInfo = timelineResult.courseIdToInfo || new Map();
     
     console.log('Processed data:', {
       totalHomework: allHomework.length,
@@ -532,10 +674,11 @@ const CourseWorkloadOverview = () => {
       {/* Timeframe Selector */}
       <Box sx={{ mb: 3 }}>
         <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Timeframe</InputLabel>
+          <InputLabel>Range</InputLabel>
           <Select
             value={selectedTimeframe}
             onChange={(e) => setSelectedTimeframe(e.target.value)}
+            label="Range"
           >
             <MenuItem value="7">Next 7 days</MenuItem>
             <MenuItem value="14">Next 14 days</MenuItem>
@@ -647,10 +790,10 @@ const CourseWorkloadOverview = () => {
         </Typography>
       </Box>
 
-      {/* Charts */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Course Workload Comparison */}
-        <Grid item xs={12} md={6}>
+      {/* Charts - same container structure as Student Workload Analysis for consistent width */}
+      <Box sx={{ mb: 4 }}>
+        {/* Assignment Distribution by Course */}
+        <Box sx={{ mb: 3 }}>
           <div className="dashboard-card">
             <div className="card-content">
               <Typography variant="h6" gutterBottom>
@@ -699,21 +842,40 @@ const CourseWorkloadOverview = () => {
               </Box>
             </div>
           </div>
-        </Grid>
+        </Box>
 
-        {/* Timeline */}
-        <Grid item xs={12}>
+        {/* Assignment Timeline */}
+        <Box sx={{ mb: 3 }}>
           <div className="dashboard-card">
             <div className="card-content">
-              <Typography variant="h6" gutterBottom>
-                Assignment Timeline (Next {selectedTimeframe} Days)
-              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+                <Typography variant="h6">
+                  Assignment Timeline (Next {selectedTimeframe} Days)
+                </Typography>
+                <FormControl size="small" sx={{ minWidth: 240 }}>
+                  <InputLabel>Filter by course</InputLabel>
+                  <Select
+                    value={selectedCourseForTimeline || ''}
+                    onChange={(e) => setSelectedCourseForTimeline(e.target.value || '')}
+                    label="Filter by course"
+                  >
+                    <MenuItem value="">
+                      <em>All courses</em>
+                    </MenuItem>
+                    {courses.map((c) => (
+                      <MenuItem key={c._id} value={c._id}>
+                        {c.course_name} ({c.course_code})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
               <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
                 <ResponsiveContainer 
                   width={timelineData.length > 14 ? timelineData.length * 60 : '100%'} 
                   height={400}
                 >
-                  <LineChart 
+                  <LineChart
                     data={timelineData && timelineData.length > 0 ? timelineData : []}
                     margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                   >
@@ -729,18 +891,281 @@ const CourseWorkloadOverview = () => {
                     <YAxis />
                     <Tooltip 
                       formatter={(value, name) => [value, name]}
-                      labelFormatter={(label) => `Date: ${label}`}
+                      labelFormatter={(label, payload) => payload?.[0]?.payload?.date ? `Date: ${formatDeadlineDisplay(payload[0].payload.date)}` : `Date: ${label}`}
                     />
                     <Legend />
-                    <Line type="monotone" dataKey="assignments" stroke="#7DD3C0" name="Assignments Due" strokeWidth={3} />
-                    <Line type="monotone" dataKey="courses" stroke="#E85A6B" name="Courses Affected" strokeWidth={3} />
+                    {timelineCourseIds.map((cid, idx) => (
+                      <Line
+                        key={cid}
+                        type="monotone"
+                        dataKey={cid}
+                        stroke={COURSE_LINE_COLORS[idx % COURSE_LINE_COLORS.length]}
+                        name={courseIdToInfo.get(cid) ? `${courseIdToInfo.get(cid).code} (${courseIdToInfo.get(cid).name})` : cid}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    ))}
+                    <Line type="monotone" dataKey="total" stroke="#1a1a1a" name="Total (Assignments Due)" strokeWidth={3} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
             </div>
           </div>
-        </Grid>
-      </Grid>
+        </Box>
+
+        {/* Assignment Timeline Table + D3 Graph */}
+        <Box sx={{ mb: 0 }}>
+          <div className="dashboard-card">
+            <div className="card-content">
+              <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <Typography variant="h6" component="span" sx={{ mr: 1 }}>
+                  Assignment Timeline Table — click a column header for overview, or a cell for detail
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={timelineTableMyCoursesOnly}
+                      onChange={(e) => {
+                        setTimelineTableMyCoursesOnly(e.target.checked);
+                        setTablePage(0);
+                      }}
+                      sx={{ color: '#95E1D3', '&.Mui-checked': { color: '#95E1D3' } }}
+                    />
+                  }
+                  label="My courses only"
+                />
+              </Box>
+              {timelineTableLoading ? (
+                <Box display="flex" justifyContent="center" py={4}><CircularProgress /></Box>
+              ) : (
+                <>
+                  <TableContainer component={Paper} sx={{ maxHeight: 360, mb: 2 }}>
+                    <Table stickyHeader size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell
+                            align="left"
+                            sx={{
+                              fontWeight: 'bold',
+                              backgroundColor: selectedTableColumn === 'student' && !selectedTableValue ? 'rgba(149, 225, 211, 0.4)' : undefined,
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              setSelectedTableColumn('student');
+                              setSelectedTableValue(null);
+                              setTablePage(0);
+                            }}
+                          >
+                            Student (Name & ID)
+                          </TableCell>
+                          <TableCell
+                            align="left"
+                            sx={{
+                              fontWeight: 'bold',
+                              backgroundColor: selectedTableColumn === 'course' && !selectedTableValue ? 'rgba(149, 225, 211, 0.4)' : undefined,
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              setSelectedTableColumn('course');
+                              setSelectedTableValue(null);
+                              setTablePage(0);
+                            }}
+                          >
+                            Course
+                          </TableCell>
+                          <TableCell
+                            align="left"
+                            sx={{
+                              fontWeight: 'bold',
+                              backgroundColor: selectedTableColumn === 'deadline' && !selectedTableValue ? 'rgba(149, 225, 211, 0.4)' : undefined,
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              setSelectedTableColumn('deadline');
+                              setSelectedTableValue(null);
+                              setTablePage(0);
+                            }}
+                          >
+                            Deadline
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {timelineTableRowsFiltered
+                          .slice(tablePage * ROWS_PER_PAGE, tablePage * ROWS_PER_PAGE + ROWS_PER_PAGE)
+                          .map((row, idx) => (
+                            <TableRow key={`${row.student_id}-${row.homework_id}-${idx}`}>
+                              <TableCell
+                                sx={{
+                                  backgroundColor: selectedTableValue?.type === 'student' && String(selectedTableValue?.id) === String(row.student_id) ? 'rgba(214, 247, 173, 0.5)' : undefined,
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => {
+                                  setSelectedTableColumn('student');
+                                  setSelectedTableValue({ type: 'student', id: row.student_id, label: row.student_name });
+                                  setTablePage(0);
+                                }}
+                              >
+                                {row.student_name}{row.student_display_id != null && String(row.student_display_id).trim() !== '' ? ` (${String(row.student_display_id)})` : ''}
+                              </TableCell>
+                              <TableCell
+                                sx={{
+                                  backgroundColor: selectedTableValue?.type === 'course' && String(selectedTableValue?.id) === String(row.course_id) ? 'rgba(214, 247, 173, 0.5)' : undefined,
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => {
+                                  setSelectedTableColumn('course');
+                                  setSelectedTableValue({ type: 'course', id: row.course_id, label: `${row.course_name} (${row.course_code})` });
+                                  setTablePage(0);
+                                }}
+                              >
+                                {row.course_name} ({row.course_code})
+                              </TableCell>
+                              <TableCell
+                                sx={{
+                                  backgroundColor: selectedTableValue?.type === 'deadline' && selectedTableValue?.date === row.deadline_str ? 'rgba(214, 247, 173, 0.5)' : undefined,
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => {
+                                  setSelectedTableColumn('deadline');
+                                  setSelectedTableValue({ type: 'deadline', date: row.deadline_str, label: row.deadline_str });
+                                  setTablePage(0);
+                                }}
+                              >
+                                {formatDeadlineDisplay(row.deadline_str)} — {row.homework_title}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <TablePagination
+                    component="div"
+                    count={timelineTableRowsFiltered.length}
+                    page={tablePage}
+                    onPageChange={(_, p) => setTablePage(p)}
+                    rowsPerPage={ROWS_PER_PAGE}
+                    rowsPerPageOptions={[ROWS_PER_PAGE]}
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {selectedTableColumn && !selectedTableValue && 'Overview: '}
+                    {selectedTableValue && selectedTableValue.type === 'student' && `Student: courses for ${selectedTableValue.label}`}
+                    {selectedTableValue && selectedTableValue.type === 'course' && `Course: Students and due dates for ${selectedTableValue.label}`}
+                    {selectedTableValue && selectedTableValue.type === 'deadline' && `Deadline: courses on ${formatDeadlineDisplay(selectedTableValue.date)}`}
+                  </Typography>
+                  {selectedTableValue?.type === 'course' && (
+                    <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Students in this course</Typography>
+                        <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 220 }}>
+                          <Table size="small" stickyHeader>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell><strong>Student</strong></TableCell>
+                                <TableCell><strong>Student ID</strong></TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {(() => {
+                                const courseRows = (timelineTableRowsFiltered || []).filter(r => String(r.course_id) === String(selectedTableValue.id));
+                                const seen = new Set();
+                                return courseRows
+                                  .filter(r => { const k = String(r.student_id); if (seen.has(k)) return false; seen.add(k); return true; })
+                                  .map((row) => (
+                                    <TableRow key={row.student_id}>
+                                      <TableCell>{row.student_name}</TableCell>
+                                      <TableCell>{row.student_display_id != null && String(row.student_display_id).trim() !== '' ? String(row.student_display_id) : ''}</TableCell>
+                                    </TableRow>
+                                  ));
+                              })()}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Due dates and homework</Typography>
+                        <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 220 }}>
+                          <Table size="small" stickyHeader>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell><strong>Due date</strong></TableCell>
+                                <TableCell><strong>Homework</strong></TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {(() => {
+                                const courseRows = (timelineTableRowsFiltered || []).filter(r => String(r.course_id) === String(selectedTableValue.id));
+                                const seen = new Set();
+                                return courseRows
+                                  .filter(r => { const k = String(r.homework_id); if (seen.has(k)) return false; seen.add(k); return true; })
+                                  .sort((a, b) => (a.deadline_str || '').localeCompare(b.deadline_str || ''))
+                                  .map((row) => (
+                                    <TableRow key={row.homework_id}>
+                                      <TableCell>{formatDeadlineDisplay(row.deadline_str)}</TableCell>
+                                      <TableCell>{row.homework_title ?? '—'}</TableCell>
+                                    </TableRow>
+                                  ));
+                              })()}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    </Box>
+                  )}
+                  {timelineTableData.kind && timelineTableData.kind !== 'course' && (
+                    <TableContainer component={Paper} variant="outlined" sx={{ mt: 2, maxHeight: 380 }}>
+                      <Table size="small" stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            {timelineTableData.columns.map((col) => (
+                              <TableCell key={col}><strong>{col}</strong></TableCell>
+                            ))}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {timelineTableData.kind === 'overviewStudent' && timelineTableData.rows.map((row, idx) => (
+                            <TableRow key={row.studentId + idx}>
+                              <TableCell>{row.studentName}</TableCell>
+                              <TableCell>{row.studentDisplayId ?? ''}</TableCell>
+                              <TableCell>{row.count}</TableCell>
+                            </TableRow>
+                          ))}
+                          {timelineTableData.kind === 'detailCourse' && timelineTableData.rows.map((row, idx) => (
+                            <TableRow key={(row.name || '') + idx}>
+                              <TableCell>{row.name}</TableCell>
+                              <TableCell>{row.count}</TableCell>
+                            </TableRow>
+                          ))}
+                          {timelineTableData.kind === 'overviewCourse' && timelineTableData.rows.map((row, idx) => (
+                            <TableRow
+                              key={(row.courseId || row.name || '') + idx}
+                              hover
+                              sx={{ cursor: 'pointer', backgroundColor: selectedTableValue?.type === 'course' && String(selectedTableValue?.id) === String(row.courseId) ? 'rgba(214, 247, 173, 0.5)' : undefined }}
+                              onClick={() => {
+                                setSelectedTableValue({ type: 'course', id: row.courseId, label: row.label || row.name });
+                                setTablePage(0);
+                              }}
+                            >
+                              <TableCell>{row.name}</TableCell>
+                              <TableCell>{row.count}</TableCell>
+                            </TableRow>
+                          ))}
+                          {timelineTableData.kind === 'overviewDeadline' && timelineTableData.rows.map((row, idx) => (
+                            <TableRow key={(row.date || '') + idx}>
+                              <TableCell>{formatDeadlineDisplay(row.date)}</TableCell>
+                              <TableCell>{row.count}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </Box>
+      </Box>
 
       {/* Student Course Workload Analysis */}
       <Box sx={{ mb: 4 }}>
@@ -881,14 +1306,14 @@ const CourseWorkloadOverview = () => {
                     </ResponsiveContainer>
                   </Box>
 
-                  {/* Detailed List */}
+                  {/* Detailed List - one course per row, full width */}
                   <Typography variant="h6" gutterBottom>
                     Course Details
                   </Typography>
-                  <Grid container spacing={2}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {studentWorkloadData.student_workload.map((courseData) => (
-                      <Grid item xs={12} md={6} key={courseData.course_id}>
-                        <Paper sx={{ p: 2, borderLeft: `4px solid ${courseData.upcoming_week > 3 ? '#F38181' : '#95E1D3'}` }}>
+                      <Box key={courseData.course_id} sx={{ width: '100%' }}>
+                        <Paper sx={{ p: 2 }}>
                           <Typography variant="subtitle1" fontWeight="bold">
                             {courseData.course_name}
                           </Typography>
@@ -944,16 +1369,22 @@ const CourseWorkloadOverview = () => {
                                 <Typography variant="body2" fontWeight="bold" gutterBottom>
                                   Homework Status Breakdown
                                 </Typography>
-                                
+                                <Box
+                                  sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                                    gap: 2
+                                  }}
+                                >
                                 {courseStatusData.homework_status.map((homework) => (
-                                  <Paper key={homework._id} sx={{ p: 2, mb: 2, borderLeft: `4px solid ${homework.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}>
+                                  <Paper key={homework._id} sx={{ p: 2, height: '100%', minWidth: 0, borderLeft: `4px solid ${homework.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                       <Box>
                                         <Typography variant="subtitle2" fontWeight="bold">
                                           {homework.title}
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary" display="block">
-                                          Due: {new Date(homework.claimed_deadline || homework.due_date).toLocaleDateString()}
+                                          Due: {formatDeadlineDisplay(new Date(homework.claimed_deadline || homework.due_date).toISOString().split('T')[0])}
                                         </Typography>
                                         <Chip 
                                           label={homework.homework_type === 'student' ? 'Student Created' : 'Traditional'} 
@@ -1014,73 +1445,37 @@ const CourseWorkloadOverview = () => {
                                       })()}
                                     </Box>
 
-                                    {/* Status Counts */}
-                                    <Grid container spacing={1}>
-                                      <Grid item xs={6} sm={3}>
-                                        <Box sx={{ p: 1, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                          <Typography variant="h6" sx={{ color: '#95E1D3', fontWeight: 'bold' }}>
-                                            {homework.status_counts.graded}
-                                          </Typography>
-                                          <Typography variant="caption" color="text.secondary">
-                                            Graded
-                                          </Typography>
-                                        </Box>
-                                      </Grid>
-                                      <Grid item xs={6} sm={3}>
-                                        <Box sx={{ p: 1, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                          <Typography variant="h6" sx={{ color: '#D6F7AD', fontWeight: 'bold' }}>
-                                            {homework.status_counts.completed}
-                                          </Typography>
-                                          <Typography variant="caption" color="text.secondary">
-                                            Completed
-                                          </Typography>
-                                        </Box>
-                                      </Grid>
-                                      <Grid item xs={6} sm={3}>
-                                        <Box sx={{ p: 1, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                          <Typography variant="h6" sx={{ color: '#FCE38A', fontWeight: 'bold' }}>
-                                            {homework.status_counts.in_progress}
-                                          </Typography>
-                                          <Typography variant="caption" color="text.secondary">
-                                            In Progress
-                                          </Typography>
-                                        </Box>
-                                      </Grid>
-                                      <Grid item xs={6} sm={3}>
-                                        <Box sx={{ p: 1, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                          <Typography variant="h6" sx={{ color: '#F38181', fontWeight: 'bold' }}>
-                                            {homework.status_counts.not_started}
-                                          </Typography>
-                                          <Typography variant="caption" color="text.secondary">
-                                            Not Started
-                                          </Typography>
-                                        </Box>
-                                      </Grid>
-                                    </Grid>
+                                    {/* Status Counts - one row */}
+                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'nowrap', minWidth: 0 }}>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="subtitle2" sx={{ color: '#95E1D3', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.graded}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>Graded</Typography>
+                                      </Box>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="subtitle2" sx={{ color: '#D6F7AD', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.completed}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>Completed</Typography>
+                                      </Box>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="subtitle2" sx={{ color: '#FCE38A', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.in_progress}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>In Progress</Typography>
+                                      </Box>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="subtitle2" sx={{ color: '#F38181', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.not_started}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>Not Started</Typography>
+                                      </Box>
+                                    </Box>
 
                                     {/* Average Grade and Completion Rate */}
-                                    <Grid container spacing={1} sx={{ mt: 1 }}>
-                                      <Grid item xs={6}>
-                                        <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center' }}>
-                                          <Typography variant="body2" color="text.secondary">
-                                            Average Grade
-                                          </Typography>
-                                          <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
-                                            {homework.average_grade ? `${homework.average_grade}%` : 'N/A'}
-                                          </Typography>
-                                        </Box>
-                                      </Grid>
-                                      <Grid item xs={6}>
-                                        <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center' }}>
-                                          <Typography variant="body2" color="text.secondary">
-                                            Completion Rate
-                                          </Typography>
-                                          <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
-                                            {homework.total_students > 0 ? Math.round(((homework.status_counts.graded + homework.status_counts.completed) / homework.total_students) * 100) : 0}%
-                                          </Typography>
-                                        </Box>
-                                      </Grid>
-                                    </Grid>
+                                    <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                      <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 100 }}>
+                                        <Typography variant="body2" color="text.secondary">Average Grade</Typography>
+                                        <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>{homework.average_grade ? `${homework.average_grade}%` : 'N/A'}</Typography>
+                                      </Box>
+                                      <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 100 }}>
+                                        <Typography variant="body2" color="text.secondary">Completion Rate</Typography>
+                                        <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>{homework.total_students > 0 ? Math.round(((homework.status_counts.graded + homework.status_counts.completed) / homework.total_students) * 100) : 0}%</Typography>
+                                      </Box>
+                                    </Box>
 
                                     {/* Progress Bar */}
                                     <Box sx={{ mt: 2 }}>
@@ -1098,13 +1493,14 @@ const CourseWorkloadOverview = () => {
                                     </Box>
                                   </Paper>
                                 ))}
+                                </Box>
                               </Box>
                             ) : null;
                           })()}
                         </Paper>
-                      </Grid>
+                      </Box>
                     ))}
-                  </Grid>
+                  </Box>
                 </>
               ) : (
                 <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>

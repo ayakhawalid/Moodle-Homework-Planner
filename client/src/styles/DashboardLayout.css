@@ -26,10 +26,29 @@
   background: #D6F7AD !important;
 }
 
+/* User Management table: slightly transparent when background is green */
+.green-background .user-management-table-container {
+  background: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Profile page container: slightly transparent when background is green */
+.green-background .profile-page-container {
+  background: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Course Management (lecturer) containers: no shadow, transparent; slightly transparent when green */
+.green-background .course-management-container {
+  background: rgba(255, 255, 255, 0.75) !important;
+}
+
 .content-wrapper {
   padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.content-wrapper--full-width {
+  max-width: none;
 }
 
 /* Responsive adjustments */

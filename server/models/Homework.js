@@ -27,16 +27,11 @@ const homeworkSchema = new mongoose.Schema({
     default: Date.now
   },
   
-  // Homework status
   is_active: {
     type: Boolean,
     default: true
   },
-  completion_status: {
-    type: String,
-    enum: ['not_started', 'in_progress', 'completed', 'graded'],
-    default: 'not_started'
-  },
+  // Student completion status lives in Grade table (per student), not here
   allow_late_submission: {
     type: Boolean,
     default: false

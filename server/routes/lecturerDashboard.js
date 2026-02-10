@@ -676,6 +676,61 @@ router.get('/all-homework', checkJwt, extractUser, requireLecturer, async (req, 
   }
 });
 
+// GET /api/lecturer-dashboard/assignment-timeline-table - Rows for timeline table: student (name, id), course, deadline
+// Optional query: course_id (filter by course)
+router.get('/assignment-timeline-table', checkJwt, extractUser, requireLecturer, async (req, res) => {
+  try {
+    const courseFilterId = req.query.course_id || null;
+    const courses = await Course.find({ is_active: true })
+      .select('_id course_name course_code')
+      .populate('students', 'name email full_name student_id');
+    const courseList = courseFilterId
+      ? courses.filter(c => c._id.toString() === courseFilterId)
+      : courses;
+    const traditionalHomework = await Homework.find({ is_active: true })
+      .populate('course_id', 'course_name course_code');
+    const studentHomework = await StudentHomework.find({})
+      .populate('course_id', 'course_name course_code');
+    const rows = [];
+    const courseMap = new Map(courses.map(c => [c._id.toString(), c]));
+    const addRowsForHomework = (hw, homeworkType) => {
+      const courseId = (hw.course_id && hw.course_id._id ? hw.course_id._id : hw.course_id).toString();
+      if (courseFilterId && courseId !== courseFilterId) return;
+      const course = courseMap.get(courseId);
+      if (!course || !course.students || course.students.length === 0) return;
+      const deadline = hw.due_date || hw.claimed_deadline || hw.verified_deadline;
+      if (!deadline) return;
+      const courseName = course.course_name || (hw.course_id && hw.course_id.course_name);
+      const courseCode = course.course_code || (hw.course_id && hw.course_id.course_code);
+      course.students.forEach((student) => {
+        rows.push({
+          student_id: student._id,
+          student_display_id: student.student_id || student._id.toString(),
+          student_name: student.full_name || student.name || student.email || 'Unknown',
+          course_id: course._id,
+          course_name: courseName,
+          course_code: courseCode,
+          deadline: new Date(deadline),
+          deadline_str: new Date(deadline).toISOString().split('T')[0],
+          homework_id: hw._id,
+          homework_title: hw.title,
+          homework_type: homeworkType
+        });
+      });
+    };
+    traditionalHomework.forEach(hw => addRowsForHomework(hw, 'traditional'));
+    studentHomework.forEach(hw => addRowsForHomework(hw, 'student'));
+    rows.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    res.json({
+      rows,
+      courses: courses.map(c => ({ _id: c._id, course_name: c.course_name, course_code: c.course_code }))
+    });
+  } catch (error) {
+    console.error('Error fetching assignment timeline table:', error);
+    res.status(500).json({ error: 'Failed to fetch assignment timeline table' });
+  }
+});
+
 // GET /api/lecturer-dashboard/student-course-workload/:courseId - Get student workload for a specific course
 router.get('/student-course-workload/:courseId', checkJwt, extractUser, requireLecturer, async (req, res) => {
   try {

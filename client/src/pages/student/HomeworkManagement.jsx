@@ -85,9 +85,28 @@ const HomeworkManagement = () => {
     }
   }, [isAuthenticated]);
 
-  const fetchHomework = async () => {
+  // Refetch when user returns to this tab so partner sees updated status (circles)
+  useEffect(() => {
+    const onFocus = () => { if (isAuthenticated) fetchHomework(true); };
+    const onVisibilityChange = () => { if (document.visibilityState === 'visible' && isAuthenticated) fetchHomework(true); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [isAuthenticated]);
+
+  // Poll so second partner's status circles update without switching tabs (silent = no loading spinner)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => fetchHomework(true), 20000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  const fetchHomework = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await apiService.studentHomework.getHomework();
       console.log('Student homework response:', response);
       console.log('Homework data:', response.data.homework);
@@ -648,7 +667,26 @@ const HomeworkManagement = () => {
                 </div>
                 <div className="homework-course">{hw.course.name}</div>
                 <div className="homework-description">{hw.description || 'No description provided'}</div>
-                
+
+                {/* Partner indicator and partner name when applicable */}
+                <div className="partner-indicator" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <Chip
+                    label={hw.allow_partners ? 'Allows Partners' : 'No Partners'}
+                    size="small"
+                    sx={{
+                      backgroundColor: hw.allow_partners ? 'rgba(214, 247, 173, 0.3)' : 'rgba(255, 182, 193, 0.3)',
+                      color: '#333',
+                      border: hw.allow_partners ? '1px solid #D6F7AD' : '1px solid #FFB6C1',
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                  {hw.allow_partners && hw.partner_info?.has_partner && hw.partner_info?.partner_name && (
+                    <Typography component="span" variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      Partner: {hw.partner_info.partner_name}
+                    </Typography>
+                  )}
+                </div>
+
                 {/* Grade and Deadline - Left aligned */}
                 <div className="homework-meta">
                   {/* Grade Section */}

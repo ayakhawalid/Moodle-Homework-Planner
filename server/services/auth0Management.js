@@ -246,18 +246,18 @@ async function syncUserRoleFromAuth0(user, tokenRoles = [], userAccessToken = nu
       console.log(`[Sync] Falling back to JWT token roles for ${user.email}:`, rolesFromAuth0);
     }
     
-    // If still no roles, log and proceed to default
+    // If no roles from Auth0, user stays pending (no default to 'student').
     if (rolesFromAuth0.length === 0) {
-      console.log(`[Sync] No roles found for user ${user.email} from any Auth0 source. Setting to default 'student'.`);
+      console.log(`[Sync] No roles found for user ${user.email} from any Auth0 source. Leaving role as-is (pending until admin assigns).`);
     }
-    
+
     // Log the final determined roles from Auth0 sources
     console.log(`[Sync] Final roles retrieved from Auth0 for ${user.email}: ${JSON.stringify(rolesFromAuth0)}`);
 
     console.log(`Current user role: ${user.role}, Auth0 roles: ${JSON.stringify(rolesFromAuth0)}`);
 
-    // Determine new role based on priority, only considering the valid application roles.
-    let newRole = 'student'; // Default to 'student' and override based on Auth0 data.
+    // Determine new role only from Auth0 data. No role in Auth0 = null (pending).
+    let newRole = null;
     if (rolesFromAuth0.includes('admin')) {
       newRole = 'admin';
     } else if (rolesFromAuth0.includes('lecturer')) {
@@ -269,22 +269,26 @@ async function syncUserRoleFromAuth0(user, tokenRoles = [], userAccessToken = nu
     // Log the determined new role
     console.log(`[Sync] Determined new role for ${user.email}: ${newRole}`);
 
-    // Update role if it has changed or if it's currently null/undefined and a newRole is determined
-    if (user.role !== newRole || user.role === null || user.role === undefined) {
-      console.log(`[Sync] ✅ Updating role for user ${user.email} from ${user.role || 'null'} to ${newRole}`);
-      user.role = newRole;
-      try {
-        await user.save();
-        console.log(`[Sync] ✅ Successfully saved new role for ${user.email}. New DB role: ${user.role}`);
-      } catch (saveError) {
-        console.error(`[Sync] ❌ Error saving user role for ${user.email}:`, saveError);
-        throw saveError; // Re-throw to propagate the error
+    // Update role when Auth0 has a role. When Auth0 returns no roles, keep existing role if user already had one (e.g. after password change — no need for role-pending again).
+    if (newRole !== null) {
+      if (user.role !== newRole) {
+        console.log(`[Sync] ✅ Updating role for user ${user.email} from ${user.role || 'null'} to ${newRole}`);
+        user.role = newRole;
+        try {
+          await user.save();
+          console.log(`[Sync] ✅ Successfully saved new role for ${user.email}. New DB role: ${user.role}`);
+        } catch (saveError) {
+          console.error(`[Sync] ❌ Error saving user role for ${user.email}:`, saveError);
+          throw saveError;
+        }
+      } else {
+        console.log(`[Sync] ✅ Role for user ${user.email} is already correct: ${newRole}`);
       }
-    } else {
-      console.log(`[Sync] ✅ Role for user ${user.email} is already correct: ${newRole}`);
+    } else if (user.role != null) {
+      console.log(`[Sync] Auth0 returned no roles for ${user.email}; keeping existing role: ${user.role}`);
     }
 
-    return newRole;
+    return newRole !== null ? newRole : user.role;
   } catch (error) {
     console.error(`[Sync] ❌ Critical error during role sync for ${user.email}:`, error);
     return user.role; // Return existing role (or 'student' if just set)
@@ -338,6 +342,27 @@ async function updateAuth0UserProfile(auth0UserId, profileData) {
   }
 }
 
+/**
+ * Set a user's password in Auth0 (admin only). Works for database connection users.
+ * @param {string} auth0UserId - The Auth0 user ID
+ * @param {string} newPassword - The new password (must meet Auth0 password policy)
+ */
+async function updateAuth0UserPassword(auth0UserId, newPassword) {
+  if (!auth0UserId || !newPassword || typeof newPassword !== 'string') {
+    throw new Error('Auth0 user ID and new password are required');
+  }
+  if (newPassword.length < 8) {
+    throw new Error('Password must be at least 8 characters');
+  }
+  try {
+    await management.users.update({ id: auth0UserId }, { password: newPassword });
+    console.log(`✅ Password updated for Auth0 user ${auth0UserId}`);
+  } catch (error) {
+    console.error(`Error updating password in Auth0 for ${auth0UserId}:`, error.message);
+    throw error;
+  }
+}
+
 const getAllAuth0Users = async () => {
   const token = await getMgmtToken();
   const domain = process.env.AUTH0_DOMAIN;
@@ -374,6 +399,7 @@ module.exports = {
   updateUserRoleInAuth0,
   updateAuth0UserMetadata,
   updateAuth0UserProfile,
+  updateAuth0UserPassword,
   management,
-  getAllAuth0Users // Export the new function
+  getAllAuth0Users
 };

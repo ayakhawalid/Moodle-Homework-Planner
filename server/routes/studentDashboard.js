@@ -227,17 +227,9 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
         return completionStatus === 'completed' || completionStatus === 'graded';
       }
       
-      // For student-created homework, check both Grade table and homework's own completion_status
-      const gradeCompletionStatus = completionStatusMap.get(hw._id.toString());
-      const homeworkCompletionStatus = hw.completion_status;
-      
-      // If there's a Grade entry, use that status
-      if (gradeCompletionStatus) {
-        return gradeCompletionStatus === 'completed' || gradeCompletionStatus === 'graded';
-      }
-      
-      // If no Grade entry, check the homework's own completion_status
-      return homeworkCompletionStatus === 'completed' || homeworkCompletionStatus === 'graded';
+      // For student-created homework, use Grade table only (status is per student in Grade)
+      const gradeCompletionStatus = completionStatusMap.get(hw._id.toString()) || 'not_started';
+      return gradeCompletionStatus === 'completed' || gradeCompletionStatus === 'graded';
     }).length;
     
     // Pending homework = Total homework - Completed homework (simple subtraction)
@@ -281,8 +273,7 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
         
         const isCompletedFromGrade = gradeEntry && 
           (gradeEntry.completion_status === 'completed' || gradeEntry.completion_status === 'graded');
-        const isCompletedFromHomework = hw.completion_status === 'completed';
-        const isCompleted = isCompletedFromGrade || isCompletedFromHomework;
+        const isCompleted = isCompletedFromGrade;
         
         return {
           id: hw._id,
@@ -291,7 +282,6 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
           is_upcoming: new Date(hw.due_date) > new Date(),
           has_grade_entry: !!gradeEntry,
           grade_completion_status: gradeEntry?.completion_status || 'none',
-          homework_completion_status: hw.completion_status,
           is_completed: isCompleted,
           homework_type: homeworkType
         };
@@ -363,17 +353,9 @@ router.get('/overview', checkJwt, extractUser, requireStudent, async (req, res) 
               const completionStatus = completionStatusMap.get(hw._id.toString()) || 'not_started';
               isCompleted = completionStatus === 'completed' || completionStatus === 'graded';
             } else {
-              // For student-created homework, check both Grade table and homework's own completion_status
-              const gradeCompletionStatus = completionStatusMap.get(hw._id.toString());
-              const homeworkCompletionStatus = hw.completion_status;
-              
-              // If there's a Grade entry, use that status
-              if (gradeCompletionStatus) {
-                isCompleted = gradeCompletionStatus === 'completed' || gradeCompletionStatus === 'graded';
-              } else {
-                // If no Grade entry, check the homework's own completion_status
-                isCompleted = homeworkCompletionStatus === 'completed' || homeworkCompletionStatus === 'graded';
-              }
+              // For student-created homework, use Grade table only (status is per student in Grade)
+              const gradeCompletionStatus = completionStatusMap.get(hw._id.toString()) || 'not_started';
+              isCompleted = gradeCompletionStatus === 'completed' || gradeCompletionStatus === 'graded';
             }
             
             return !isCompleted;
@@ -645,14 +627,9 @@ router.get('/homework-planner', checkJwt, extractUser, requireStudent, async (re
       const isSubmitted = !!grade;
       const isGraded = isSubmitted && grade.grade !== null;
       
-      // Check completion status from Grade table - BOTH GRADED AND COMPLETED COUNT AS COMPLETED
-      const isCompletedFromGrade = grade && 
+      // Completion status is in Grade table only (per student)
+      const isCompleted = grade && 
         (grade.completion_status === 'completed' || grade.completion_status === 'graded');
-      
-      // For student homework, also check the homework's own completion_status as fallback
-      const isCompletedFromHomework = hw.completion_status === 'completed';
-      
-      const isCompleted = isCompletedFromGrade || isCompletedFromHomework;
       const isOverdue = new Date() > hw.due_date && !isCompleted;
       
       let status = 'not_started';
