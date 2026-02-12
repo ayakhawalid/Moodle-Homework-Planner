@@ -70,12 +70,18 @@ router.post('/', checkJwt, async (req, res) => {
         initialRole = rolesFromAuth0[0];
       }
 
+      // Avoid duplicate username (unique index): if another user has it, don't use it for new user
+      let newUserUsername = effectiveUsername;
+      if (effectiveUsername) {
+        const taken = await User.findOne({ username: effectiveUsername }).select('_id').lean();
+        if (taken) newUserUsername = null;
+      }
       user = new User({
         auth0_id,
         email,
         name,
         full_name: full_name || name,
-        username: effectiveUsername,
+        username: newUserUsername,
         picture,
         email_verified,
         role: initialRole, // null until admin assigns; or from Auth0 if already assigned
@@ -90,7 +96,11 @@ router.post('/', checkJwt, async (req, res) => {
       user.name = name;
       user.full_name = full_name || user.full_name || name;
       if (effectiveUsername !== null) {
-        user.username = effectiveUsername;
+        const taken = await User.findOne({ username: effectiveUsername }).select('_id').lean();
+        if (!taken || taken._id.toString() === user._id.toString()) {
+          user.username = effectiveUsername;
+        }
+        // else: username taken by another user (e.g. "lecturer") — leave this user's username unchanged to avoid E11000
       } else if (user.username === emailLocal) {
         user.username = null;
       }

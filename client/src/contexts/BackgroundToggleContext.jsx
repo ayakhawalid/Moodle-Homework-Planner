@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+export const BACKGROUND_THEMES = ['white', 'green', 'teal', 'coral', 'yellow'];
+
 const BackgroundToggleContext = createContext();
 
 export const useBackgroundToggle = () => {
@@ -11,33 +13,32 @@ export const useBackgroundToggle = () => {
 };
 
 export const BackgroundToggleProvider = ({ children }) => {
-  const [isGreenBackground, setIsGreenBackground] = useState(() => {
-    // Check localStorage for saved preference, default to false (white)
-    const saved = localStorage.getItem('greenBackground');
-    return saved ? JSON.parse(saved) : false;
+  const [backgroundTheme, setBackgroundTheme] = useState(() => {
+    const saved = localStorage.getItem('backgroundTheme');
+    if (saved && BACKGROUND_THEMES.includes(saved)) return saved;
+    const legacy = localStorage.getItem('greenBackground');
+    return legacy && JSON.parse(legacy) ? 'green' : 'white';
   });
 
   useEffect(() => {
-    // Save preference to localStorage whenever it changes
-    localStorage.setItem('greenBackground', JSON.stringify(isGreenBackground));
-    
-    // Apply background class to document body
-    if (isGreenBackground) {
-      document.body.classList.add('green-background');
-      document.body.classList.remove('white-background');
-    } else {
-      document.body.classList.add('white-background');
-      document.body.classList.remove('green-background');
-    }
-  }, [isGreenBackground]);
+    localStorage.setItem('backgroundTheme', backgroundTheme);
+    const body = document.body;
+    BACKGROUND_THEMES.forEach(t => body.classList.remove(`${t}-background`));
+    body.classList.add(`${backgroundTheme}-background`);
+  }, [backgroundTheme]);
 
-  const toggleBackground = () => {
-    setIsGreenBackground(prev => !prev);
+  const cycleTheme = () => {
+    setBackgroundTheme(prev => {
+      const i = BACKGROUND_THEMES.indexOf(prev);
+      return BACKGROUND_THEMES[(i + 1) % BACKGROUND_THEMES.length];
+    });
   };
 
   const value = {
-    isGreenBackground,
-    toggleBackground
+    backgroundTheme,
+    setBackgroundTheme,
+    cycleTheme,
+    isColoredBackground: backgroundTheme !== 'white',
   };
 
   return (

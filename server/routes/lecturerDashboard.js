@@ -317,6 +317,60 @@ router.get('/homework-status/:courseId', checkJwt, extractUser, requireLecturer,
   }
 });
 
+// GET /api/lecturer-dashboard/homework-status/:courseId/students?homeworkId=...&status=graded|completed|in_progress|not_started
+router.get('/homework-status/:courseId/students', checkJwt, extractUser, requireLecturer, async (req, res) => {
+  try {
+    const auth0Id = req.userInfo.auth0_id;
+    const { courseId } = req.params;
+    const { homeworkId, status } = req.query;
+    if (!homeworkId || !status || !['graded', 'completed', 'in_progress', 'not_started'].includes(status)) {
+      return res.status(400).json({ error: 'homeworkId and status (graded|completed|in_progress|not_started) are required' });
+    }
+    const user = await User.findOne({ auth0_id: auth0Id });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const course = await Course.findOne({
+      _id: courseId,
+      lecturer_id: user._id,
+      is_active: true
+    }).populate('students', 'name full_name student_id');
+    if (!course) return res.status(404).json({ error: 'Course not found or access denied' });
+    const studentIds = course.students.map(s => s._id);
+
+    if (status === 'not_started') {
+      const withRecord = await Grade.find({
+        homework_id: homeworkId,
+        student_id: { $in: studentIds },
+        completion_status: { $in: ['in_progress', 'completed', 'graded'] }
+      }).distinct('student_id');
+      const withSet = new Set(withRecord.map(id => id.toString()));
+      const students = course.students.filter(s => !withSet.has(s._id.toString()));
+      return res.json({
+        students: students.map(s => ({
+          full_name: s.full_name || s.name || '—',
+          student_id: s.student_id || '—'
+        }))
+      });
+    }
+
+    const grades = await Grade.find({
+      homework_id: homeworkId,
+      student_id: { $in: studentIds },
+      completion_status: status
+    }).populate('student_id', 'name full_name student_id');
+    const students = (grades || [])
+      .map(g => g.student_id)
+      .filter(Boolean)
+      .map(s => ({
+        full_name: s.full_name || s.name || '—',
+        student_id: s.student_id || '—'
+      }));
+    res.json({ students });
+  } catch (error) {
+    console.error('Error fetching students by homework status:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
 // GET /api/lecturer-dashboard/homework-status-any/:courseId - Get homework status for any course (not just lecturer's courses)
 router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLecturer, async (req, res) => {
   try {

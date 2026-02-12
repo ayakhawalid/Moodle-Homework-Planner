@@ -11,8 +11,19 @@ import {
   Grid, 
   Paper, 
   Chip,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import {
   BarChart as BarChartIcon,
   Assignment as AssignmentIcon,
@@ -27,6 +38,13 @@ function WorkloadStats() {
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [courseDetails, setCourseDetails] = useState(null);
   const [homeworkStatusData, setHomeworkStatusData] = useState(null);
+  const [studentsModal, setStudentsModal] = useState({
+    open: false,
+    homeworkTitle: '',
+    status: '',
+    students: [],
+    loading: false
+  });
 
   useEffect(() => {
     const fetchWorkloadStats = async () => {
@@ -87,6 +105,29 @@ function WorkloadStats() {
       fetchHomeworkStatus();
     }
   }, [selectedCourse]);
+
+  const handleOpenStudents = async (hw, statusKey) => {
+    const count = hw.status_counts?.[statusKey];
+    if (!count || count < 1 || !selectedCourse || selectedCourse === 'all') return;
+    setStudentsModal(prev => ({ ...prev, open: true, homeworkTitle: hw.title, status: statusKey, students: [], loading: true }));
+    try {
+      const res = await apiService.lecturerDashboard.getHomeworkStatusStudents(selectedCourse, hw._id, statusKey);
+      const list = res.data?.students ?? [];
+      setStudentsModal(prev => ({ ...prev, students: list, loading: false }));
+    } catch (err) {
+      console.error('Error fetching students by status:', err);
+      setStudentsModal(prev => ({ ...prev, students: [], loading: false }));
+    }
+  };
+
+  const handleCloseStudents = () => {
+    setStudentsModal(prev => ({ ...prev, open: false }));
+  };
+
+  const statusLabel = (key) => {
+    const map = { graded: 'Graded', completed: 'Completed', in_progress: 'In Progress', not_started: 'Not Started' };
+    return map[key] || key;
+  };
 
   if (loading) {
     return (
@@ -349,46 +390,33 @@ function WorkloadStats() {
                               </Box>
 
                               <Grid container spacing={2}>
-                                <Grid item xs={6} sm={3}>
-                                  <Box sx={{ p: 1, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                    <Typography variant="h6" sx={{ color: '#95E1D3', fontWeight: 'bold' }}>
-                                      {hw.status_counts.graded}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Graded
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={6} sm={3}>
-                                  <Box sx={{ p: 1, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                    <Typography variant="h6" sx={{ color: '#D6F7AD', fontWeight: 'bold' }}>
-                                      {hw.status_counts.completed}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Completed
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={6} sm={3}>
-                                  <Box sx={{ p: 1, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                    <Typography variant="h6" sx={{ color: '#FCE38A', fontWeight: 'bold' }}>
-                                      {hw.status_counts.in_progress}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      In Progress
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={6} sm={3}>
-                                  <Box sx={{ p: 1, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                    <Typography variant="h6" sx={{ color: '#F38181', fontWeight: 'bold' }}>
-                                      {hw.status_counts.not_started}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Not Started
-                                    </Typography>
-                                  </Box>
-                                </Grid>
+                                {[
+                                  { key: 'graded', color: '#95E1D3', bg: 'rgba(149, 225, 211, 0.3)' },
+                                  { key: 'completed', color: '#D6F7AD', bg: 'rgba(214, 247, 173, 0.3)' },
+                                  { key: 'in_progress', color: '#FCE38A', bg: 'rgba(252, 227, 138, 0.3)' },
+                                  { key: 'not_started', color: '#F38181', bg: 'rgba(243, 129, 129, 0.3)' }
+                                ].map(({ key, color, bg }) => (
+                                  <Grid item xs={6} sm={3} key={key}>
+                                    <Box
+                                      onClick={() => handleOpenStudents(hw, key)}
+                                      sx={{
+                                        p: 1,
+                                        backgroundColor: bg,
+                                        borderRadius: 1,
+                                        textAlign: 'center',
+                                        cursor: (hw.status_counts[key] || 0) > 0 ? 'pointer' : 'default',
+                                        '&:hover': (hw.status_counts[key] || 0) > 0 ? { opacity: 0.9, boxShadow: 1 } : {}
+                                      }}
+                                    >
+                                      <Typography variant="h6" sx={{ color, fontWeight: 'bold' }}>
+                                        {hw.status_counts[key]}
+                                      </Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        {statusLabel(key)}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                ))}
                               </Grid>
                               
                               {/* Average Grade and Completion Rate */}
@@ -457,6 +485,50 @@ function WorkloadStats() {
               )}
             </div>
           </div>
+
+          {/* Students by status modal */}
+          <Dialog open={studentsModal.open} onClose={handleCloseStudents} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+              <Typography variant="h6">
+                {studentsModal.homeworkTitle} — {statusLabel(studentsModal.status)}
+              </Typography>
+              <IconButton aria-label="Close" onClick={handleCloseStudents} size="small">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              {studentsModal.loading ? (
+                <Box display="flex" justifyContent="center" py={3}>
+                  <CircularProgress size={32} />
+                </Box>
+              ) : (
+                <TableContainer>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Full Name</strong></TableCell>
+                        <TableCell><strong>Student ID</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {studentsModal.students.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={2} align="center">No students in this status</TableCell>
+                        </TableRow>
+                      ) : (
+                        studentsModal.students.map((row, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{row.full_name}</TableCell>
+                            <TableCell>{row.student_id}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Weekly Workload */}
           <div className="dashboard-card" style={{ marginTop: '20px' }}>

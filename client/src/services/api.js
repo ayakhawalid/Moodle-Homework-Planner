@@ -341,6 +341,8 @@ export const apiService = {
     getCoursesInfo: () => api.get(withApi('/lecturer-dashboard/courses-info')),
     getStudentCourseWorkload: (courseId) => api.get(withApi(`/lecturer-dashboard/student-course-workload/${courseId}`)),
         getHomeworkStatus: (courseId) => api.get(withApi(`/lecturer-dashboard/homework-status/${courseId}`)),
+    getHomeworkStatusStudents: (courseId, homeworkId, status) =>
+      api.get(withApi(`/lecturer-dashboard/homework-status/${courseId}/students?homeworkId=${encodeURIComponent(homeworkId)}&status=${encodeURIComponent(status)}`)),
         getHomeworkStatusAny: (courseId) => api.get(withApi(`/lecturer-dashboard/homework-status-any/${courseId}`)),
         getAllHomeworkStatus: () => api.get(withApi('/lecturer-dashboard/all-homework-status')),
         getAllHomework: () => api.get(withApi('/lecturer-dashboard/all-homework')),

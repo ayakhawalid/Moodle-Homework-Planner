@@ -26,18 +26,42 @@
   background: #D6F7AD !important;
 }
 
-/* User Management table: slightly transparent when background is green */
-.green-background .user-management-table-container {
+.teal-background .dashboard-container,
+.teal-background .dashboard-content {
+  background: #C5F0E8 !important;
+}
+
+.coral-background .dashboard-container,
+.coral-background .dashboard-content {
+  background: #FAC8C8 !important;
+}
+
+.yellow-background .dashboard-container,
+.yellow-background .dashboard-content {
+  background: #FDF6D0 !important;
+}
+
+/* User Management table: slightly transparent when colored background */
+.green-background .user-management-table-container,
+.teal-background .user-management-table-container,
+.coral-background .user-management-table-container,
+.yellow-background .user-management-table-container {
   background: rgba(255, 255, 255, 0.75) !important;
 }
 
-/* Profile page container: slightly transparent when background is green */
-.green-background .profile-page-container {
+/* Profile page container */
+.green-background .profile-page-container,
+.teal-background .profile-page-container,
+.coral-background .profile-page-container,
+.yellow-background .profile-page-container {
   background: rgba(255, 255, 255, 0.75) !important;
 }
 
-/* Course Management (lecturer) containers: no shadow, transparent; slightly transparent when green */
-.green-background .course-management-container {
+/* Course Management (lecturer) containers */
+.green-background .course-management-container,
+.teal-background .course-management-container,
+.coral-background .course-management-container,
+.yellow-background .course-management-container {
   background: rgba(255, 255, 255, 0.75) !important;
 }
 

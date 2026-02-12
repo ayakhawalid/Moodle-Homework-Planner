@@ -34,12 +34,27 @@ body, html {
   background: #D6F7AD !important;
 }
 
+.teal-background body,
+.teal-background html {
+  background: #C5F0E8 !important;
+}
+
+.coral-background body,
+.coral-background html {
+  background: #FAC8C8 !important;
+}
+
+.yellow-background body,
+.yellow-background html {
+  background: #FDF6D0 !important;
+}
+
 /* Home Footer */
 .home-footer {
   position: relative;
   width: 100%;
   text-align: center;
-  padding: 2rem 0;
+  padding: 0.5rem 0;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
@@ -57,7 +72,7 @@ body, html {
 
 /* Home Page Styles - Four Colored Walls Background */
 .home-container {
-  min-height: 200vh;
+  min-height: auto;
   width: 100vw;
   margin: 0;
   padding: 0;
@@ -78,9 +93,9 @@ body, html {
   pointer-events: none;
 }
 
-/* Four Colored Walls - Individual Divs */
+/* Four Colored Walls - Individual Divs (compact bars) */
 .wall {
-  height: 80px; /* Make walls shorter */
+  height: 44px; /* Shorter bars above navbar */
   width: 25vw;
   position: fixed; /* Fixed positioning to stay at top */
   top: 0;
@@ -196,7 +211,7 @@ body, html {
 }
 
 .main-description {
-  font-size: 1.4rem; /* Bigger text */
+  font-size: 1.05rem;
   color: #4a5568;
   line-height: 1.6;
   margin-bottom: 2.5rem;
@@ -468,7 +483,7 @@ body, html {
 /* About Section */
 .about-section {
   padding: 0 2rem; /* Add side padding for content readability */
-  padding-top: 160px; /* Add space for shorter walls + fixed buttons */
+  padding-top: 92px; /* Walls (44px) + nav height – falling leaves sit directly under navbar with no gap */
   padding-bottom: 0; /* Remove bottom padding since media section handles it */
   text-align: left;
   width: 100%; /* Full width so walls show on sides */
@@ -498,18 +513,18 @@ body, html {
 }
 
 
-/* Navigation Bar - Fixed navbar */
+/* Navigation Bar - Fixed navbar (compact) */
 .nav-buttons {
   display: flex;
   align-items: center;
   justify-content: space-between; /* Space between logo and buttons */
-  margin-bottom: 2rem; /* Space below buttons */
-  padding: 1rem 2rem; /* Add side padding for navbar */
+  margin-bottom: 0; /* Tighter: no extra space below nav */
+  padding: 0.5rem 1.5rem; /* Smaller padding for compact height */
   width: 100%; /* Take full width of the page */
   border-radius: 0; /* Remove rounded corners for full width */
   transition: all 0.3s ease; /* Smooth transition */
   position: fixed; /* Fixed positioning like navbar */
-  top: 80px; /* Position below the walls - adjusted for shorter walls */
+  top: 44px; /* Position below the four colored bars */
   left: 0;
   z-index: 1000; /* High z-index to stay on top */
   background: rgba(255, 255, 255, 0.95); /* Semi-transparent background */
@@ -529,13 +544,13 @@ body, html {
 }
 
 .nav-logo-img {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   flex-shrink: 0;
 }
 
 .nav-logo-text {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #2d3748;
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -552,10 +567,10 @@ body, html {
 }
 
 .nav-auth-buttons .btn {
-  padding: 0.75rem 1.5rem; /* Add padding to create button area */
-  font-size: 1.2rem; /* Bigger text */
-  font-weight: 600; /* Make text bolder */
-  min-width: 100px;
+  padding: 0.45rem 1rem; /* Compact padding */
+  font-size: 0.95rem;
+  font-weight: 600;
+  min-width: 80px;
   background: transparent; /* No background color by default */
   border: none; /* Remove border */
   color: #333;
@@ -572,22 +587,22 @@ body, html {
   box-shadow: none; /* Remove shadow on hover */
 }
 
-/* Colored Circles - Standalone */
+/* Colored Circles - Compact (below navbar) */
 .colored-circles {
   display: flex;
   justify-content: center;
-  gap: 20px; /* Increased gap for more spacing */
-  margin: 2rem 0; /* Add margin for spacing */
+  align-items: center;
+  gap: 12px;
+  margin: 0.4rem 0; /* Compact vertical spacing */
+  min-height: 24px;
 }
 
-
-
 .circle {
-  width: 32px; /* Even bigger circles */
-  height: 32px; /* Even bigger circles */
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   animation: float 3s ease-in-out infinite;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
 }
 
 .circle-1 {
@@ -608,6 +623,11 @@ body, html {
 .circle-4 {
   background: linear-gradient(135deg, #95E1D3, #7DD3C0); /* Teal - Graded */
   animation-delay: 1.5s;
+}
+
+.colored-circles-below-slider {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Colored Circles in Title Section */
@@ -682,8 +702,231 @@ body, html {
   }
 }
 
+/* About + What Makes Us Different - side by side */
+.about-and-different-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+  margin: 2rem 0;
+  padding: 0 2rem;
+  max-width: 100%;
+}
+
+.about-column .about-title,
+.different-column {
+  max-width: 50vw;
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.different-column .feature-slider {
+  margin-bottom: -6px;
+}
+
+.different-column .falling-leaves-section {
+  margin-top: -6px;
+  margin-bottom: 0;
+  padding: 0;
+  display: block;
+  line-height: 0;
+  vertical-align: top;
+}
+
+.different-column .about-subtitle {
+  margin-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.about-column .about-title {
+  margin-bottom: 1rem;
+}
+
+.different-column .about-subtitle {
+  margin-bottom: 1rem;
+}
+
+.about-column .how-it-works-title {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.about-and-different-row .magazine-layout {
+  margin: 0;
+  padding: 0;
+}
+
+.about-and-different-row .features-list {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.about-and-different-row .feature-item {
+  padding: 1rem 1.25rem;
+  margin: 0 0 0.5rem 0;
+}
+
+/* What Makes Us Different - cards with arrow */
+.feature-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feature-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: none;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.feature-card:hover {
+  box-shadow: none;
+}
+
+.feature-card-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.feature-card-status .feature-card-content {
+  flex: 1;
+  min-width: 0;
+}
+.feature-card-status-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.feature-card-status-circle-coral {
+  background: linear-gradient(135deg, #FF7F7F, #FF6B6B);
+}
+.feature-card-status-circle-yellow {
+  background: linear-gradient(135deg, #FCE38A, #F9D56E);
+}
+.feature-card-status-circle-green {
+  background: linear-gradient(135deg, #D6F7AD, #C8F299);
+}
+.feature-card-status-circle-teal {
+  background: linear-gradient(135deg, #95E1D3, #7DD3C0);
+}
+
+.feature-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.feature-card-content h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 0.35rem 0;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.feature-card-content p {
+  font-size: 0.95rem;
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Feature cards as slides (slider) */
+.feature-slider {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  min-height: 140px;
+}
+
+.feature-slider-track-wrap {
+  flex: 1;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.feature-slider-track {
+  display: flex;
+  width: 600%; /* 6 slides */
+  transition: transform 0.35s ease-out;
+}
+
+.feature-slider .feature-slide {
+  flex: 0 0 16.666%; /* 100% / 6 */
+  min-width: 16.666%;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.feature-slider-btn {
+  flex-shrink: 0;
+  width: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #2d3748;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, opacity 0.2s;
+}
+
+.feature-slider-btn:hover {
+  background: transparent;
+  color: #1a202c;
+  opacity: 0.8;
+}
+
+.feature-slider-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.feature-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.feature-dot:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.feature-dot.active {
+  background: #2d3748;
+  transform: scale(1.2);
+}
+
+@media (max-width: 900px) {
+  .about-and-different-row {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
 .about-title {
-  font-size: 2.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #2d3748;
   margin-bottom: 2rem;
@@ -693,9 +936,9 @@ body, html {
 }
 
 .about-text {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #4a5568;
-  line-height: 1.7;
+  line-height: 1.6;
   margin-bottom: 1.5rem;
   text-align: justify;
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1001,7 +1244,11 @@ body, html {
 /* Responsive Design */
 @media (max-width: 1024px) {
   .wall {
-    height: 70px; /* Shorter walls for tablets */
+    height: 40px; /* Compact bars for tablets */
+  }
+  
+  .nav-buttons {
+    top: 40px;
   }
   
   .home-logo {
@@ -1014,7 +1261,7 @@ body, html {
   }
   
   .about-section {
-    padding-top: 140px; /* Reduce space for tablets */
+    padding-top: 112px; /* Compact: bars + nav + circles */
     width: 100%; /* Full width on tablets too */
     max-width: 95%; /* Adjust max width for tablets */
   }
@@ -1079,7 +1326,11 @@ body, html {
 
 @media (max-width: 768px) {
   .wall {
-    height: 60px; /* Shorter walls for mobile */
+    height: 38px; /* Compact bars for mobile */
+  }
+  
+  .nav-buttons {
+    top: 38px;
   }
   
   .title-section {
@@ -1099,7 +1350,7 @@ body, html {
   }
   
   .about-section {
-    padding-top: 120px; /* Reduce space for mobile */
+    padding-top: 108px; /* Compact: bars + nav + circles on mobile */
     width: 100%; /* Full width on mobile too */
     max-width: 95%; /* Adjust max width for mobile */
     padding-left: 1rem; /* Reduce side padding on mobile */
@@ -1171,7 +1422,7 @@ body, html {
   }
   
   .main-description {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
   
   .action-buttons {
@@ -1186,11 +1437,15 @@ body, html {
 
 @media (max-width: 480px) {
   .wall {
-    height: 50px; /* Smallest header on very small screens */
+    height: 36px; /* Compact bars on very small screens */
+  }
+  
+  .nav-buttons {
+    top: 36px;
   }
   
   .content-section {
-    margin-top: 100px; /* Adjust margin for smallest header */
+    margin-top: 96px; /* Adjust margin for compact header */
   }
   
   .colored-circles {
@@ -1208,7 +1463,7 @@ body, html {
   }
   
   .main-description {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
   
   .feature-item {

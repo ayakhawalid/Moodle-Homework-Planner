@@ -21,11 +21,11 @@
   transform: translateY(-2px) scale(1.05);
 }
 
-.background-toggle.green-active {
-  background: transparent;
-}
-
-.background-toggle.white-active {
+.background-toggle.white-active,
+.background-toggle.green-active,
+.background-toggle.teal-active,
+.background-toggle.coral-active,
+.background-toggle.yellow-active {
   background: transparent;
 }
 
@@ -49,15 +49,57 @@
   background: #D6F7AD !important;
 }
 
+.teal-background .page-background {
+  background: #C5F0E8 !important;
+}
+
+.coral-background .page-background {
+  background: #FAC8C8 !important;
+}
+
+.yellow-background .page-background {
+  background: #FDF6D0 !important;
+}
+
 /* Update existing page background classes */
 .white-background .white-page-background,
-.white-background .green-page-background {
+.white-background .green-page-background,
+.white-background .teal-page-background,
+.white-background .coral-page-background,
+.white-background .yellow-page-background {
   background: #ffffff !important;
 }
 
 .green-background .white-page-background,
-.green-background .green-page-background {
+.green-background .green-page-background,
+.green-background .teal-page-background,
+.green-background .coral-page-background,
+.green-background .yellow-page-background {
   background: #D6F7AD !important;
+}
+
+.teal-background .white-page-background,
+.teal-background .green-page-background,
+.teal-background .teal-page-background,
+.teal-background .coral-page-background,
+.teal-background .yellow-page-background {
+  background: #C5F0E8 !important;
+}
+
+.coral-background .white-page-background,
+.coral-background .green-page-background,
+.coral-background .teal-page-background,
+.coral-background .coral-page-background,
+.coral-background .yellow-page-background {
+  background: #FAC8C8 !important;
+}
+
+.yellow-background .white-page-background,
+.yellow-background .green-page-background,
+.yellow-background .teal-page-background,
+.yellow-background .coral-page-background,
+.yellow-background .yellow-page-background {
+  background: #FDF6D0 !important;
 }
 
 /* Responsive adjustments */
