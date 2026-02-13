@@ -407,7 +407,7 @@ const HomeworkManagement = () => {
             onChange={(e, newValue) => setTabValue(newValue)}
             TabIndicatorProps={{
               sx: {
-                backgroundColor: '#D6F7AD',
+                backgroundColor: '#6b7280',
                 height: 2
               }
             }}
@@ -514,7 +514,7 @@ const HomeworkManagement = () => {
 
                         <div className="homework-title">{hw.title}</div>
                         <div className="homework-course">
-                          <SchoolIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#D6F7AD' }} />
+                          <SchoolIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#6b7280' }} />
                           {hw.course_id?.course_name || 'Unknown Course'} ({hw.course_id?.course_code || 'N/A'})
                         </div>
                         <div className="homework-description">{hw.description || 'No description provided'}</div>
@@ -627,13 +627,13 @@ const HomeworkManagement = () => {
                       
                       {/* Student Info */}
                       <div className="homework-course">
-                        <PeopleIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#FCE38A' }} />
+                        <PeopleIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#6b7280' }} />
                         {hw.uploaded_by?.full_name || hw.uploaded_by?.name || 'Unknown Student'}
                       </div>
 
                       {/* Course Info */}
                       <div className="homework-course">
-                        <SchoolIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#D6F7AD' }} />
+                        <SchoolIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#6b7280' }} />
                         {hw.course?.name || 'Unknown Course'} ({hw.course?.code || 'N/A'})
                       </div>
 
@@ -781,6 +781,13 @@ const HomeworkManagement = () => {
                       <Switch
                         checked={newHomework.allow_partners}
                         onChange={(e) => setNewHomework({ ...newHomework, allow_partners: e.target.checked })}
+                        sx={{
+                          '& .MuiSwitch-track': { backgroundColor: '#fff', border: '1px solid #333' },
+                          '& .MuiSwitch-thumb': { backgroundColor: '#fff', border: '1px solid #333' },
+                          '& .MuiSwitch-switchBase.Mui-checked': { color: '#A8DD7A' },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C8F299', border: '1px solid transparent' },
+                          '& .MuiSwitch-switchBase.Mui-checked .MuiSwitch-thumb': { border: 'none' }
+                        }}
                       />
                     }
                     label="Allow Study Partners"
@@ -792,13 +799,17 @@ const HomeworkManagement = () => {
           <DialogActions>
             <Button onClick={() => setCreateDialogOpen(false)} sx={{ color: '#4a5568' }}>Cancel</Button>
             <Button
-              variant="contained"
+              variant="outlined"
               onClick={handleCreateHomework}
               disabled={submitting}
               sx={{
-                backgroundColor: '#D6F7AD',
-                color: '#2d3748',
-                '&:hover': { backgroundColor: '#c8f299' }
+                backgroundColor: '#fff',
+                color: '#333',
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }
               }}
               startIcon={submitting ? <CircularProgress size={20} /> : <AddIcon size={20} weight="thin" />}
             >
@@ -904,6 +915,13 @@ const HomeworkManagement = () => {
                       <Switch
                         checked={newHomework.allow_partners}
                         onChange={(e) => setNewHomework({ ...newHomework, allow_partners: e.target.checked })}
+                        sx={{
+                          '& .MuiSwitch-track': { backgroundColor: '#fff', border: '1px solid #333' },
+                          '& .MuiSwitch-thumb': { backgroundColor: '#fff', border: '1px solid #333' },
+                          '& .MuiSwitch-switchBase.Mui-checked': { color: '#A8DD7A' },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C8F299', border: '1px solid transparent' },
+                          '& .MuiSwitch-switchBase.Mui-checked .MuiSwitch-thumb': { border: 'none' }
+                        }}
                       />
                     }
                     label="Allow Study Partners"
@@ -918,14 +936,18 @@ const HomeworkManagement = () => {
               setEditingHomework(null);
             }} sx={{ color: '#4a5568' }}>Cancel</Button>
             <Button
-              variant="contained"
+              variant="outlined"
               onClick={handleUpdateHomework}
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={20} /> : <EditIcon size={20} weight="thin" />}
               sx={{
-                backgroundColor: '#D6F7AD',
+                backgroundColor: '#fff',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }
               }}
             >
               {submitting ? 'Updating...' : 'Update'}

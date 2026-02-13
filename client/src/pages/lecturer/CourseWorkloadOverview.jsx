@@ -504,10 +504,14 @@ const CourseWorkloadOverview = () => {
           ? course.course_code.substring(0, 8) + '...' 
           : course.course_code;
 
+        // Unique label for chart so different courses with same code don't look like one (code + name)
+        const chartLabel = `${course.course_code} - ${course.course_name}`;
+
         return {
           courseId: course._id,
           courseName: course.course_name,
           courseCode: abbreviatedCode,
+          chartLabel,
           fullCourseCode: course.course_code, // Keep full code for tooltip
           totalHomework: courseHomework.length,
           upcomingDeadlines,
@@ -515,6 +519,16 @@ const CourseWorkloadOverview = () => {
           statusCounts,
           homework: courseHomework
         };
+      });
+
+      // Ensure chart labels are unique (same code + name = add suffix so each bar is distinct)
+      const labelCounts = {};
+      courseWorkloads.forEach((row, index) => {
+        const key = row.chartLabel;
+        labelCounts[key] = (labelCounts[key] || 0) + 1;
+        if (labelCounts[key] > 1) {
+          row.chartLabel = `${row.chartLabel} (${labelCounts[key]})`;
+        }
       });
 
       return courseWorkloads;
@@ -671,33 +685,49 @@ const CourseWorkloadOverview = () => {
       )}
 
 
-      {/* Timeframe Selector */}
-      <Box sx={{ mb: 3 }}>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Range</InputLabel>
-          <Select
-            value={selectedTimeframe}
-            onChange={(e) => setSelectedTimeframe(e.target.value)}
-            label="Range"
-          >
-            <MenuItem value="7">Next 7 days</MenuItem>
-            <MenuItem value="14">Next 14 days</MenuItem>
-            <MenuItem value="30">Next 30 days</MenuItem>
-            <MenuItem value="60">Next 60 days</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Summary Cards */}
+      {/* Range + Summary Cards - same card design */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <div className="dashboard-card">
+            <div className="card-content">
+              <Box display="flex" alignItems="center">
+                <ScheduleIcon sx={{ mr: 2, color: '#666' }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <FormControl variant="standard" sx={{ minWidth: 120 }} fullWidth>
+                    <Select
+                      value={selectedTimeframe}
+                      onChange={(e) => setSelectedTimeframe(e.target.value)}
+                      disableUnderline
+                      sx={{
+                        fontSize: '1.1rem',
+                        fontWeight: 700,
+                        color: '#666',
+                        py: 0,
+                        '& .MuiSelect-select': { py: 0 }
+                      }}
+                    >
+                      <MenuItem value="7">Next 7 days</MenuItem>
+                      <MenuItem value="14">Next 14 days</MenuItem>
+                      <MenuItem value="30">Next 30 days</MenuItem>
+                      <MenuItem value="60">Next 60 days</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    Range
+                  </Typography>
+                </Box>
+              </Box>
+            </div>
+          </div>
+        </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <div className="dashboard-card">
             <div className="card-content">
               <Box display="flex" alignItems="center">
                 <SchoolIcon sx={{ mr: 2, color: '#95E1D3' }} />
                 <Box>
-                  <Typography variant="h4">{courses?.length || 0}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="h5" sx={{ fontSize: '1.1rem', fontWeight: 700 }}>{courses?.length || 0}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                     Active Courses
                   </Typography>
                 </Box>
@@ -711,8 +741,8 @@ const CourseWorkloadOverview = () => {
               <Box display="flex" alignItems="center">
                 <AssignmentIcon sx={{ mr: 2, color: '#D6F7AD' }} />
                 <Box>
-                  <Typography variant="h4">{allHomework?.length || 0}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="h5" sx={{ fontSize: '1.1rem', fontWeight: 700 }}>{allHomework?.length || 0}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                     Total Assignments
                   </Typography>
                 </Box>
@@ -726,10 +756,10 @@ const CourseWorkloadOverview = () => {
               <Box display="flex" alignItems="center">
                 <ScheduleIcon sx={{ mr: 2, color: '#FCE38A' }} />
                 <Box>
-                  <Typography variant="h4">
+                  <Typography variant="h5" sx={{ fontSize: '1.1rem', fontWeight: 700 }}>
                     {workloadData?.reduce((sum, course) => sum + (course?.upcomingDeadlines || 0), 0) || 0}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                     Upcoming Deadlines
                   </Typography>
                 </Box>
@@ -743,10 +773,10 @@ const CourseWorkloadOverview = () => {
               <Box display="flex" alignItems="center">
                 <WarningIcon sx={{ mr: 2, color: '#F38181' }} />
                 <Box>
-                  <Typography variant="h4">
+                  <Typography variant="h5" sx={{ fontSize: '1.1rem', fontWeight: 700 }}>
                     {workloadData?.reduce((sum, course) => sum + (course?.overdue || 0), 0) || 0}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                     Overdue Assignments
                   </Typography>
                 </Box>
@@ -756,89 +786,75 @@ const CourseWorkloadOverview = () => {
         </Grid>
       </Grid>
 
-      {/* Information Note */}
-      <Box sx={{ 
-        mt: 3, 
-        mb: 2, 
-        p: 2, 
-        backgroundColor: 'rgba(0, 0, 0, 0.02)', 
-        borderRadius: 2,
-        border: '1px solid rgba(0, 0, 0, 0.1)'
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Box sx={{ 
-            width: 8, 
-            height: 8, 
-            backgroundColor: '#666', 
-            borderRadius: '50%' 
-          }} />
-          <Typography variant="subtitle2" sx={{ 
-            color: '#333', 
-            fontWeight: 'bold',
-            fontSize: '0.9rem'
-          }}>
-            System Overview
-          </Typography>
-        </Box>
-        <Typography variant="body2" sx={{ 
-          color: '#666', 
-          fontSize: '0.85rem',
-          lineHeight: 1.4
-        }}>
-          The statistics above show data from <strong>all homework assignments across all courses</strong> in the system, 
-          providing a comprehensive view of the overall academic workload.
-        </Typography>
-      </Box>
-
       {/* Charts - same container structure as Student Workload Analysis for consistent width */}
       <Box sx={{ mb: 4 }}>
         {/* Assignment Distribution by Course */}
         <Box sx={{ mb: 3 }}>
           <div className="dashboard-card">
             <div className="card-content">
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ fontSize: '0.95rem' }}>
                 Assignment Distribution by Course
                 {workloadData.length > 8 && (
-                  <Typography variant="caption" display="block" color="text.secondary">
+                  <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                     Scroll horizontally to see all courses
                   </Typography>
                 )}
               </Typography>
               <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
                 <ResponsiveContainer 
-                  width={workloadData.length > 8 ? workloadData.length * 80 : '100%'} 
-                  height={Math.max(400, workloadData.length * 25 + 150)}
+                  width={workloadData.length > 8 ? workloadData.length * 56 : '100%'} 
+                  height={Math.max(340, workloadData.length * 22 + 120)}
                 >
                   <BarChart 
                     data={workloadData && workloadData.length > 0 ? workloadData : []}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    margin={{ top: 16, right: 24, left: 16, bottom: 50 }}
+                    barCategoryGap={8}
+                    barGap={4}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
-                      dataKey="courseCode" 
+                      dataKey="chartLabel" 
                       angle={-45}
                       textAnchor="end"
-                      height={80}
+                      height={64}
                       interval={0}
-                      fontSize={12}
+                      fontSize={10}
+                      tick={{ fontSize: 10 }}
                     />
-                    <YAxis />
+                    <YAxis
+                      width={32}
+                      tick={{ fontSize: 10 }}
+                      domain={[0, Math.max(2, ...(workloadData || []).flatMap((d) => [d.totalHomework || 0, d.upcomingDeadlines || 0, d.overdue || 0]))]}
+                    />
                     <Tooltip 
                       formatter={(value, name) => [value, name]}
                       labelFormatter={(label, payload) => {
                         if (payload && payload.length > 0) {
                           const data = payload[0].payload;
-                          return `${data.fullCourseCode || data.courseCode} - ${data.courseName}`;
+                          return data.chartLabel || `${data.fullCourseCode || data.courseCode} - ${data.courseName}`;
                         }
-                        return `Course: ${label}`;
+                        return label;
                       }}
                     />
-                    <Legend />
-                    <Bar dataKey="totalHomework" fill="#7DD3C0" name="Total Assignments" />
-                    <Bar dataKey="upcomingDeadlines" fill="#C8F299" name="Upcoming Deadlines" />
-                    <Bar dataKey="overdue" fill="#E85A6B" name="Overdue" />
+                    <Bar dataKey="totalHomework" fill="#7DD3C0" name="Total Assignments" barSize={14} />
+                    <Bar dataKey="upcomingDeadlines" fill="#C8F299" name="Upcoming Deadlines" barSize={14} />
+                    <Bar dataKey="overdue" fill="#E85A6B" name="Overdue" barSize={14} />
                   </BarChart>
                 </ResponsiveContainer>
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2, pt: 1.5, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: 1, backgroundColor: '#7DD3C0' }} />
+                  <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#333' }}>Total Assignments</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: 1, backgroundColor: '#C8F299' }} />
+                  <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#333' }}>Upcoming Deadlines</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 12, height: 12, borderRadius: 1, backgroundColor: '#E85A6B' }} />
+                  <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#333' }}>Overdue</Typography>
+                </Box>
               </Box>
             </div>
           </div>
@@ -849,15 +865,27 @@ const CourseWorkloadOverview = () => {
           <div className="dashboard-card">
             <div className="card-content">
               <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-                <Typography variant="h6">
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ fontSize: '0.95rem' }}>
                   Assignment Timeline (Next {selectedTimeframe} Days)
                 </Typography>
-                <FormControl size="small" sx={{ minWidth: 240 }}>
-                  <InputLabel>Filter by course</InputLabel>
+                <FormControl variant="standard" sx={{ minWidth: 200 }} fullWidth>
                   <Select
                     value={selectedCourseForTimeline || ''}
                     onChange={(e) => setSelectedCourseForTimeline(e.target.value || '')}
-                    label="Filter by course"
+                    disableUnderline
+                    displayEmpty
+                    renderValue={(v) => {
+                      if (!v) return 'All courses';
+                      const c = courses.find((x) => x._id === v);
+                      return c ? `${c.course_name} (${c.course_code})` : 'All courses';
+                    }}
+                    sx={{
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      color: '#666',
+                      py: 0,
+                      '& .MuiSelect-select': { py: 0 }
+                    }}
                   >
                     <MenuItem value="">
                       <em>All courses</em>
@@ -868,27 +896,31 @@ const CourseWorkloadOverview = () => {
                       </MenuItem>
                     ))}
                   </Select>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mt: 0.5 }}>
+                    Filter by course
+                  </Typography>
                 </FormControl>
               </Box>
               <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
                 <ResponsiveContainer 
-                  width={timelineData.length > 14 ? timelineData.length * 60 : '100%'} 
-                  height={400}
+                  width={timelineData.length > 14 ? timelineData.length * 44 : '100%'} 
+                  height={340}
                 >
                   <LineChart
                     data={timelineData && timelineData.length > 0 ? timelineData : []}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                    margin={{ top: 16, right: 24, left: 16, bottom: 50 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="day" 
                       angle={-45}
                       textAnchor="end"
-                      height={80}
+                      height={64}
                       interval={0}
-                      fontSize={12}
+                      fontSize={10}
+                      tick={{ fontSize: 10 }}
                     />
-                    <YAxis />
+                    <YAxis width={32} tick={{ fontSize: 10 }} />
                     <Tooltip 
                       formatter={(value, name) => [value, name]}
                       labelFormatter={(label, payload) => payload?.[0]?.payload?.date ? `Date: ${formatDeadlineDisplay(payload[0].payload.date)}` : `Date: ${label}`}
@@ -905,7 +937,7 @@ const CourseWorkloadOverview = () => {
                         dot={false}
                       />
                     ))}
-                    <Line type="monotone" dataKey="total" stroke="#1a1a1a" name="Total (Assignments Due)" strokeWidth={3} dot={false} />
+                    <Line type="monotone" dataKey="total" stroke="#6b7280" name="Total (Assignments Due)" strokeWidth={3} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
@@ -918,7 +950,7 @@ const CourseWorkloadOverview = () => {
           <div className="dashboard-card">
             <div className="card-content">
               <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                <Typography variant="h6" component="span" sx={{ mr: 1 }}>
+                <Typography variant="subtitle1" component="span" fontWeight="bold" sx={{ mr: 1, fontSize: '0.95rem' }}>
                   Assignment Timeline Table — click a column header for overview, or a cell for detail
                 </Typography>
                 <FormControlLabel
@@ -1170,59 +1202,78 @@ const CourseWorkloadOverview = () => {
       {/* Student Course Workload Analysis */}
       <Box sx={{ mb: 4 }}>
         <div className="dashboard-card">
-          <div className="card-header">
-            <div className="card-icon primary">
-              <PersonIcon />
-            </div>
-            <div style={{ flex: 1 }}>
-              <h3 className="card-title">Student Workload Analysis</h3>
-              <p className="card-subtitle">See what other courses your students are taking</p>
-            </div>
-            <FormControl sx={{ minWidth: 300 }} size="small">
-              <InputLabel>Select Your Course</InputLabel>
-              <Select
-                value={selectedCourseForWorkload}
-                label="Select Your Course"
-                onChange={(e) => setSelectedCourseForWorkload(e.target.value)}
-              >
-                <MenuItem value="">
-                  <em>Select a course</em>
-                </MenuItem>
-                {lecturerCourses.map((course) => (
-                  <MenuItem key={course._id} value={course._id}>
-                    {course.course_name} ({course.course_code})
+          <div className="card-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+              <div className="card-icon primary">
+                <PersonIcon />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 className="card-title" style={{ color: '#666' }}>Student Workload Analysis</h3>
+                <p className="card-subtitle" style={{ color: '#666' }}>See what other courses your students are taking</p>
+              </div>
+            </Box>
+            <Box sx={{ mt: 2 }}>
+              <FormControl variant="standard" sx={{ minWidth: 260 }} fullWidth>
+                <Select
+                  value={selectedCourseForWorkload}
+                  onChange={(e) => setSelectedCourseForWorkload(e.target.value)}
+                  disableUnderline
+                  displayEmpty
+                  renderValue={(v) => {
+                    if (!v) return 'Select a course';
+                    const c = lecturerCourses.find((x) => x._id === v);
+                    return c ? `${c.course_name} (${c.course_code})` : 'Select a course';
+                  }}
+                  sx={{
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: '#666',
+                    py: 0,
+                    '& .MuiSelect-select': { py: 0 }
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>Select a course</em>
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  {lecturerCourses.map((course) => (
+                    <MenuItem key={course._id} value={course._id}>
+                      {course.course_name} ({course.course_code})
+                    </MenuItem>
+                  ))}
+                </Select>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mt: 0.5 }}>
+                  Select Your Course
+                </Typography>
+              </FormControl>
+            </Box>
           </div>
           
           {studentWorkloadData ? (
             <div className="card-content">
               <Box sx={{ mb: 2 }}>
-                <Typography variant="body1" gutterBottom>
+                <Typography variant="body2" gutterBottom sx={{ fontSize: '0.85rem' }}>
                   <strong>Course:</strong> {studentWorkloadData.selected_course.course_name} ({studentWorkloadData.selected_course.course_code})
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                   Analyzing workload for {studentWorkloadData.selected_course.student_count} students
                 </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, mb: 2 }}>
-                <Typography variant="h6">
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 1.5 }}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ fontSize: '0.95rem' }}>
                 Courses Your Students Are Taking
               </Typography>
                 <Box sx={{ 
                   backgroundColor: 'rgba(149, 225, 211, 0.3)', 
                   borderRadius: 2, 
-                  px: 2, 
-                  py: 1,
+                  px: 1.5, 
+                  py: 0.75,
                   border: '1px solid rgba(149, 225, 211, 0.5)'
                 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
                     Total Students in Selected Course
                   </Typography>
-                  <Typography variant="h6" sx={{ color: '#95E1D3', fontWeight: 'bold', textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#95E1D3', fontWeight: 'bold', textAlign: 'center', fontSize: '0.9rem' }}>
                     {studentWorkloadData.selected_course.student_count}
                   </Typography>
                 </Box>
@@ -1233,23 +1284,26 @@ const CourseWorkloadOverview = () => {
                   {/* Bar Chart */}
                   <Box sx={{ overflowX: 'auto', mb: 3 }}>
                     <ResponsiveContainer 
-                      width={studentWorkloadData.student_workload.length > 6 ? studentWorkloadData.student_workload.length * 100 : '100%'} 
-                      height={400}
+                      width={studentWorkloadData.student_workload.length > 6 ? studentWorkloadData.student_workload.length * 70 : '100%'} 
+                      height={340}
                     >
                       <BarChart 
                         data={studentWorkloadData.student_workload}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                        margin={{ top: 16, right: 24, left: 16, bottom: 64 }}
+                        barCategoryGap={8}
+                        barGap={4}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis 
                           dataKey="course_name" 
                           angle={-45}
                           textAnchor="end"
-                          height={100}
+                          height={80}
                           interval={0}
-                          fontSize={11}
+                          fontSize={10}
+                          tick={{ fontSize: 10 }}
                         />
-                        <YAxis />
+                        <YAxis width={32} tick={{ fontSize: 10 }} />
                         <Tooltip 
                           content={({ active, payload }) => {
                             if (active && payload && payload.length) {
@@ -1291,37 +1345,37 @@ const CourseWorkloadOverview = () => {
                             return null;
                           }}
                         />
-                        <Legend />
+                        <Legend wrapperStyle={{ fontSize: '10px' }} />
                         {selectedTimeframe === '7' && (
-                          <Bar dataKey="upcoming_week" fill="#95E1D3" name="Due This Week" />
+                          <Bar dataKey="upcoming_week" fill="#95E1D3" name="Due This Week" barSize={12} />
                         )}
                         {selectedTimeframe === '30' && (
-                          <Bar dataKey="upcoming_month" fill="#D6F7AD" name="Due This Month" />
+                          <Bar dataKey="upcoming_month" fill="#D6F7AD" name="Due This Month" barSize={12} />
                         )}
                         {selectedTimeframe === '60' && (
-                          <Bar dataKey="upcoming_quarter" fill="#FCE38A" name="Due This Quarter" />
+                          <Bar dataKey="upcoming_quarter" fill="#FCE38A" name="Due This Quarter" barSize={12} />
                         )}
-                        <Bar dataKey="student_count" fill="#F38181" name="Students Taking This Course" />
+                        <Bar dataKey="student_count" fill="#F38181" name="Students Taking This Course" barSize={12} />
                       </BarChart>
                     </ResponsiveContainer>
                   </Box>
 
                   {/* Detailed List - one course per row, full width */}
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ fontSize: '0.95rem' }}>
                     Course Details
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {studentWorkloadData.student_workload.map((courseData) => (
                       <Box key={courseData.course_id} sx={{ width: '100%' }}>
-                        <Paper sx={{ p: 2 }}>
-                          <Typography variant="subtitle1" fontWeight="bold">
+                        <Paper sx={{ p: 1.5 }}>
+                          <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
                             {courseData.course_name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.7rem' }}>
                             {courseData.course_code}
                           </Typography>
                           {courseData.lecturer && (
-                            <Typography variant="caption" color="text.secondary" display="block">
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.7rem' }}>
                               Lecturer: {courseData.lecturer.name}
                             </Typography>
                           )}
@@ -1366,7 +1420,7 @@ const CourseWorkloadOverview = () => {
                             console.log('Found course status data:', courseStatusData);
                             return courseStatusData && courseStatusData.homework_status.length > 0 ? (
                               <Box sx={{ mt: 2 }}>
-                                <Typography variant="body2" fontWeight="bold" gutterBottom>
+                                <Typography variant="body2" fontWeight="bold" gutterBottom sx={{ fontSize: '0.8rem' }}>
                                   Homework Status Breakdown
                                 </Typography>
                                 <Box
@@ -1380,10 +1434,10 @@ const CourseWorkloadOverview = () => {
                                   <Paper key={homework._id} sx={{ p: 2, height: '100%', minWidth: 0, borderLeft: `4px solid ${homework.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                       <Box>
-                                        <Typography variant="subtitle2" fontWeight="bold">
+                                        <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.8rem' }}>
                                           {homework.title}
                                         </Typography>
-                                        <Typography variant="caption" color="text.secondary" display="block">
+                                        <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem' }}>
                                           Due: {formatDeadlineDisplay(new Date(homework.claimed_deadline || homework.due_date).toISOString().split('T')[0])}
                                         </Typography>
                                         <Chip 
@@ -1399,87 +1453,83 @@ const CourseWorkloadOverview = () => {
                                       </Box>
                                     </Box>
                                     
-                                    {/* Elegant 4-Bar Chart */}
-                                    <Box sx={{ mb: 2, height: 80, display: 'flex', alignItems: 'end', gap: 2, px: 2 }}>
+                                    {/* Elegant 4-Bar Chart - centered */}
+                                    <Box sx={{ mb: 1.5, height: 64, display: 'flex', alignItems: 'end', justifyContent: 'center', px: 1 }}>
                                       {(() => {
                                         const maxValue = Math.max(
                                           homework.status_counts.graded,
                                           homework.status_counts.completed,
                                           homework.status_counts.in_progress,
                                           homework.status_counts.not_started,
-                                          1 // Prevent division by zero
+                                          1
                                         );
-                                        
                                         const statusData = [
-                                          { label: 'Graded', value: homework.status_counts.graded, color: '#95E1D3' },
-                                          { label: 'Completed', value: homework.status_counts.completed, color: '#D6F7AD' },
-                                          { label: 'In Progress', value: homework.status_counts.in_progress, color: '#FCE38A' },
-                                          { label: 'Not Started', value: homework.status_counts.not_started, color: '#F38181' }
+                                          { value: homework.status_counts.graded, color: '#95E1D3' },
+                                          { value: homework.status_counts.completed, color: '#D6F7AD' },
+                                          { value: homework.status_counts.in_progress, color: '#FCE38A' },
+                                          { value: homework.status_counts.not_started, color: '#F38181' }
                                         ];
-                                        
-                                        return statusData.map((status, index) => (
-                                          <Box key={index} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '60px' }}>
-                                            <Box
-                                              sx={{
-                                                width: '24px',
-                                                height: `${(status.value / maxValue) * 50}px`,
-                                                background: `linear-gradient(135deg, ${status.color} 0%, ${status.color}CC 100%)`,
-                                                borderRadius: '12px 12px 4px 4px',
-                                                minHeight: status.value > 0 ? '6px' : '0px',
-                                                transition: 'all 0.3s ease',
-                                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                                                '&:hover': {
-                                                  transform: 'scale(1.05)',
-                                                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                                                }
-                                              }}
-                                            />
-                                            <Typography variant="caption" sx={{ mt: 1, fontSize: '11px', textAlign: 'center', fontWeight: 600, color: '#666' }}>
-                                              {status.value}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ fontSize: '9px', textAlign: 'center', color: '#999', lineHeight: 1 }}>
-                                              {status.label}
-                                            </Typography>
+                                        return (
+                                          <Box sx={{ display: 'flex', alignItems: 'end', gap: 1 }}>
+                                            {statusData.map((status, index) => (
+                                              <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 56 }}>
+                                                <Box
+                                                  sx={{
+                                                    width: '20px',
+                                                    height: `${(status.value / maxValue) * 48}px`,
+                                                    background: `linear-gradient(135deg, ${status.color} 0%, ${status.color}CC 100%)`,
+                                                    borderRadius: '8px 8px 2px 2px',
+                                                    minHeight: status.value > 0 ? '6px' : '0px',
+                                                    transition: 'all 0.3s ease',
+                                                    boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
+                                                    '&:hover': { transform: 'scale(1.05)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)' }
+                                                  }}
+                                                />
+                                                <Typography variant="caption" sx={{ mt: 0.5, fontSize: '0.75rem', fontWeight: 600, color: '#666' }}>
+                                                  {status.value}
+                                                </Typography>
+                                              </Box>
+                                            ))}
                                           </Box>
-                                        ));
+                                        );
                                       })()}
                                     </Box>
 
                                     {/* Status Counts - one row */}
-                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'nowrap', minWidth: 0 }}>
-                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" sx={{ color: '#95E1D3', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.graded}</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>Graded</Typography>
+                                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', minWidth: 0 }}>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.5, backgroundColor: 'rgba(149, 225, 211, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="caption" sx={{ color: '#95E1D3', fontWeight: 'bold', lineHeight: 1.2, fontSize: '0.85rem' }}>{homework.status_counts.graded}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.2, display: 'block', mt: 0.75 }}>Graded</Typography>
                                       </Box>
-                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" sx={{ color: '#D6F7AD', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.completed}</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>Completed</Typography>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.5, backgroundColor: 'rgba(214, 247, 173, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="caption" sx={{ color: '#D6F7AD', fontWeight: 'bold', lineHeight: 1.2, fontSize: '0.85rem' }}>{homework.status_counts.completed}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.2, display: 'block', mt: 0.75 }}>Completed</Typography>
                                       </Box>
-                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" sx={{ color: '#FCE38A', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.in_progress}</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>In Progress</Typography>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.5, backgroundColor: 'rgba(252, 227, 138, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="caption" sx={{ color: '#FCE38A', fontWeight: 'bold', lineHeight: 1.2, fontSize: '0.85rem' }}>{homework.status_counts.in_progress}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.2, display: 'block', mt: 0.75 }}>In Progress</Typography>
                                       </Box>
-                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.75, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 1, textAlign: 'center' }}>
-                                        <Typography variant="subtitle2" sx={{ color: '#F38181', fontWeight: 'bold', lineHeight: 1.2 }}>{homework.status_counts.not_started}</Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', lineHeight: 1.2, display: 'block' }}>Not Started</Typography>
+                                      <Box sx={{ flex: '1 1 0', minWidth: 0, p: 0.5, backgroundColor: 'rgba(243, 129, 129, 0.3)', borderRadius: 1, textAlign: 'center' }}>
+                                        <Typography variant="caption" sx={{ color: '#F38181', fontWeight: 'bold', lineHeight: 1.2, fontSize: '0.85rem' }}>{homework.status_counts.not_started}</Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.2, display: 'block', mt: 0.75 }}>Not Started</Typography>
                                       </Box>
                                     </Box>
 
                                     {/* Average Grade and Completion Rate */}
-                                    <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                      <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 100 }}>
-                                        <Typography variant="body2" color="text.secondary">Average Grade</Typography>
-                                        <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>{homework.average_grade ? `${homework.average_grade}%` : 'N/A'}</Typography>
+                                    <Box sx={{ mt: 0.75, display: 'flex', justifyContent: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                                      <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 72 }}>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Average Grade</Typography>
+                                        <Typography variant="body2" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.95rem' }}>{homework.average_grade ? `${homework.average_grade}%` : 'N/A'}</Typography>
                                       </Box>
-                                      <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 100 }}>
-                                        <Typography variant="body2" color="text.secondary">Completion Rate</Typography>
-                                        <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>{homework.total_students > 0 ? Math.round(((homework.status_counts.graded + homework.status_counts.completed) / homework.total_students) * 100) : 0}%</Typography>
+                                      <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 72 }}>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Completion Rate</Typography>
+                                        <Typography variant="body2" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.95rem' }}>{homework.total_students > 0 ? Math.round(((homework.status_counts.graded + homework.status_counts.completed) / homework.total_students) * 100) : 0}%</Typography>
                                       </Box>
                                     </Box>
 
                                     {/* Progress Bar */}
-                                    <Box sx={{ mt: 2 }}>
-                                      <Box sx={{ width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.3)', borderRadius: 1, height: 8 }}>
+                                    <Box sx={{ mt: 1 }}>
+                                      <Box sx={{ width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.3)', borderRadius: 1, height: 5 }}>
                                         <Box 
                                           sx={{ 
                                             width: `${homework.total_students > 0 ? ((homework.status_counts.graded + homework.status_counts.completed) / homework.total_students) * 100 : 0}%`, 
@@ -1524,7 +1574,6 @@ const CourseWorkloadOverview = () => {
           )}
         </div>
       </Box>
-
 
       </Box>
       </div>

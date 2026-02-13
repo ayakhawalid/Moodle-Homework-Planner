@@ -211,6 +211,18 @@
   font-size: 10px;
 }
 
+/* Weekly Workload Distribution: homework and course text */
+.weekly-workload-grid .homework-title {
+  font-size: 0.85rem !important;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.weekly-workload-grid .homework-course {
+  font-size: 0.8rem !important;
+}
+
 .dashboard-card {
   background: rgba(255, 255, 255, 0.6);
   border-radius: 16px;

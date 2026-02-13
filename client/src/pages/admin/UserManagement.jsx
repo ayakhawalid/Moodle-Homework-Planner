@@ -334,7 +334,7 @@ const UserManagement = () => {
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: 'rgba(149, 225, 211, 0.2)' }}>
+              <TableRow>
                 <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>User</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', color: '#333' }}>Role</TableCell>

@@ -27,7 +27,23 @@ const {
 router.post('/', checkJwt, async (req, res) => {
   try {
     const auth0_id = req.auth.sub;
-    const { email, name, full_name, username, picture, email_verified } = req.body;
+    let { email, name, full_name, username, picture, email_verified } = req.body;
+
+    // When JWT has no email/name (e.g. some Auth0 connections), fetch from Auth0 Management API
+    if ((!email || !name) && auth0_id) {
+      try {
+        const auth0User = await getAuth0User(auth0_id);
+        if (auth0User) {
+          if (!email) email = auth0User.email;
+          if (!name) name = auth0User.name || auth0User.nickname;
+          if (email_verified === undefined) email_verified = auth0User.email_verified;
+          if (!picture) picture = auth0User.picture;
+          console.log(`[Sync] Filled profile from Auth0 API for ${auth0_id}: email=${!!email}, name=${!!name}`);
+        }
+      } catch (err) {
+        console.warn('[Sync] Could not fetch Auth0 user for missing email/name:', err.message);
+      }
+    }
 
     if (!auth0_id || !email || !name) {
       return res.status(400).json({ message: 'auth0_id, email, and name are required.' });

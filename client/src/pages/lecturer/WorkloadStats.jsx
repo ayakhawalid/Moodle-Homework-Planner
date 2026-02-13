@@ -257,49 +257,49 @@ function WorkloadStats() {
                       <div>
                         {/* Overall Statistics */}
                         <div style={{ 
-                          marginBottom: '20px', 
-                          padding: '15px', 
+                          marginBottom: '12px', 
+                          padding: '10px', 
                           background: '#f8f9fa', 
                           borderRadius: '8px' 
                         }}>
-                          <h5 style={{ marginBottom: '10px', color: '#2c3e50' }}>Overall Statistics</h5>
-                          <Grid container spacing={2}>
+                          <Typography variant="subtitle2" fontWeight="bold" sx={{ marginBottom: 1, color: '#2c3e50', fontSize: '0.85rem' }}>Overall Statistics</Typography>
+                          <Grid container spacing={1.5}>
                             <Grid item xs={6} sm={3}>
-                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(149, 225, 211, 0.2)', borderRadius: 1 }}>
-                                <Typography variant="h5" sx={{ color: '#95E1D3', fontWeight: 'bold' }}>
+                              <Box textAlign="center" sx={{ p: 0.75, backgroundColor: 'rgba(149, 225, 211, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="body1" sx={{ color: '#95E1D3', fontWeight: 'bold', fontSize: '1rem' }}>
                                   {homeworkStatusData.overall_stats.total_homework}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                                   Total Homework
                                 </Typography>
                               </Box>
                             </Grid>
                             <Grid item xs={6} sm={3}>
-                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(214, 247, 173, 0.2)', borderRadius: 1 }}>
-                                <Typography variant="h5" sx={{ color: '#D6F7AD', fontWeight: 'bold' }}>
+                              <Box textAlign="center" sx={{ p: 0.75, backgroundColor: 'rgba(214, 247, 173, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="body1" sx={{ color: '#D6F7AD', fontWeight: 'bold', fontSize: '1rem' }}>
                                   {homeworkStatusData.overall_stats.total_graded}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                                   Graded Submissions
                                 </Typography>
                               </Box>
                             </Grid>
                             <Grid item xs={6} sm={3}>
-                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(252, 227, 138, 0.2)', borderRadius: 1 }}>
-                                <Typography variant="h5" sx={{ color: '#FCE38A', fontWeight: 'bold' }}>
+                              <Box textAlign="center" sx={{ p: 0.75, backgroundColor: 'rgba(252, 227, 138, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="body1" sx={{ color: '#FCE38A', fontWeight: 'bold', fontSize: '1rem' }}>
                                   {homeworkStatusData.overall_stats.total_not_graded}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                                   Pending Grading
                                 </Typography>
                               </Box>
                             </Grid>
                             <Grid item xs={6} sm={3}>
-                              <Box textAlign="center" sx={{ p: 1, backgroundColor: 'rgba(243, 129, 129, 0.2)', borderRadius: 1 }}>
-                                <Typography variant="h5" sx={{ color: '#F38181', fontWeight: 'bold' }}>
+                              <Box textAlign="center" sx={{ p: 0.75, backgroundColor: 'rgba(243, 129, 129, 0.2)', borderRadius: 1 }}>
+                                <Typography variant="body1" sx={{ color: '#F38181', fontWeight: 'bold', fontSize: '1rem' }}>
                                   {homeworkStatusData.overall_stats.average_grade ? `${homeworkStatusData.overall_stats.average_grade}%` : 'N/A'}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                                   Average Grade
                                 </Typography>
                               </Box>
@@ -307,23 +307,25 @@ function WorkloadStats() {
                           </Grid>
                         </div>
 
-                        {/* Individual Homework Status */}
-                        <div style={{ display: 'grid', gap: '15px' }}>
+                        {/* Individual Homework Status - 3 per row like Workload Overview */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                           {homeworkStatusData.homework_status.map((hw) => (
                             <Paper 
                               key={hw._id} 
                               sx={{ 
                                 p: 2, 
+                                height: '100%',
+                                minWidth: 0,
                                 borderLeft: `4px solid ${hw.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`,
-                                borderRadius: '8px' 
+                                backgroundColor: 'rgba(255, 255, 255, 0.6)'
                               }}
                             >
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                 <Box>
-                                  <Typography variant="h6" fontWeight="bold">
+                                  <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.8rem' }}>
                                     {hw.title}
                                   </Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem' }}>
                                     {(() => {
                                       const dateStr = hw.homework_type === 'traditional' ? hw.due_date : hw.claimed_deadline;
                                       const dateObj = dateStr ? new Date(dateStr) : null;
@@ -343,109 +345,93 @@ function WorkloadStats() {
                                 </Box>
                               </Box>
                               
-                              {/* Elegant 4-Bar Chart */}
-                              <Box sx={{ mb: 2, height: 80, display: 'flex', alignItems: 'end', gap: 2, px: 2 }}>
+                              {/* Elegant 4-Bar Chart - centered (same as Workload Overview) */}
+                              <Box sx={{ mb: 1.5, height: 64, display: 'flex', alignItems: 'end', justifyContent: 'center', px: 1 }}>
                                 {(() => {
                                   const maxValue = Math.max(
                                     hw.status_counts.graded,
                                     hw.status_counts.completed,
                                     hw.status_counts.in_progress,
                                     hw.status_counts.not_started,
-                                    1 // Prevent division by zero
+                                    1
                                   );
-                                  
-                                const statusData = [
-                                    { label: 'Graded', value: hw.status_counts.graded, color: '#95E1D3' },
-                                    { label: 'Completed', value: hw.status_counts.completed, color: '#D6F7AD' },
-                                    { label: 'In Progress', value: hw.status_counts.in_progress, color: '#FCE38A' },
-                                    { label: 'Not Started', value: hw.status_counts.not_started, color: '#F38181' }
+                                  const statusData = [
+                                    { value: hw.status_counts.graded, color: '#95E1D3' },
+                                    { value: hw.status_counts.completed, color: '#D6F7AD' },
+                                    { value: hw.status_counts.in_progress, color: '#FCE38A' },
+                                    { value: hw.status_counts.not_started, color: '#F38181' }
                                   ];
-                                  
-                                  return statusData.map((status, index) => (
-                                    <Box key={index} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '60px' }}>
-                                      <Box
-                                        sx={{
-                                          width: '24px',
-                                          height: `${(status.value / maxValue) * 50}px`,
-                                          background: `linear-gradient(135deg, ${status.color} 0%, ${status.color}CC 100%)`,
-                                          borderRadius: '12px 12px 4px 4px',
-                                          minHeight: status.value > 0 ? '6px' : '0px',
-                                          transition: 'all 0.3s ease',
-                                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                                          '&:hover': {
-                                            transform: 'scale(1.05)',
-                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                                          }
-                                        }}
-                                      />
-                                      <Typography variant="caption" sx={{ mt: 1, fontSize: '11px', textAlign: 'center', fontWeight: 600, color: '#666' }}>
-                                        {status.value}
-                                      </Typography>
-                                      <Typography variant="caption" sx={{ fontSize: '9px', textAlign: 'center', color: '#999', lineHeight: 1 }}>
-                                        {status.label}
-                                      </Typography>
+                                  return (
+                                    <Box sx={{ display: 'flex', alignItems: 'end', gap: 1 }}>
+                                      {statusData.map((status, index) => (
+                                        <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 56 }}>
+                                          <Box
+                                            sx={{
+                                              width: '20px',
+                                              height: `${(status.value / maxValue) * 48}px`,
+                                              background: `linear-gradient(135deg, ${status.color} 0%, ${status.color}CC 100%)`,
+                                              borderRadius: '8px 8px 2px 2px',
+                                              minHeight: status.value > 0 ? '6px' : '0px',
+                                              transition: 'all 0.3s ease',
+                                              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
+                                              '&:hover': { transform: 'scale(1.05)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)' }
+                                            }}
+                                          />
+                                          <Typography variant="caption" sx={{ mt: 0.5, fontSize: '0.75rem', fontWeight: 600, color: '#666' }}>
+                                            {status.value}
+                                          </Typography>
+                                        </Box>
+                                      ))}
                                     </Box>
-                                  ));
+                                  );
                                 })()}
                               </Box>
 
-                              <Grid container spacing={2}>
+                              {/* Status Counts - one row (same as Workload Overview) */}
+                              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', minWidth: 0 }}>
                                 {[
                                   { key: 'graded', color: '#95E1D3', bg: 'rgba(149, 225, 211, 0.3)' },
                                   { key: 'completed', color: '#D6F7AD', bg: 'rgba(214, 247, 173, 0.3)' },
                                   { key: 'in_progress', color: '#FCE38A', bg: 'rgba(252, 227, 138, 0.3)' },
                                   { key: 'not_started', color: '#F38181', bg: 'rgba(243, 129, 129, 0.3)' }
                                 ].map(({ key, color, bg }) => (
-                                  <Grid item xs={6} sm={3} key={key}>
-                                    <Box
-                                      onClick={() => handleOpenStudents(hw, key)}
-                                      sx={{
-                                        p: 1,
-                                        backgroundColor: bg,
-                                        borderRadius: 1,
-                                        textAlign: 'center',
-                                        cursor: (hw.status_counts[key] || 0) > 0 ? 'pointer' : 'default',
-                                        '&:hover': (hw.status_counts[key] || 0) > 0 ? { opacity: 0.9, boxShadow: 1 } : {}
-                                      }}
-                                    >
-                                      <Typography variant="h6" sx={{ color, fontWeight: 'bold' }}>
-                                        {hw.status_counts[key]}
-                                      </Typography>
-                                      <Typography variant="caption" color="text.secondary">
-                                        {statusLabel(key)}
-                                      </Typography>
-                                    </Box>
-                                  </Grid>
+                                  <Box
+                                    key={key}
+                                    onClick={() => handleOpenStudents(hw, key)}
+                                    sx={{
+                                      flex: '1 1 0',
+                                      minWidth: 0,
+                                      p: 0.5,
+                                      backgroundColor: bg,
+                                      borderRadius: 1,
+                                      textAlign: 'center',
+                                      cursor: (hw.status_counts[key] || 0) > 0 ? 'pointer' : 'default',
+                                      '&:hover': (hw.status_counts[key] || 0) > 0 ? { opacity: 0.9, boxShadow: 1 } : {}
+                                    }}
+                                  >
+                                    <Typography variant="caption" sx={{ color, fontWeight: 'bold', lineHeight: 1.2, fontSize: '0.85rem' }}>{hw.status_counts[key]}</Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.2, display: 'block', mt: 0.75 }}>{statusLabel(key)}</Typography>
+                                  </Box>
                                 ))}
-                              </Grid>
-                              
-                              {/* Average Grade and Completion Rate */}
-                              <Grid container spacing={2} sx={{ mt: 1 }}>
-                                <Grid item xs={6}>
-                                  <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                      Average Grade
-                                    </Typography>
-                                    <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
-                                      {hw.average_grade ? `${hw.average_grade}%` : 'N/A'}
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                                <Grid item xs={6}>
-                                  <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                      Completion Rate
-                                    </Typography>
-                                    <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
-                                      {hw.total_students > 0 ? Math.round(((hw.status_counts.graded + hw.status_counts.completed) / hw.total_students) * 100) : 0}%
-                                    </Typography>
-                                  </Box>
-                                </Grid>
-                              </Grid>
+                              </Box>
+
+                              {/* Average Grade and Completion Rate - centered (same as Workload Overview) */}
+                              <Box sx={{ mt: 0.75, display: 'flex', justifyContent: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                                <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 72 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Average Grade</Typography>
+                                  <Typography variant="body2" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.95rem' }}>{hw.average_grade ? `${hw.average_grade}%` : 'N/A'}</Typography>
+                                </Box>
+                                <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 72 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Completion Rate</Typography>
+                                  <Typography variant="body2" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.95rem' }}>
+                                    {hw.total_students > 0 ? Math.round(((hw.status_counts.graded + hw.status_counts.completed) / hw.total_students) * 100) : 0}%
+                                  </Typography>
+                                </Box>
+                              </Box>
 
                               {/* Progress Bar */}
-                              <Box sx={{ mt: 2 }}>
-                                <Box sx={{ width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.3)', borderRadius: 1, height: 8 }}>
+                              <Box sx={{ mt: 1 }}>
+                                <Box sx={{ width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.3)', borderRadius: 1, height: 5 }}>
                                   <Box 
                                     sx={{ 
                                       width: `${hw.total_students > 0 ? ((hw.status_counts.graded + hw.status_counts.completed) / hw.total_students) * 100 : 0}%`, 
@@ -459,7 +445,7 @@ function WorkloadStats() {
                               </Box>
                             </Paper>
                           ))}
-                        </div>
+                        </Box>
                       </div>
                     ) : homeworkStatusData ? (
                       <div style={{ 

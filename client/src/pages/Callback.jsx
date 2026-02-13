@@ -67,14 +67,20 @@ const Callback = () => {
         } catch (e) {
           console.warn('Failed during post-signup processing (username/role request):', e);
         }
-        // Only use backend role for redirect. New signups (no role in DB) go to pending or home, not student dashboard.
-        console.log('Redirecting with role:', syncedRole, '(from backend; JWT role:', userRole, ')');
+        // Use backend role when present; otherwise fall back to JWT role so users with Auth0-assigned roles aren't stuck on pending
+        if (!syncedRole && user && user['https://my-app.com/roles']) {
+          const jwtRoles = user['https://my-app.com/roles'];
+          if (jwtRoles.includes('admin')) syncedRole = 'admin';
+          else if (jwtRoles.includes('lecturer')) syncedRole = 'lecturer';
+          else if (jwtRoles.includes('student')) syncedRole = 'student';
+        }
+        console.log('Redirecting with role:', syncedRole, '(from backend or JWT fallback)');
         if (syncedRole && ['admin', 'lecturer', 'student'].includes(syncedRole)) {
           sessionStorage.setItem('postLoginRole', syncedRole);
           const path = syncedRole === 'admin' ? '/admin/dashboard' : syncedRole === 'lecturer' ? '/lecturer/dashboard' : '/student/dashboard';
           window.location.href = path;
         } else {
-          // No role assigned yet (e.g. new signup) -> role-pending or home, not student dashboard
+          // No role in backend and none in JWT (e.g. new signup) -> role-pending
           navigate('/role-pending', { replace: true });
         }
       })();

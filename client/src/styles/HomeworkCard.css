@@ -99,9 +99,6 @@
   border-radius: 12px;
   padding: 1rem;
   min-height: 300px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  border-left: 1px solid rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
   overflow: visible;
@@ -423,10 +420,10 @@
   background: #D6F7AD;
   width: 35px;
   left: -17px;
-  height: calc(100% + 2px);
+  height: 100%;
   position: absolute;
-  top: -1px;
-  bottom: -1px;
+  top: 0;
+  bottom: 0;
   border-radius: 12px 0 0 12px;
 }
 
@@ -461,10 +458,10 @@
   background: #D6F7AD;
   width: 35px;
   left: -17px;
-  height: calc(100% + 2px);
+  height: 100%;
   position: absolute;
-  top: -1px;
-  bottom: -1px;
+  top: 0;
+  bottom: 0;
   border-radius: 12px 0 0 12px;
 }
 
@@ -488,6 +485,44 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* When user switches bg from white to green/teal/coral/yellow, homework card green border becomes white */
+.green-background .lecturer-homework,
+.teal-background .lecturer-homework,
+.coral-background .lecturer-homework,
+.yellow-background .lecturer-homework {
+  border-left-color: #fff !important;
+}
+.green-background .student-homework,
+.teal-background .student-homework,
+.coral-background .student-homework,
+.yellow-background .student-homework {
+  border-left-color: #fff !important;
+}
+.green-background .lecturer-edge,
+.teal-background .lecturer-edge,
+.coral-background .lecturer-edge,
+.yellow-background .lecturer-edge {
+  background: #fff !important;
+}
+.green-background .student-edge,
+.teal-background .student-edge,
+.coral-background .student-edge,
+.yellow-background .student-edge {
+  background: #fff !important;
+}
+.green-background .lecturer-indicator,
+.teal-background .lecturer-indicator,
+.coral-background .lecturer-indicator,
+.yellow-background .lecturer-indicator {
+  box-shadow: 0 0 0 2px #fff !important;
+}
+.green-background .student-indicator,
+.teal-background .student-indicator,
+.coral-background .student-indicator,
+.yellow-background .student-indicator {
+  box-shadow: 0 0 0 2px #fff !important;
 }
 
 /* Responsive Design */

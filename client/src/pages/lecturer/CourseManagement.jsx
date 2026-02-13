@@ -261,7 +261,7 @@ const CourseManagement = () => {
   return (
     <DashboardLayout userRole="lecturer">
       <div className="page-background">
-      <Box p={3}>
+      <Box p={3} sx={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         <Box display="flex" justifyContent="flex-start" alignItems="center" mb={3}>
           {/* Add Course Icon Button */}
           <IconButton
@@ -303,33 +303,25 @@ const CourseManagement = () => {
               <Typography variant="h6" gutterBottom sx={{ mb: 2, color: '#F38181', fontWeight: 'bold' }}>
                 Pending Course Verifications ({pendingVerifications.length})
               </Typography>
-              <TableContainer sx={{ background: 'transparent' }}>
-                <Table>
+              <TableContainer sx={{ background: 'transparent', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <Table sx={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: 'rgba(149, 225, 211, 0.2)' }}>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Course Details</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Code</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Semester/Year</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Credits</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Created By</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Actions</TableCell>
+                    <TableRow>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Course name</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Code</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Semester/Year</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Credits</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Created By</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
-                  <TableBody>
+                  <TableBody sx={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     {pendingVerifications.map((course) => (
                       <TableRow key={course._id} hover>
                         <TableCell>
-                          <Box>
-                            <Typography variant="subtitle1" fontWeight="bold">
-                              {course.course_name}
-                            </Typography>
-                            {course.description && (
-                              <Typography variant="body2" color="text.secondary">
-                                {course.description.substring(0, 100)}
-                                {course.description.length > 100 ? '...' : ''}
-                              </Typography>
-                            )}
-                          </Box>
+                          <Typography variant="subtitle1">
+                            {course.course_name}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           <Chip 
@@ -339,17 +331,20 @@ const CourseManagement = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Box>
+                          <Box display="flex" alignItems="center" gap={1}>
                             {course.semester && (
                               <Chip 
                                 label={String(course.semester).charAt(0).toUpperCase() + String(course.semester).slice(1)} 
                                 size="small"
-                                sx={{ mr: 1, ...getSemesterChipColor(course.semester) }}
+                                sx={getSemesterChipColor(course.semester)}
                               />
                             )}
-                            <Typography variant="body2" color="text.secondary">
-                              {course.year}
-                            </Typography>
+                            {course.year && (
+                              <Typography variant="body2" color="text.secondary">{course.year}</Typography>
+                            )}
+                            {!course.semester && !course.year && (
+                              <Typography variant="body2" color="text.secondary">—</Typography>
+                            )}
                           </Box>
                         </TableCell>
                         <TableCell>
@@ -400,33 +395,25 @@ const CourseManagement = () => {
         {courses.length > 0 && (
         <div className="dashboard-card course-management-container" style={{ background: 'transparent', boxShadow: 'none', border: 'none' }}>
           <div className="card-content">
-              <TableContainer sx={{ background: 'transparent' }}>
-                <Table>
+              <TableContainer sx={{ background: 'transparent', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <Table sx={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: 'rgba(149, 225, 211, 0.2)' }}>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Course Details</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Code</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Semester/Year</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Credits</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Students</TableCell>
-                      <TableCell sx={{ color: '#333', fontWeight: 'bold' }}>Actions</TableCell>
+                    <TableRow>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Course name</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Code</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Semester/Year</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Credits</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Students</TableCell>
+                      <TableCell sx={{ color: '#333', fontWeight: 600, fontSize: '1rem', fontFamily: 'Inter, system-ui, sans-serif' }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
-                  <TableBody>
+                  <TableBody sx={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     {courses.map((course) => (
                       <TableRow key={course._id} hover>
                         <TableCell>
-                          <Box>
-                            <Typography variant="subtitle1" fontWeight="bold">
-                              {course.course_name}
-                            </Typography>
-                            {course.description && (
-                              <Typography variant="body2" color="text.secondary">
-                                {course.description.substring(0, 100)}
-                                {course.description.length > 100 ? '...' : ''}
-                              </Typography>
-                            )}
-                          </Box>
+                          <Typography variant="subtitle1">
+                            {course.course_name}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           <Chip 
@@ -436,17 +423,20 @@ const CourseManagement = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Box>
+                          <Box display="flex" alignItems="center" gap={1}>
                             {course.semester && (
                               <Chip 
                                 label={String(course.semester).charAt(0).toUpperCase() + String(course.semester).slice(1)} 
                                 size="small"
-                                sx={{ mr: 1, ...getSemesterChipColor(course.semester) }}
+                                sx={getSemesterChipColor(course.semester)}
                               />
                             )}
-                            <Typography variant="body2" color="text.secondary">
-                              {course.year}
-                            </Typography>
+                            {course.year && (
+                              <Typography variant="body2" color="text.secondary">{course.year}</Typography>
+                            )}
+                            {!course.semester && !course.year && (
+                              <Typography variant="body2" color="text.secondary">—</Typography>
+                            )}
                           </Box>
                         </TableCell>
                         <TableCell>
@@ -499,7 +489,7 @@ const CourseManagement = () => {
         )}
 
         {/* Add/Edit Course Dialog */}
-        <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth PaperProps={{ sx: { fontFamily: 'Inter, system-ui, sans-serif' } }}>
           <DialogTitle>
             {editingCourse ? 'Edit Course' : 'Add New Course'}
           </DialogTitle>
@@ -624,11 +614,15 @@ const CourseManagement = () => {
             </Button>
             <Button 
               onClick={handleSubmit} 
-              variant="contained"
+              variant="outlined"
               sx={{ 
-                backgroundColor: '#D6F7AD',
+                backgroundColor: '#fff',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': { 
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }
               }}
             >
               {editingCourse ? 'Update Course' : 'Create Course'}
@@ -637,7 +631,7 @@ const CourseManagement = () => {
         </Dialog>
 
         {/* View Course Dialog */}
-        <Dialog open={viewDialogOpen} onClose={handleCloseViewDialog} maxWidth="md" fullWidth>
+        <Dialog open={viewDialogOpen} onClose={handleCloseViewDialog} maxWidth="md" fullWidth PaperProps={{ sx: { fontFamily: 'Inter, system-ui, sans-serif' } }}>
           <DialogTitle>
             <Box display="flex" alignItems="center">
               <ChalkboardTeacherIcon size={28} weight="duotone" style={{ marginRight: 8 }} />
@@ -649,22 +643,20 @@ const CourseManagement = () => {
               <Box>
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
-                    <Typography variant="h5" gutterBottom>
-                      {viewingCourse.course_name}
-                    </Typography>
-                    <Box display="flex" alignItems="center" mb={2}>
+                    <Box display="flex" alignItems="center" flexWrap="wrap" gap={1} mb={1}>
+                      <Typography variant="h5" component="span">
+                        {viewingCourse.course_name}
+                      </Typography>
                       <Chip 
                         label={String(viewingCourse.course_code || 'No Code')} 
                         variant="outlined" 
-                        sx={{ mr: 2 }}
-                      />
-                      <Chip 
-                        label={viewingCourse.semester ? String(viewingCourse.semester).charAt(0).toUpperCase() + String(viewingCourse.semester).slice(1) : 'No Semester'} 
-                        sx={{ mr: 2, ...getSemesterChipColor(viewingCourse.semester) }}
                         size="small"
                       />
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
                       <Typography variant="body2" color="text.secondary">
-                        {viewingCourse.year}
+                        {viewingCourse.semester ? String(viewingCourse.semester).charAt(0).toUpperCase() + String(viewingCourse.semester).slice(1) : 'No Semester'}
+                        {viewingCourse.year ? ` · ${viewingCourse.year}` : ''}
                       </Typography>
                     </Box>
                   </Grid>
@@ -801,11 +793,15 @@ const CourseManagement = () => {
                 handleCloseViewDialog();
                 handleOpenDialog(viewingCourse);
               }} 
-              variant="contained"
+              variant="outlined"
               sx={{ 
-                backgroundColor: '#D6F7AD',
+                backgroundColor: '#fff',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': { 
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }
               }}
             >
               Edit Course

@@ -26,14 +26,12 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Schedule as ScheduleIcon,
-  ExpandMore as ExpandMoreIcon,
-  School as SchoolIcon,
-  Person as PersonIcon
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useAuth0 } from '@auth0/auth0-react';
 import { apiService } from '../../services/api';
 import '../../styles/HomeworkCard.css';
-import { CheckCircle as PhCheckCircle, XCircle as PhXCircle } from 'phosphor-react';
+import { CheckCircle as PhCheckCircle, XCircle as PhXCircle, GraduationCap as SchoolIcon, Users as PeopleIcon } from 'phosphor-react';
 
 const formatDateTimeForInput = (value) => {
   if (!value) return '';
@@ -230,13 +228,13 @@ const VerificationDashboard = () => {
                       
                       {/* Student Info */}
                       <div className="homework-course">
-                        <PersonIcon sx={{ mr: 1, fontSize: 16, color: '#FCE38A' }} />
+                        <PeopleIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#6b7280' }} />
                         {verification.uploaded_by.name} ({verification.uploaded_by.role})
                       </div>
 
                       {/* Course Info */}
                       <div className="homework-course">
-                        <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
+                        <SchoolIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#6b7280' }} />
                         {verification.course.name} ({verification.course.code})
                       </div>
 
@@ -315,12 +313,16 @@ const VerificationDashboard = () => {
           </Button>
           <Button
             onClick={handleVerify}
-            variant="contained"
+            variant="outlined"
             disabled={submitting}
             sx={{ 
-              backgroundColor: '#D6F7AD',
-              color: '#000',
-              '&:hover': { backgroundColor: '#c8f299', color: '#000' }
+              backgroundColor: '#fff',
+              color: '#333',
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
+              }
             }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Update Verification'}

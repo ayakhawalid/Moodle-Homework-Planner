@@ -25,11 +25,11 @@ export const useAuth = () => {
 
   const userRole = useMemo(() => (userRoles.length > 0 ? userRoles[0] : null), [userRoles]);
 
-  // Prefer backend/synced role. When sync has completed, backend is source of truth: null role = pending (do not use JWT).
+  // Prefer backend/synced role. When backend returns no role but JWT has one (e.g. sync failed or DB stale), use JWT so user isn't stuck on pending.
   const effectiveRole = useMemo(() => {
     const fromCallback = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('postLoginRole') : null;
     if (syncStatus === 'synced' && syncedUser != null) {
-      return syncedUser.role ?? null;
+      return syncedUser.role ?? userRole ?? null;
     }
     return fromCallback ?? userRole ?? null;
   }, [syncedUser, syncStatus, userRole]);

@@ -20,24 +20,47 @@ async function syncUsers() {
 
     const auth0Ids = auth0Users.map(u => u.user_id);
 
-    // Upsert users into MongoDB
+    // Upsert users into MongoDB (avoid E11000 duplicate email: match by auth0_id first, then by email, then insert)
     for (const auth0User of auth0Users) {
+      const auth0Id = auth0User.user_id;
+      const email = auth0User.email && auth0User.email.trim();
+      const updateFields = {
+        auth0_id: auth0Id,
+        email: email || undefined,
+        name: auth0User.name,
+        role: auth0User.app_metadata?.role || null,
+        picture: auth0User.picture,
+        email_verified: auth0User.email_verified,
+        is_active: !auth0User.blocked,
+        last_login: auth0User.last_login,
+        metadata: auth0User.app_metadata || {},
+        lastSynced: new Date(),
+      };
+      // Remove undefined so we don't overwrite with null
+      Object.keys(updateFields).forEach((k) => updateFields[k] === undefined && delete updateFields[k]);
+
+      let existing = await User.findOne({ auth0_id: auth0Id }).lean();
+      if (existing) {
+        await User.updateOne({ auth0_id: auth0Id }, { $set: updateFields });
+        continue;
+      }
+      if (email) {
+        existing = await User.findOne({ email }).lean();
+        if (existing) {
+          // Same email, different Auth0 identity (e.g. linked account): update existing user to this auth0_id
+          await User.updateOne({ email }, { $set: updateFields });
+          continue;
+        }
+      }
+      // New user: insert (require email for unique index)
+      if (!email) {
+        console.warn(`⚠️ Skipping Auth0 user ${auth0Id} (no email)`);
+        continue;
+      }
       await User.updateOne(
-        { auth0_id: auth0User.user_id }, // Match by Auth0 ID only
-        {
-          $set: {
-            email: auth0User.email,
-            name: auth0User.name,
-            role: auth0User.app_metadata?.role || null, // Role from app_metadata
-            picture: auth0User.picture,
-            email_verified: auth0User.email_verified,
-            is_active: !auth0User.blocked, // Active if not blocked
-            last_login: auth0User.last_login,
-            metadata: auth0User.app_metadata || {}, // Additional metadata
-            lastSynced: new Date(), // Timestamp of sync
-          },
-        },
-        { upsert: true } // Insert if not found, update if exists
+        { auth0_id: auth0Id },
+        { $setOnInsert: { auth0_id: auth0Id, email, name: auth0User.name }, $set: updateFields },
+        { upsert: true }
       );
     }
 

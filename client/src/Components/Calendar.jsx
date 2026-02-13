@@ -17,11 +17,7 @@ import {
   Grid,
   Alert
 } from '@mui/material';
-import {
-  Assignment as AssignmentIcon,
-  School as SchoolIcon,
-  Schedule as ScheduleIcon
-} from '@mui/icons-material';
+import { ClipboardText as AssignmentIcon, GraduationCap as SchoolIcon, Clock as ScheduleIcon } from 'phosphor-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './Calendar.css';
 
@@ -381,7 +377,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
               <>
                 <Grid item>
                   <Chip
-                    icon={<ScheduleIcon />}
+                    icon={<ScheduleIcon size={18} weight="thin" />}
                     label="Due Today/Tomorrow"
                     size="small"
                     sx={{ 
@@ -393,7 +389,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                 </Grid>
                 <Grid item>
                   <Chip
-                    icon={<ScheduleIcon />}
+                    icon={<ScheduleIcon size={18} weight="thin" />}
                     label="Overdue"
                     size="small"
                     sx={{ 
@@ -405,7 +401,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                 </Grid>
                 <Grid item>
                   <Chip
-                    icon={<AssignmentIcon />}
+                    icon={<AssignmentIcon size={18} weight="thin" />}
                     label="Lecturer Created"
                     size="small"
                     sx={{ 
@@ -417,7 +413,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                 </Grid>
                 <Grid item>
                   <Chip
-                    icon={<AssignmentIcon />}
+                    icon={<AssignmentIcon size={18} weight="thin" />}
                     label="Student Created"
                     size="small"
                     sx={{ 
@@ -433,7 +429,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
               <>
                 <Grid item>
                   <Chip
-                    icon={<AssignmentIcon />}
+                    icon={<AssignmentIcon size={18} weight="thin" />}
                     label="Completed"
                     size="small"
                     sx={{ 
@@ -445,7 +441,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                 </Grid>
                 <Grid item>
                   <Chip
-                    icon={<ScheduleIcon />}
+                    icon={<ScheduleIcon size={18} weight="thin" />}
                     label="Due Today/Tomorrow"
                     size="small"
                     sx={{ 
@@ -457,7 +453,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                 </Grid>
                 <Grid item>
                   <Chip
-                    icon={<ScheduleIcon />}
+                    icon={<ScheduleIcon size={18} weight="thin" />}
                     label="Overdue"
                     size="small"
                     sx={{ 
@@ -469,7 +465,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                 </Grid>
                 <Grid item>
                   <Chip
-                    icon={<AssignmentIcon />}
+                    icon={<AssignmentIcon size={18} weight="thin" />}
                     label="Upcoming"
                     size="small"
                     sx={{ 
@@ -547,7 +543,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
       <Dialog open={eventDialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
-            <AssignmentIcon />
+            <AssignmentIcon size={24} weight="thin" style={{ color: '#6b7280' }} />
             <Typography variant="h6">
               {selectedEvent?.title}
             </Typography>
@@ -581,7 +577,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                         
                         return (
                           <Box display="flex" alignItems="center" mb={1}>
-                            <SchoolIcon sx={{ mr: 1, fontSize: 16, color: '#95E1D3' }} />
+                            <SchoolIcon size={16} weight="thin" style={{ marginRight: 8, color: '#6b7280' }} />
                             <Typography variant="body2">
                               <strong>Course:</strong> {displayText}
                             </Typography>
@@ -590,7 +586,7 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                       })()}
                       
                       <Box display="flex" alignItems="center" mb={1}>
-                        <ScheduleIcon sx={{ mr: 1, fontSize: 16, color: '#D6F7AD' }} />
+                        <ScheduleIcon size={16} weight="thin" style={{ marginRight: 8, color: '#6b7280' }} />
                         <Typography variant="body2">
                           <strong>Due Date:</strong> {moment(selectedEvent.start).format('MMMM Do YYYY, h:mm a')}
                         </Typography>
@@ -622,7 +618,9 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
                         </Box>
                       )}
 
-                      {selectedEvent.resource.homework.deadline_verification_status && (
+                      {/* Only show deadline verification for student-created homework (lecturer-created has no verification) */}
+                      {selectedEvent.resource.homework.uploader_role !== 'lecturer' &&
+                        selectedEvent.resource.homework.deadline_verification_status && (
                         <Box sx={{ mt: 1 }}>
                           <Chip
                             label={`Deadline: ${String(selectedEvent.resource.homework.deadline_verification_status).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`}
@@ -643,7 +641,15 @@ const CalendarComponent = ({ events = [], userRole = 'student' }) => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Close</Button>
+          <Button
+            onClick={handleCloseDialog}
+            sx={{
+              color: '#333',
+              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', color: '#000' }
+            }}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     </>

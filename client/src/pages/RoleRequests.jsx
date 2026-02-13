@@ -17,16 +17,18 @@ import {
   Chip,
   Divider
 } from '@mui/material';
-import { 
-  School as SchoolIcon,
-  AdminPanelSettings as AdminIcon,
-  Person as PersonIcon,
+import {
+  GraduationCap as SchoolIcon,
+  ShieldCheck as AdminIcon,
+  User as PersonIcon,
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Schedule as ScheduleIcon
-  
-} from '@mui/icons-material';
+  XCircle as CancelIcon,
+  Clock as ScheduleIcon
+} from 'phosphor-react';
 import '../styles/HomeworkCard.css';
+
+const iconStyle = { marginRight: 8, color: '#6b7280' };
+const iconProps = { size: 20, weight: 'thin' };
 
 const RoleRequests = () => {
   const { user, isAdmin, isLecturer, isStudent } = useUserSyncContext();
@@ -127,26 +129,26 @@ const RoleRequests = () => {
   const getRoleIcon = (role) => {
     switch (role) {
       case 'lecturer':
-        return <SchoolIcon />;
+        return <SchoolIcon {...iconProps} style={iconStyle} />;
       case 'admin':
-        return <AdminIcon />;
+        return <AdminIcon {...iconProps} style={iconStyle} />;
       case 'student':
-        return <PersonIcon />;
+        return <PersonIcon {...iconProps} style={iconStyle} />;
       default:
-        return <PersonIcon />;
+        return <PersonIcon {...iconProps} style={iconStyle} />;
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case 'approved':
-        return <CheckCircleIcon color="success" />;
+        return <CheckCircleIcon {...iconProps} style={{ color: '#22c55e' }} />;
       case 'rejected':
-        return <CancelIcon color="error" />;
+        return <CancelIcon {...iconProps} style={{ color: '#ef4444' }} />;
       case 'pending':
-        return <ScheduleIcon color="warning" />;
+        return <ScheduleIcon {...iconProps} style={{ color: '#f59e0b' }} />;
       default:
-        return <ScheduleIcon />;
+        return <ScheduleIcon {...iconProps} style={iconStyle} />;
     }
   };
 
@@ -154,9 +156,9 @@ const RoleRequests = () => {
     switch (status) {
       case 'approved':
         return {
-          backgroundColor: 'rgba(149, 225, 211, 0.3)',
+          backgroundColor: 'rgba(214, 247, 173, 0.3)',
           color: '#333',
-          border: '1px solid #95E1D3'
+          border: '1px solid #D6F7AD'
         };
       case 'rejected':
         return {
@@ -172,18 +174,18 @@ const RoleRequests = () => {
         };
       default:
         return {
-          backgroundColor: 'rgba(149, 225, 211, 0.2)',
+          backgroundColor: 'rgba(214, 247, 173, 0.3)',
           color: '#333',
-          border: '1px solid #95E1D3'
+          border: '1px solid #D6F7AD'
         };
     }
   };
 
   const getCurrentRoleIcon = () => {
-    if (isAdmin) return <AdminIcon />;
-    if (isLecturer) return <SchoolIcon />;
-    if (isStudent) return <PersonIcon />;
-    return <PersonIcon />;
+    if (isAdmin) return <AdminIcon {...iconProps} style={iconStyle} />;
+    if (isLecturer) return <SchoolIcon {...iconProps} style={iconStyle} />;
+    if (isStudent) return <PersonIcon {...iconProps} style={iconStyle} />;
+    return <PersonIcon {...iconProps} style={iconStyle} />;
   };
 
   return (
@@ -221,19 +223,19 @@ const RoleRequests = () => {
                 >
                   <MenuItem value="student">
                     <Box display="flex" alignItems="center" gap={1}>
-                      <PersonIcon />
+                      <PersonIcon {...iconProps} style={iconStyle} />
                       Student
                     </Box>
                   </MenuItem>
                   <MenuItem value="lecturer">
                     <Box display="flex" alignItems="center" gap={1}>
-                      <SchoolIcon />
+                      <SchoolIcon {...iconProps} style={iconStyle} />
                       Lecturer
                     </Box>
                   </MenuItem>
                   <MenuItem value="admin">
                     <Box display="flex" alignItems="center" gap={1}>
-                      <AdminIcon />
+                      <AdminIcon {...iconProps} style={iconStyle} />
                       Admin
                     </Box>
                   </MenuItem>
@@ -241,14 +243,18 @@ const RoleRequests = () => {
               </FormControl>
               
               <Button
-                variant="contained"
+                variant="outlined"
                 onClick={handleSubmitRequest}
                 disabled={loading || !selectedRole || selectedRole === user?.role}
                 startIcon={loading ? <CircularProgress size={20} /> : null}
                 sx={{ 
-                  backgroundColor: '#95E1D3', 
+                  backgroundColor: '#fff',
                   color: '#333',
-                  '&:hover': { backgroundColor: '#7dd3c0' }
+                  border: '1px solid rgba(0, 0, 0, 0.12)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    border: '1px solid rgba(0, 0, 0, 0.2)'
+                  }
                 }}
               >
                 {loading ? 'Submitting...' : 'Submit Request'}
