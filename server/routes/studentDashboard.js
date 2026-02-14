@@ -912,16 +912,27 @@ router.post('/add-exam', checkJwt, extractUser, requireStudent, async (req, res)
       return res.status(403).json({ error: 'You are not enrolled in this course' });
     }
     
+    // Normalize due_date: require valid date
+    const dueDate = exam_date ? new Date(exam_date) : null;
+    if (!dueDate || Number.isNaN(dueDate.getTime())) {
+      return res.status(400).json({ error: 'Please provide a valid exam date.' });
+    }
+    
+    // Normalize start_time (required): default to "00:00" if missing or empty
+    const start_time = (exam_time && String(exam_time).trim()) ? String(exam_time).trim() : '00:00';
+    // Normalize duration_minutes (required): parse and default to 60 if invalid
+    const duration_minutes = Math.max(1, parseInt(duration, 10) || 60);
+    
     // Create the exam
     const newExam = new Exam({
       course_id,
       exam_title: title,
-      due_date: new Date(exam_date),
-      start_time: exam_time,
-      duration_minutes: parseInt(duration),
-      room: location,
-      description,
-      exam_type,
+      due_date: dueDate,
+      start_time,
+      duration_minutes,
+      room: location || undefined,
+      description: description || undefined,
+      exam_type: exam_type || 'midterm',
       is_active: true,
       is_published: true
     });
@@ -1345,8 +1356,11 @@ router.get('/exams', checkJwt, extractUser, requireStudent, async (req, res) => 
         exam_title: exam.exam_title,
         description: exam.description,
         due_date: exam.due_date,
-        points_possible: exam.points_possible,
+        start_time: exam.start_time,
+        duration_minutes: exam.duration_minutes,
+        room: exam.room,
         exam_type: exam.exam_type,
+        points_possible: exam.points_possible,
         course: {
           _id: exam.course_id._id,
           name: exam.course_id.course_name,

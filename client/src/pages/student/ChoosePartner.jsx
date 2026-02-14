@@ -352,12 +352,12 @@ function ChoosePartner() {
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Button
             variant="outlined"
-            startIcon={<GroupIcon />}
             onClick={() => setShowRequests(!showRequests)}
             sx={{
-              borderColor: '#D6F7AD',
+              backgroundColor: '#fff',
               color: '#333',
-              '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
             }}
           >
             {showRequests ? 'Hide Requests' : 'View Requests'}
@@ -384,7 +384,6 @@ function ChoosePartner() {
             <div className="dashboard-card" style={{ marginBottom: '24px' }}>
               <div className="card-content">
                 <Typography variant="h6" gutterBottom>
-                  <GroupIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
                   Partnership Requests
                 </Typography>
               
@@ -438,7 +437,6 @@ function ChoosePartner() {
                                 {/* Course & Homework Details */}
                                 <Box sx={{ mb: 2 }}>
                                   <Typography variant="subtitle2" color="primary" gutterBottom>
-                                    <SchoolIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                                     Course Details
                                   </Typography>
                                   <Typography variant="body2" gutterBottom>
@@ -455,7 +453,6 @@ function ChoosePartner() {
                                 {/* Request Information */}
                                 <Box sx={{ mb: 2 }}>
                                   <Typography variant="subtitle2" color="secondary" gutterBottom>
-                                    <GroupIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                                     Request Information
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary">
@@ -474,13 +471,13 @@ function ChoosePartner() {
                               <div className="card-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', padding: '16px' }}>
                                 <Button
                                   size="small"
-                                  variant="contained"
-                                  startIcon={<CheckCircleIcon />}
+                                  variant="outlined"
                                   onClick={() => handleRespondToRequest(request._id, 'accept')}
                                   sx={{
-                                    backgroundColor: '#D6F7AD',
+                                    backgroundColor: '#fff',
                                     color: '#333',
-                                    '&:hover': { backgroundColor: '#c8f299' }
+                                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                                   }}
                                 >
                                   Accept
@@ -488,12 +485,12 @@ function ChoosePartner() {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  startIcon={<CancelIcon />}
                                   onClick={() => handleRespondToRequest(request._id, 'decline')}
                                   sx={{
-                                    borderColor: '#F38181',
-                                    color: '#F38181',
-                                    '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                                    backgroundColor: 'rgba(0,0,0,0.04)',
+                                    color: '#333',
+                                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                                   }}
                                 >
                                   Decline
@@ -554,7 +551,6 @@ function ChoosePartner() {
                                 {/* Course & Homework Details */}
                                 <Box sx={{ mb: 2 }}>
                                   <Typography variant="subtitle2" color="secondary" gutterBottom>
-                                    <SchoolIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                                     Course Details
                                   </Typography>
                                   <Typography variant="body2" gutterBottom>
@@ -571,7 +567,6 @@ function ChoosePartner() {
                                 {/* Request Information */}
                                 <Box sx={{ mb: 2 }}>
                                   <Typography variant="subtitle2" color="secondary" gutterBottom>
-                                    <GroupIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                                     Request Information
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary">
@@ -586,24 +581,6 @@ function ChoosePartner() {
                                     </Box>
                                   )}
                                 </Box>
-                              </div>
-                              <div className="card-actions" style={{ justifyContent: 'center', padding: '16px' }}>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={<SendIcon />}
-                                  onClick={() => {
-                                    // Could add functionality to resend or modify request
-                                    setSuccess('Request is pending. You can send a follow-up message if needed.');
-                                  }}
-                                  sx={{ 
-                                    borderColor: '#D6F7AD', 
-                                    color: '#333',
-                                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
-                                  }}
-                                >
-                                  Follow Up
-                                </Button>
                               </div>
                             </div>
                           </Grid>
@@ -660,7 +637,6 @@ function ChoosePartner() {
                                 {/* Course & Homework Details */}
                                 <Box sx={{ mb: 2 }}>
                                   <Typography variant="subtitle2" color="success.main" gutterBottom>
-                                    <SchoolIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                                     Course Details
                                   </Typography>
                                   <Typography variant="body2" gutterBottom>
@@ -677,7 +653,6 @@ function ChoosePartner() {
                                 {/* Partnership Information */}
                                 <Box sx={{ mb: 2 }}>
                                   <Typography variant="subtitle2" color="success.main" gutterBottom>
-                                    <GroupIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
                                     Partnership Information
                                   </Typography>
                                   <Typography variant="body2" color="text.secondary">
@@ -691,14 +666,13 @@ function ChoosePartner() {
                               <div className="card-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'space-between', padding: '16px' }}>
                                 <Button
                                   size="small"
-                                  color="info"
                                   variant="outlined"
-                                  startIcon={<GroupIcon />}
                                   onClick={() => setDetailsDialog({ open: true, partnership })}
                                   sx={{
-                                    borderColor: '#95E1D3',
+                                    backgroundColor: '#fff',
                                     color: '#333',
-                                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
+                                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                                   }}
                                 >
                                   View Details
@@ -706,12 +680,12 @@ function ChoosePartner() {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  startIcon={<EditIcon />}
                                   onClick={() => handleUpdatePartnership(partnership._id, 'completed')}
                                   sx={{
-                                    borderColor: '#D6F7AD',
+                                    backgroundColor: '#fff',
                                     color: '#333',
-                                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                                   }}
                                 >
                                   Mark Complete
@@ -719,13 +693,13 @@ function ChoosePartner() {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  startIcon={<DeleteIcon />}
                                   onClick={() => handleDeletePartnership(partnership)}
                                   disabled={sendingRequest}
                                   sx={{
-                                    borderColor: '#F38181',
-                                    color: '#F38181',
-                                    '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                                    backgroundColor: 'rgba(0,0,0,0.04)',
+                                    color: '#333',
+                                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                                   }}
                                 >
                                   Delete
@@ -836,13 +810,9 @@ function ChoosePartner() {
           </div>
         )}
 
-        {/* Filters */}
-          <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-            <div className="card-content">
-              <Typography variant="h6" gutterBottom>
-                <FilterListIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#FCE38A' }} />
-                Filter Partners
-              </Typography>
+        {/* Filters - no border */}
+          <div className="dashboard-card" style={{ marginBottom: '24px', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+            <div className="card-content" style={{ padding: 0 }}>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
@@ -909,116 +879,7 @@ function ChoosePartner() {
             </div>
           </div>
 
-          {/* Selected Course/Homework Info */}
-          {partnerData?.selected_course && (
-            <div className="dashboard-card" style={{ marginBottom: '24px' }}>
-              <div className="card-content">
-                <Typography variant="h6" gutterBottom>
-                  <SchoolIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
-                  {partnerData.selected_course.course_code} - {partnerData.selected_course.course_name}
-                </Typography>
-                {partnerData.selected_course.lecturer && (
-                  <Typography variant="body2">
-                    Lecturer: {partnerData.selected_course.lecturer.name}
-                  </Typography>
-                )}
-              </div>
-            </div>
-          )}
-
-
-          {/* Course-based Partner Management */}
-          {selectedCourse === '' ? (
-            <Box>
-              <Typography variant="h5" gutterBottom>
-                Select a Course to Manage Partners
-              </Typography>
-              
-              {partnerData?.courses?.filter(course => course.partner_enabled).length === 0 ? (
-                <Alert 
-                  severity="info" 
-                  sx={{ 
-                    mb: 3,
-                    backgroundColor: 'rgba(149, 225, 211, 0.2)',
-                    border: '1px solid #95E1D3',
-                    color: '#333',
-                    '& .MuiAlert-icon': {
-                      color: '#333'
-                    }
-                  }}
-                >
-                  <Typography variant="h6" gutterBottom>
-                    Partner Functionality Disabled
-                  </Typography>
-                  <Typography variant="body2">
-                    None of your enrolled courses currently have partner functionality enabled. 
-                    Contact your lecturers if you'd like to enable study partnerships for your courses.
-                  </Typography>
-                </Alert>
-              ) : null}
-              
-              <Grid container spacing={2}>
-                {partnerData?.courses?.map((course) => (
-                  <Grid item xs={12} sm={6} md={4} key={course._id}>
-                    <div className="dashboard-card" style={{ height: '100%' }}>
-                      <div className="card-content">
-                        <Box display="flex" alignItems="center" mb={2}>
-                                  <Avatar sx={{ bgcolor: '#D6F7AD', mr: 2 }}>
-                            <SchoolIcon />
-                          </Avatar>
-                          <Box>
-                            <Typography variant="h6">
-                              {course.course_code}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {course.course_name}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        
-                        
-                        {course.partner_enabled ? (
-                          <Typography variant="body2" color="text.secondary">
-                            Click to manage partners for this course
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="error">
-                            Partner functionality is disabled by lecturer
-                          </Typography>
-                        )}
-                      </div>
-                      <div className="card-actions">
-                        <Button
-                          size="small"
-                          startIcon={<GroupIcon />}
-                          onClick={() => setSelectedCourse(course._id)}
-                          disabled={!course.partner_enabled}
-                          fullWidth
-                          variant={course.partner_enabled ? 'contained' : 'outlined'}
-                          sx={course.partner_enabled ? {
-                            backgroundColor: '#D6F7AD',
-                            color: '#333',
-                            '&:hover': { backgroundColor: '#c8f299' }
-                          } : {
-                            borderColor: '#F38181',
-                            color: '#F38181',
-                            '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
-                          }}
-                        >
-                          {!course.partner_enabled 
-                            ? 'Partners Disabled' 
-                            : (partnerData?.current_partners && partnerData.current_partners.some(p => p.homework_id?.course_id === course._id))
-                              ? 'Manage Partners'
-                              : 'Choose Partner'
-                          }
-                        </Button>
-                      </div>
-                    </div>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-          ) : (
+          {/* Partner management - driven by filter above */}
             <Box>
               {/* Current Partners for Selected Course */}
               {partnerData?.current_partners && partnerData.current_partners.length > 0 && (
@@ -1026,7 +887,6 @@ function ChoosePartner() {
                   <div className="dashboard-card" style={{ marginBottom: '16px' }}>
                     <div className="card-content">
                       <Typography variant="h6" gutterBottom>
-                        <CheckCircleIcon sx={{ mr: 1, verticalAlign: 'middle', color: '#95E1D3' }} />
                         Current Partners ({partnerData.current_partners.length}/{partnerData.selected_course?.max_partners || 1})
                       </Typography>
                       <Typography variant="body2" sx={{ mb: 2 }}>
@@ -1139,9 +999,10 @@ function ChoosePartner() {
                                 variant="outlined"
                                 onClick={() => handleChangePartner(partnership)}
                                 sx={{
-                                  borderColor: '#FCE38A',
+                                  backgroundColor: '#fff',
                                   color: '#333',
-                                  '&:hover': { borderColor: '#fbd65e', backgroundColor: 'rgba(252, 227, 138, 0.1)' }
+                                  border: '1px solid rgba(0, 0, 0, 0.12)',
+                                  '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                                 }}
                               >
                                 Change Partner
@@ -1149,13 +1010,13 @@ function ChoosePartner() {
                               <Button
                                 size="small"
                                 variant="outlined"
-                                startIcon={<DeleteIcon />}
                                 onClick={() => handleDeletePartnership(partnership)}
                                 disabled={sendingRequest}
                                 sx={{
-                                  borderColor: '#F38181',
-                                  color: '#F38181',
-                                  '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+                                  backgroundColor: 'rgba(0,0,0,0.04)',
+                                  color: '#333',
+                                  border: '1px solid rgba(0, 0, 0, 0.12)',
+                                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                                 }}
                               >
                                 Delete
@@ -1170,9 +1031,11 @@ function ChoosePartner() {
               )}
 
 
-              {/* Available Partners */}
+              {/* Available Partners - only show when a course is chosen and there are partners */}
+              {selectedCourse && getUniquePartners().length > 0 && (
+                <>
               <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 4, mb: 2 }}>
-                <Typography variant="h5">
+                <Typography variant="h6" sx={{ color: '#555', fontSize: '1.1rem' }}>
                   Available Study Partners
                 </Typography>
                 <Button
@@ -1180,37 +1043,17 @@ function ChoosePartner() {
                   variant="outlined"
                   onClick={fetchPartnerData}
                   sx={{ 
-                    borderColor: '#D6F7AD', 
+                    backgroundColor: '#fff',
                     color: '#333',
-                    '&:hover': { borderColor: '#c8f299', backgroundColor: 'rgba(214, 247, 173, 0.1)' }
+                    border: '1px solid rgba(0, 0, 0, 0.12)',
+                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
                   }}
                 >
                   Refresh
                 </Button>
               </Box>
 
-              {getUniquePartners().length === 0 ? (
-                <Alert 
-                  severity="info"
-                  sx={{
-                    backgroundColor: 'rgba(214, 247, 173, 0.2)',
-                    border: '1px solid #D6F7AD',
-                    color: '#333',
-                    '& .MuiAlert-icon': {
-                      color: '#333'
-                    }
-                  }}
-                >
-                  {selectedHomework 
-                    ? 'No potential study partners found for this homework. All students may already have partnerships for this specific homework assignment.'
-                    : 'No potential study partners found. Please select a homework assignment first.'
-                  }
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    💡 Tip: Click "View Requests" at the top to see your pending, sent, and active partnerships.
-                  </Typography>
-                </Alert>
-              ) : (
-                <Grid container spacing={2}>
+              <Grid container spacing={2}>
                   {getUniquePartners().map((partner) => (
                     <Grid item xs={12} sm={6} md={4} key={partner._id}>
                       <div className="dashboard-card" style={{ height: '100%' }}>
@@ -1249,16 +1092,16 @@ function ChoosePartner() {
                         <div className="card-actions" style={{ marginTop: '24px' }}>
                           <Button
                             size="small"
-                            startIcon={<SendIcon />}
                             onClick={() => handleSelectPartner(partner)}
                             disabled={!selectedHomework}
                             fullWidth
-                            variant="contained"
+                            variant="outlined"
                             sx={{
-                              backgroundColor: '#D6F7AD',
+                              backgroundColor: '#fff',
                               color: '#333',
-                              '&:hover': { backgroundColor: '#c8f299' },
-                              '&:disabled': { backgroundColor: '#e0e0e0', color: '#999' }
+                              border: '1px solid rgba(0, 0, 0, 0.12)',
+                              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' },
+                              '&:disabled': { backgroundColor: 'rgba(0,0,0,0.04)', color: '#666' }
                             }}
                           >
                             {!selectedHomework ? 'Select Homework First' : 'Choose Partner'}
@@ -1268,69 +1111,10 @@ function ChoosePartner() {
                     </Grid>
                   ))}
                 </Grid>
+                </>
               )}
 
-              {/* Back to Course Selection */}
-              <Box mt={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<SchoolIcon />}
-                  onClick={() => {
-                    setSelectedCourse('');
-                    setSelectedHomework('');
-                  }}
-                  sx={{
-                    borderColor: '#95E1D3',
-                    color: '#333',
-                    '&:hover': { borderColor: '#7dd3c0', backgroundColor: 'rgba(149, 225, 211, 0.1)' }
-                  }}
-                >
-                  Back to Course Selection
-                </Button>
-              </Box>
             </Box>
-          )}
-
-        {/* Partner Statistics */}
-        <div className="dashboard-card" style={{ marginTop: '48px' }}>
-            <div className="card-content">
-              <Typography variant="h6" gutterBottom>
-                Partner Statistics
-              </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#333' }}>
-                    {getUniquePartners().length}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#666' }}>
-                    Available Partners
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#333' }}>
-                    {partnerData?.courses?.length || 0}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#666' }}>
-                    Enrolled Courses
-                  </Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Box textAlign="center">
-                  <Typography variant="h4" sx={{ color: '#333' }}>
-                    {selectedCourse ? '1' : '0'}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#666' }}>
-                    Selected Course
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-            </div>
-          </div>
 
         {/* Partner Request Dialog */}
         <Dialog 
@@ -1369,18 +1153,25 @@ function ChoosePartner() {
             <Button 
               onClick={() => setOpenPartnerDialog(false)}
               disabled={sendingRequest}
+              sx={{
+                backgroundColor: 'rgba(0,0,0,0.04)',
+                color: '#333',
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': { backgroundColor: 'rgba(0,0,0,0.08)', border: '1px solid rgba(0, 0, 0, 0.2)' }
+              }}
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSendRequest}
-              variant="contained"
-              startIcon={sendingRequest ? <CircularProgress size={20} /> : <SendIcon />}
+              variant="outlined"
+              startIcon={sendingRequest ? <CircularProgress size={20} /> : null}
               disabled={sendingRequest}
               sx={{
-                backgroundColor: '#D6F7AD',
+                backgroundColor: '#fff',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
               }}
             >
               {sendingRequest ? 'Sending...' : 'Send Request'}
@@ -1396,10 +1187,7 @@ function ChoosePartner() {
           fullWidth
         >
           <DialogTitle>
-            <Box display="flex" alignItems="center">
-              <GroupIcon sx={{ mr: 1 }} />
-              Partnership Details
-            </Box>
+            Partnership Details
           </DialogTitle>
           <DialogContent>
             {detailsDialog.partnership && (
@@ -1586,11 +1374,12 @@ function ChoosePartner() {
           <DialogActions>
             <Button 
               onClick={() => setDetailsDialog({ open: false, partnership: null })}
-              variant="contained"
+              variant="outlined"
               sx={{ 
-                backgroundColor: '#D6F7AD',
+                backgroundColor: '#fff',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
               }}
             >
               Close

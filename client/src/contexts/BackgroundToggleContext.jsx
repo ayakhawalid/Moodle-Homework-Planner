@@ -4,12 +4,16 @@ export const BACKGROUND_THEMES = ['white', 'green', 'teal', 'coral', 'yellow'];
 
 const BackgroundToggleContext = createContext();
 
+const defaultContext = {
+  backgroundTheme: 'white',
+  setBackgroundTheme: () => {},
+  cycleTheme: () => {},
+  isColoredBackground: false,
+};
+
 export const useBackgroundToggle = () => {
   const context = useContext(BackgroundToggleContext);
-  if (!context) {
-    throw new Error('useBackgroundToggle must be used within a BackgroundToggleProvider');
-  }
-  return context;
+  return context || defaultContext;
 };
 
 export const BackgroundToggleProvider = ({ children }) => {

@@ -66,14 +66,24 @@ const CourseEnrollment = () => {
     description: '',
     syllabus: '',
     credits: '',
-    semester: 'fall',
-    year: new Date().getFullYear(),
+    semester: '',
+    year: '',
     lecturer_id: ''
   });
 
   const semesters = ['fall', 'spring', 'summer', 'winter'];
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear + i - 2);
+  const semesterLabelId = 'course-enrollment-semester-label';
+  const semesterSelectId = 'course-enrollment-semester-select';
+  const yearLabelId = 'course-enrollment-year-label';
+  const yearSelectId = 'course-enrollment-year-select';
+  const lecturerLabelId = 'course-enrollment-lecturer-label';
+  const lecturerSelectId = 'course-enrollment-lecturer-select';
+  const filterSemesterLabelId = 'course-enrollment-filter-semester-label';
+  const filterSemesterSelectId = 'course-enrollment-filter-semester-select';
+  const filterYearLabelId = 'course-enrollment-filter-year-label';
+  const filterYearSelectId = 'course-enrollment-filter-year-select';
 
   useEffect(() => {
     loadCourses();
@@ -273,8 +283,8 @@ const CourseEnrollment = () => {
       description: '',
       syllabus: '',
       credits: '',
-      semester: 'fall',
-      year: new Date().getFullYear(),
+      semester: '',
+      year: '',
       lecturer_id: ''
     });
     setCreateDialogOpen(true);
@@ -312,6 +322,16 @@ const CourseEnrollment = () => {
       
       if (!formData.course_code.trim()) {
         setError('Course code is required');
+        return;
+      }
+
+      if (!formData.semester) {
+        setError('Please select a semester');
+        return;
+      }
+
+      if (!formData.year) {
+        setError('Please select a year');
         return;
       }
 
@@ -357,34 +377,11 @@ const CourseEnrollment = () => {
     <DashboardLayout userRole="student">
       <div className="white-page-background">
         <Box>
-          <Typography variant="h4" component="h1" sx={{ 
-            fontWeight: '600',
-            fontSize: '1.8rem',
-            fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-            letterSpacing: '-0.01em',
-            lineHeight: '1.2',
-            color: '#2c3e50',
-            mb: 1,
-            px: 3,
-            pt: 3
-          }}>
-            Course Enrollment
-          </Typography>
-          <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ px: 3, mb: 2 }}>
-            <Typography variant="body1" color="text.secondary" sx={{ 
-              fontWeight: '300',
-              fontSize: '1rem',
-              fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-              color: '#7f8c8d',
-              lineHeight: '1.6',
-              letterSpacing: '0.3px'
-            }}>
-              Manage your course enrollment and discover new courses
-            </Typography>
+          <Box display="flex" justifyContent="flex-start" alignItems="center" sx={{ px: 3, pt: 3, mb: 2 }}>
             <IconButton
               onClick={handleOpenCreateDialog}
               sx={{
-                backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                backgroundColor: 'transparent',
                 color: '#555',
                 borderRadius: '8px',
                 padding: '20px',
@@ -392,7 +389,7 @@ const CourseEnrollment = () => {
                 width: '64px',
                 height: '64px',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  backgroundColor: 'rgba(0, 0, 0, 0.06)',
                   color: '#333'
                 }
               }}
@@ -531,14 +528,23 @@ const CourseEnrollment = () => {
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Semester</InputLabel>
+                    <FormControl fullWidth size="small" variant="outlined">
+                      <InputLabel id={filterSemesterLabelId} shrink>Semester</InputLabel>
                       <Select
+                        labelId={filterSemesterLabelId}
+                        id={filterSemesterSelectId}
                         value={selectedSemester}
                         onChange={(e) => setSelectedSemester(e.target.value)}
                         label="Semester"
+                        notched
+                        displayEmpty
+                        renderValue={(value) =>
+                          value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Select a semester'
+                        }
                       >
-                        <MenuItem value="">All Semesters</MenuItem>
+                        <MenuItem value="">
+                          <em>Select a semester</em>
+                        </MenuItem>
                         {semesters.map((semester) => (
                           <MenuItem key={semester} value={semester}>
                             {semester.charAt(0).toUpperCase() + semester.slice(1)}
@@ -548,14 +554,23 @@ const CourseEnrollment = () => {
                     </FormControl>
                   </Grid>
                   <Grid item xs={6}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Year</InputLabel>
+                    <FormControl fullWidth size="small" variant="outlined">
+                      <InputLabel id={filterYearLabelId} shrink>Year</InputLabel>
                       <Select
+                        labelId={filterYearLabelId}
+                        id={filterYearSelectId}
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(e.target.value)}
                         label="Year"
+                        notched
+                        displayEmpty
+                        renderValue={(value) =>
+                          value ? String(value) : 'Select a year'
+                        }
                       >
-                        <MenuItem value="">All Years</MenuItem>
+                        <MenuItem value="">
+                          <em>Select a year</em>
+                        </MenuItem>
                         {years.map((year) => (
                           <MenuItem key={year} value={year}>
                             {year}
@@ -673,13 +688,15 @@ const CourseEnrollment = () => {
             {detailsDialog.course && (
               <Box>
                 <Box mb={2}>
-                  <Typography variant="h6" gutterBottom>
-                    {detailsDialog.course.course_name}
-                  </Typography>
-                  <Box display="flex" gap={1} mb={2}>
+                  <Box display="flex" alignItems="center" gap={1} flexWrap="wrap" mb={1}>
+                    <Typography variant="h6" component="span">
+                      {detailsDialog.course.course_name}
+                    </Typography>
                     {detailsDialog.course.course_code && (
-                      <Chip label={String(detailsDialog.course.course_code)} variant="outlined" />
+                      <Chip label={String(detailsDialog.course.course_code)} variant="outlined" size="small" />
                     )}
+                  </Box>
+                  <Box display="flex" gap={1} mb={1}>
                     {detailsDialog.course.semester && (
                       <Chip 
                         label={String(detailsDialog.course.semester).charAt(0).toUpperCase() + String(detailsDialog.course.semester).slice(1)} 
@@ -687,11 +704,11 @@ const CourseEnrollment = () => {
                         size="small"
                       />
                     )}
-                    <Chip label={String(detailsDialog.course.year || '')} variant="outlined" />
-                    {detailsDialog.course.credits && (
-                      <Chip label={String(detailsDialog.course.credits) + ' credits'} color="primary" />
-                    )}
+                    <Chip label={String(detailsDialog.course.year || '')} variant="outlined" size="small" />
                   </Box>
+                  {detailsDialog.course.credits && (
+                    <Chip label={String(detailsDialog.course.credits) + ' credits'} variant="outlined" size="small" sx={{ borderColor: '#999', color: '#555' }} />
+                  )}
                 </Box>
 
                 <Divider sx={{ my: 2 }} />
@@ -742,10 +759,25 @@ const CourseEnrollment = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={closeCourseDetails}>Close</Button>
+            <Button 
+              onClick={closeCourseDetails}
+              variant="outlined"
+              sx={{
+                backgroundColor: '#fff',
+                color: '#555',
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }
+              }}
+            >
+              Close
+            </Button>
             {detailsDialog.course && !enrolledCourses.find(c => c._id === detailsDialog.course._id) && (
               <Button 
                 variant="contained" 
+                sx={{ backgroundColor: '#2e7d32', color: '#fff', '&:hover': { backgroundColor: '#1b5e20' } }}
                 onClick={() => {
                   handleEnroll(detailsDialog.course._id);
                   closeCourseDetails();
@@ -820,17 +852,24 @@ const CourseEnrollment = () => {
                 />
               </Grid>
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Semester</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id={semesterLabelId} shrink>Semester</InputLabel>
                   <Select
+                    labelId={semesterLabelId}
+                    id={semesterSelectId}
                     name="semester"
                     value={formData.semester}
                     onChange={handleInputChange}
                     label="Semester"
+                    notched
+                    displayEmpty
                     renderValue={(value) =>
-                      value ? value.charAt(0).toUpperCase() + value.slice(1) : ''
+                      value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Select a semester'
                     }
                   >
+                    <MenuItem value="">
+                      <em>Select a semester</em>
+                    </MenuItem>
                     {semesters.map((semester) => (
                       <MenuItem key={semester} value={semester}>
                         {semester.charAt(0).toUpperCase() + semester.slice(1)}
@@ -840,14 +879,24 @@ const CourseEnrollment = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Year</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id={yearLabelId} shrink>Year</InputLabel>
                   <Select
+                    labelId={yearLabelId}
+                    id={yearSelectId}
                     name="year"
                     value={formData.year}
                     onChange={handleInputChange}
                     label="Year"
+                    notched
+                    displayEmpty
+                    renderValue={(value) =>
+                      value ? String(value) : 'Select a year'
+                    }
                   >
+                    <MenuItem value="">
+                      <em>Select a year</em>
+                    </MenuItem>
                     {years.map((year) => (
                       <MenuItem key={year} value={year}>
                         {year}
@@ -856,40 +905,21 @@ const CourseEnrollment = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl 
-                  fullWidth 
-                  required
-                  sx={{
-                    width: '100%',
-                    minWidth: '100%',
-                    '& .MuiInputLabel-root': {
-                      whiteSpace: 'nowrap',
-                      overflow: 'visible',
-                      textOverflow: 'clip'
-                    },
-                    '& .MuiInputLabel-shrink': {
-                      maxWidth: 'calc(133% - 32px)'
-                    },
-                    '& .MuiOutlinedInput-root': {
-                      width: '100%'
-                    },
-                    '& .MuiSelect-select': {
-                      width: '100%'
-                    }
-                  }}
-                >
-                  <InputLabel shrink>Lecturer</InputLabel>
+              <Grid item xs={12}>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id={lecturerLabelId} shrink>Lecturer</InputLabel>
                   <Select
+                    labelId={lecturerLabelId}
+                    id={lecturerSelectId}
                     name="lecturer_id"
                     value={formData.lecturer_id || ''}
                     onChange={handleInputChange}
                     label="Lecturer"
                     notched
-                    sx={{ width: '100%' }}
+                    displayEmpty
                     renderValue={(value) => {
                       if (!value) {
-                        return '';
+                        return 'Select a lecturer';
                       }
                       const selectedLecturer = lecturers.find(l => l._id === value || l._id?.toString() === value);
                       if (selectedLecturer) {
@@ -935,11 +965,15 @@ const CourseEnrollment = () => {
             </Button>
             <Button 
               onClick={handleCreateCourse} 
-              variant="contained"
+              variant="outlined"
               sx={{ 
-                backgroundColor: '#D6F7AD',
+                backgroundColor: '#fff',
                 color: '#333',
-                '&:hover': { backgroundColor: '#c8f299' }
+                border: '1px solid rgba(0, 0, 0, 0.12)',
+                '&:hover': { 
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(0, 0, 0, 0.2)'
+                }
               }}
             >
               Create Course

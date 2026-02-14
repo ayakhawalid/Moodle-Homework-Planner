@@ -51,11 +51,22 @@ import {
 } from 'phosphor-react';
 import { apiService } from '../../services/api';
 import { useUserSyncContext } from '../../contexts/UserSyncContext';
+import { useBackgroundToggle } from '../../contexts/BackgroundToggleContext';
 import '../../styles/student/ClassesPlanner.css';
 import '../../styles/HomeworkCard.css';
 
+const THEME_COLORS = {
+  white: { buttonBg: 'transparent', buttonHover: 'rgba(0,0,0,0.06)', dayHeader: 'rgba(0,0,0,0.06)', slotBg: 'rgba(0,0,0,0.04)', chipBg: 'rgba(0,0,0,0.06)', chipBorder: '1px solid rgba(0,0,0,0.12)' },
+  green: { buttonBg: '#D6F7AD', buttonHover: '#c8f299', dayHeader: 'rgba(214, 247, 173, 0.2)', slotBg: 'rgba(214, 247, 173, 0.2)', chipBg: 'rgba(214, 247, 173, 0.2)', chipBorder: '1px solid #D6F7AD' },
+  teal: { buttonBg: '#95E1D3', buttonHover: '#7dd4c4', dayHeader: 'rgba(149, 225, 211, 0.2)', slotBg: 'rgba(149, 225, 211, 0.2)', chipBg: 'rgba(149, 225, 211, 0.2)', chipBorder: '1px solid #95E1D3' },
+  coral: { buttonBg: '#FAC8C8', buttonHover: '#f5b5b5', dayHeader: 'rgba(250, 200, 200, 0.3)', slotBg: 'rgba(250, 200, 200, 0.2)', chipBg: 'rgba(250, 200, 200, 0.2)', chipBorder: '1px solid #FAC8C8' },
+  yellow: { buttonBg: '#FDF6D0', buttonHover: '#f9ec9e', dayHeader: 'rgba(253, 246, 208, 0.5)', slotBg: 'rgba(253, 246, 208, 0.3)', chipBg: 'rgba(253, 246, 208, 0.3)', chipBorder: '1px solid #FDF6D0' }
+};
+
 function ClassesPlanner() {
   const { syncStatus, user } = useUserSyncContext();
+  const { backgroundTheme } = useBackgroundToggle();
+  const theme = THEME_COLORS[backgroundTheme] || THEME_COLORS.white;
   const [classesData, setClassesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -282,7 +293,7 @@ function ClassesPlanner() {
           <IconButton
             onClick={() => setOpenAddClassDialog(true)}
             sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              backgroundColor: theme.buttonBg,
               color: '#555',
               borderRadius: '8px',
               padding: '20px',
@@ -290,7 +301,7 @@ function ClassesPlanner() {
               width: '64px',
               height: '64px',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backgroundColor: theme.buttonHover,
                 color: '#333'
               }
             }}
@@ -307,9 +318,9 @@ function ClassesPlanner() {
                   onClick={goToPreviousWeek} 
                   size="small"
                   sx={{ 
-                    backgroundColor: '#D6F7AD', 
+                    backgroundColor: theme.buttonBg, 
                     color: '#333',
-                    '&:hover': { backgroundColor: '#c8f299' }
+                    '&:hover': { backgroundColor: theme.buttonHover }
                   }}
                 >
                   <PhosphorChevronLeftIcon size={20} />
@@ -321,9 +332,9 @@ function ClassesPlanner() {
                   onClick={goToNextWeek} 
                   size="small"
                   sx={{ 
-                    backgroundColor: '#D6F7AD', 
+                    backgroundColor: theme.buttonBg, 
                     color: '#333',
-                    '&:hover': { backgroundColor: '#c8f299' }
+                    '&:hover': { backgroundColor: theme.buttonHover }
                   }}
                 >
                   <PhosphorChevronRightIcon size={20} />
@@ -332,9 +343,9 @@ function ClassesPlanner() {
                   onClick={goToCurrentWeek}
                   size="small"
                   sx={{ 
-                    backgroundColor: '#D6F7AD', 
+                    backgroundColor: theme.buttonBg, 
                     color: '#333',
-                    '&:hover': { backgroundColor: '#c8f299' }
+                    '&:hover': { backgroundColor: theme.buttonHover }
                   }}
                 >
                   <CalendarIcon size={20} />
@@ -347,14 +358,22 @@ function ClassesPlanner() {
           <div className="dashboard-card">
             <div className="card-content">
               <Typography variant="h6" gutterBottom>
-                <PhosphorScheduleIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#F38181' }} />
+                <PhosphorScheduleIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#666' }} />
                 Weekly Schedule
               </Typography>
             
-            <div className="schedule-grid" style={{ background: 'transparent' }}>
+            <div 
+              className="schedule-grid" 
+              style={{ 
+                background: backgroundTheme === 'white' ? '#fff' : 'rgba(255, 255, 255, 0.3)', 
+                backdropFilter: 'blur(10px)', 
+                borderRadius: '8px',
+                padding: '8px'
+              }}
+            >
               {classesData?.schedule?.map((day, index) => (
-                <div key={index} className="schedule-day" style={{ background: 'rgba(255, 255, 255, 0.3)', backdropFilter: 'blur(10px)', borderRadius: '8px' }}>
-                  <div className="day-header" style={{ background: 'rgba(214, 247, 173, 0.2)', padding: '8px', borderRadius: '8px 8px 0 0', textAlign: 'center' }}>
+                <div key={index} className="schedule-day" style={{ background: 'transparent' }}>
+                  <div className="day-header" style={{ background: theme.dayHeader, padding: '8px', borderRadius: '8px 8px 0 0', textAlign: 'center' }}>
                     <Typography variant="subtitle1" fontWeight="bold">
                       {day.day}
                     </Typography>
@@ -367,9 +386,9 @@ function ClassesPlanner() {
                         size="small" 
                         sx={{ 
                           mt: 0.5,
-                          backgroundColor: '#D6F7AD',
+                          backgroundColor: theme.chipBg,
                           color: '#333',
-                          border: '1px solid #D6F7AD'
+                          border: theme.chipBorder
                         }}
                       />
                     )}
@@ -377,7 +396,7 @@ function ClassesPlanner() {
                   
                   {day.classes?.length > 0 ? (
                     day.classes.map((classItem) => (
-                      <div key={classItem._id} className="class-slot" style={{ background: 'rgba(214, 247, 173, 0.2)', padding: '8px', borderRadius: '6px' }}>
+                      <div key={classItem._id} className="class-slot" style={{ background: theme.slotBg, padding: '8px', borderRadius: '6px' }}>
                         <Box display="flex" flexDirection="column" gap={0.5}>
                           <Typography variant="body2" fontWeight="bold">
                             {classItem.topic}
@@ -423,7 +442,7 @@ function ClassesPlanner() {
             <div className="dashboard-card" style={{ marginTop: '24px' }}>
               <div className="card-content">
                 <Typography variant="h6" gutterBottom>
-                  <PhosphorAssignmentIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#F38181' }} />
+                  <PhosphorAssignmentIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#666' }} />
                   Class Details
                 </Typography>
               
@@ -454,9 +473,9 @@ function ClassesPlanner() {
                                   size="small"
                                   variant="outlined"
                                   sx={{
-                                    backgroundColor: 'rgba(214, 247, 173, 0.2)',
+                                    backgroundColor: theme.chipBg,
                                     color: '#333',
-                                    border: '1px solid #D6F7AD'
+                                    border: theme.chipBorder
                                   }}
                                 />
                                 {classItem.room && (
@@ -466,9 +485,9 @@ function ClassesPlanner() {
                                     size="small"
                                     variant="outlined"
                                     sx={{
-                                      backgroundColor: 'rgba(214, 247, 173, 0.2)',
+                                      backgroundColor: theme.chipBg,
                                       color: '#333',
-                                      border: '1px solid #D6F7AD'
+                                      border: theme.chipBorder
                                     }}
                                   />
                                 )}
@@ -482,9 +501,9 @@ function ClassesPlanner() {
                                   size="small"
                                   variant="outlined"
                                   sx={{
-                                    backgroundColor: 'rgba(214, 247, 173, 0.2)',
+                                    backgroundColor: theme.chipBg,
                                     color: '#333',
-                                    border: '1px solid #D6F7AD'
+                                    border: theme.chipBorder
                                   }}
                                 />
                               </Box>
@@ -504,8 +523,8 @@ function ClassesPlanner() {
                                     size="small"
                                     onClick={() => handleEditClass(classItem)}
                                     sx={{
-                                      backgroundColor: 'rgba(214, 247, 173, 0.2)',
-                                      '&:hover': { backgroundColor: 'rgba(214, 247, 173, 0.4)' }
+                                      backgroundColor: theme.chipBg,
+                                      '&:hover': { backgroundColor: theme.buttonHover }
                                     }}
                                   >
                                     <PhosphorEditIcon size={16} />
@@ -629,12 +648,14 @@ function ClassesPlanner() {
           </Button>
           <Button 
             onClick={handleAddClass} 
-            variant="contained"
+            variant="outlined"
             sx={{
-              backgroundColor: '#D6F7AD',
+              backgroundColor: '#fff',
               color: '#333',
+              border: '1px solid rgba(0, 0, 0, 0.12)',
               '&:hover': {
-                backgroundColor: '#c8f299'
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
               }
             }}
           >
@@ -742,12 +763,14 @@ function ClassesPlanner() {
           </Button>
           <Button 
             onClick={handleUpdateClass} 
-            variant="contained"
+            variant="outlined"
             sx={{
-              backgroundColor: '#D6F7AD',
+              backgroundColor: '#fff',
               color: '#333',
+              border: '1px solid rgba(0, 0, 0, 0.12)',
               '&:hover': {
-                backgroundColor: '#c8f299'
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
               }
             }}
           >

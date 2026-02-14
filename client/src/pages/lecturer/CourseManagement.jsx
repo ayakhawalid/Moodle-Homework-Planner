@@ -74,8 +74,8 @@ const CourseManagement = () => {
     description: '',
     syllabus: '',
     credits: '',
-    semester: semesters[0],
-    year: currentYear
+    semester: '',
+    year: ''
   });
 
   const semesterLabelId = 'course-management-semester-label';
@@ -151,8 +151,8 @@ const CourseManagement = () => {
         description: '',
         syllabus: '',
         credits: '',
-        semester: semesters[0],
-        year: currentYear
+        semester: '',
+        year: ''
       });
     }
     setDialogOpen(true);
@@ -186,6 +186,16 @@ const CourseManagement = () => {
       
       if (!formData.course_code.trim()) {
         setError('Course code is required');
+        return;
+      }
+
+      if (!formData.semester) {
+        setError('Please select a semester');
+        return;
+      }
+
+      if (!formData.year) {
+        setError('Please select a year');
         return;
       }
 
@@ -267,7 +277,7 @@ const CourseManagement = () => {
           <IconButton
             onClick={() => handleOpenDialog()}
             sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              backgroundColor: 'transparent',
               color: '#555',
               borderRadius: '8px',
               padding: '20px',
@@ -275,7 +285,7 @@ const CourseManagement = () => {
               width: '64px',
               height: '64px',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backgroundColor: 'rgba(0, 0, 0, 0.06)',
                 color: '#333'
               }
             }}
@@ -551,8 +561,8 @@ const CourseManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel id={semesterLabelId}>Semester</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id={semesterLabelId} shrink>Semester</InputLabel>
                   <Select
                     labelId={semesterLabelId}
                     id={semesterSelectId}
@@ -560,10 +570,15 @@ const CourseManagement = () => {
                     value={formData.semester}
                     onChange={handleInputChange}
                     label="Semester"
+                    notched
+                    displayEmpty
                     renderValue={(value) =>
-                      value ? value.charAt(0).toUpperCase() + value.slice(1) : ''
+                      value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Select a semester'
                     }
                   >
+                    <MenuItem value="">
+                      <em>Select a semester</em>
+                    </MenuItem>
                     {semesters.map((semester) => (
                       <MenuItem key={semester} value={semester}>
                         {semester.charAt(0).toUpperCase() + semester.slice(1)}
@@ -573,8 +588,8 @@ const CourseManagement = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel id={yearLabelId}>Year</InputLabel>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id={yearLabelId} shrink>Year</InputLabel>
                   <Select
                     labelId={yearLabelId}
                     id={yearSelectId}
@@ -582,7 +597,15 @@ const CourseManagement = () => {
                     value={formData.year}
                     onChange={handleInputChange}
                     label="Year"
+                    notched
+                    displayEmpty
+                    renderValue={(value) =>
+                      value ? String(value) : 'Select a year'
+                    }
                   >
+                    <MenuItem value="">
+                      <em>Select a year</em>
+                    </MenuItem>
                     {years.map((year) => (
                       <MenuItem key={year} value={year}>
                         {year}

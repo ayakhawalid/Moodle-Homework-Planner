@@ -355,7 +355,7 @@ const HomeworkManagement = () => {
             <IconButton
               onClick={() => setCreateDialogOpen(true)}
             sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              backgroundColor: 'transparent',
               color: '#555',
               borderRadius: '8px',
               padding: '20px',
@@ -363,7 +363,7 @@ const HomeworkManagement = () => {
               width: '64px',
               height: '64px',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backgroundColor: 'rgba(0, 0, 0, 0.06)',
                 color: '#333'
               }
             }}
@@ -785,7 +785,7 @@ const HomeworkManagement = () => {
                           '& .MuiSwitch-track': { backgroundColor: '#fff', border: '1px solid #333' },
                           '& .MuiSwitch-thumb': { backgroundColor: '#fff', border: '1px solid #333' },
                           '& .MuiSwitch-switchBase.Mui-checked': { color: '#A8DD7A' },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C8F299', border: '1px solid transparent' },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#A8DD7A', border: '1px solid transparent' },
                           '& .MuiSwitch-switchBase.Mui-checked .MuiSwitch-thumb': { border: 'none' }
                         }}
                       />
@@ -919,7 +919,7 @@ const HomeworkManagement = () => {
                           '& .MuiSwitch-track': { backgroundColor: '#fff', border: '1px solid #333' },
                           '& .MuiSwitch-thumb': { backgroundColor: '#fff', border: '1px solid #333' },
                           '& .MuiSwitch-switchBase.Mui-checked': { color: '#A8DD7A' },
-                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C8F299', border: '1px solid transparent' },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#A8DD7A', border: '1px solid transparent' },
                           '& .MuiSwitch-switchBase.Mui-checked .MuiSwitch-thumb': { border: 'none' }
                         }}
                       />

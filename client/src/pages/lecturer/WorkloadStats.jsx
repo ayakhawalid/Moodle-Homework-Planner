@@ -322,10 +322,10 @@ function WorkloadStats() {
                             >
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                 <Box>
-                                  <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.8rem' }}>
+                                  <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
                                     {hw.title}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem' }}>
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.7rem', mt: 0.25 }}>
                                     {(() => {
                                       const dateStr = hw.homework_type === 'traditional' ? hw.due_date : hw.claimed_deadline;
                                       const dateObj = dateStr ? new Date(dateStr) : null;
@@ -333,10 +333,11 @@ function WorkloadStats() {
                                     })()}
                                   </Typography>
                                   <Chip 
-                                    label={hw.homework_type === 'student' ? 'Student Created' : 'Traditional'} 
-                                    size="small" 
+                                    label={hw.homework_type === 'student' ? 'Student Created' : 'Lecturer Created'} 
+                                    size="small"
                                     sx={{ 
                                       mt: 0.5,
+                                      fontSize: '0.7rem',
                                       backgroundColor: hw.homework_type === 'student' ? 'rgba(252, 227, 138, 0.3)' : 'rgba(149, 225, 211, 0.3)',
                                       color: '#666666',
                                       fontWeight: 'bold'
@@ -345,8 +346,8 @@ function WorkloadStats() {
                                 </Box>
                               </Box>
                               
-                              {/* Elegant 4-Bar Chart - centered (same as Workload Overview) */}
-                              <Box sx={{ mb: 1.5, height: 64, display: 'flex', alignItems: 'end', justifyContent: 'center', px: 1 }}>
+                              {/* Elegant 4-Bar Chart - aligned with status rectangles below */}
+                              <Box sx={{ mb: 1.5, height: 64, display: 'flex', alignItems: 'end', minWidth: 0 }}>
                                 {(() => {
                                   const maxValue = Math.max(
                                     hw.status_counts.graded,
@@ -362,15 +363,16 @@ function WorkloadStats() {
                                     { value: hw.status_counts.not_started, color: '#F38181' }
                                   ];
                                   return (
-                                    <Box sx={{ display: 'flex', alignItems: 'end', gap: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'end', gap: 0.5, flexWrap: 'nowrap', minWidth: 0, width: '100%' }}>
                                       {statusData.map((status, index) => (
-                                        <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 56 }}>
+                                        <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '1 1 0', minWidth: 0 }}>
                                           <Box
                                             sx={{
-                                              width: '20px',
+                                              width: '100%',
+                                              maxWidth: 32,
                                               height: `${(status.value / maxValue) * 48}px`,
                                               background: `linear-gradient(135deg, ${status.color} 0%, ${status.color}CC 100%)`,
-                                              borderRadius: '8px 8px 2px 2px',
+                                              borderRadius: '12px 12px 0 0',
                                               minHeight: status.value > 0 ? '6px' : '0px',
                                               transition: 'all 0.3s ease',
                                               boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
@@ -387,7 +389,7 @@ function WorkloadStats() {
                                 })()}
                               </Box>
 
-                              {/* Status Counts - one row (same as Workload Overview) */}
+                              {/* Status Counts - one row (same width distribution as bars above) */}
                               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', minWidth: 0 }}>
                                 {[
                                   { key: 'graded', color: '#95E1D3', bg: 'rgba(149, 225, 211, 0.3)' },
@@ -415,15 +417,15 @@ function WorkloadStats() {
                                 ))}
                               </Box>
 
-                              {/* Average Grade and Completion Rate - centered (same as Workload Overview) */}
+                              {/* Average Grade and Completion Rate - bigger text */}
                               <Box sx={{ mt: 0.75, display: 'flex', justifyContent: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                                <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 72 }}>
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Average Grade</Typography>
-                                  <Typography variant="body2" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.95rem' }}>{hw.average_grade ? `${hw.average_grade}%` : 'N/A'}</Typography>
+                                <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 88 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem', display: 'block', mb: 0.25 }}>Average Grade</Typography>
+                                  <Typography variant="body1" sx={{ color: '#333', fontWeight: 'bold', fontSize: '1.2rem' }}>{hw.average_grade ? `${hw.average_grade}%` : 'N/A'}</Typography>
                                 </Box>
-                                <Box sx={{ p: 0.75, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 72 }}>
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Completion Rate</Typography>
-                                  <Typography variant="body2" sx={{ color: '#333', fontWeight: 'bold', fontSize: '0.95rem' }}>
+                                <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 88 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem', display: 'block', mb: 0.25 }}>Completion Rate</Typography>
+                                  <Typography variant="body1" sx={{ color: '#333', fontWeight: 'bold', fontSize: '1.2rem' }}>
                                     {hw.total_students > 0 ? Math.round(((hw.status_counts.graded + hw.status_counts.completed) / hw.total_students) * 100) : 0}%
                                   </Typography>
                                 </Box>

@@ -524,7 +524,7 @@ const HomeworkManagement = () => {
         <IconButton
           onClick={() => setCreateDialogOpen(true)}
           sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            backgroundColor: 'transparent',
             color: '#555',
             borderRadius: '8px',
             padding: '20px',
@@ -532,7 +532,7 @@ const HomeworkManagement = () => {
             width: '64px',
             height: '64px',
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
+              backgroundColor: 'rgba(0, 0, 0, 0.06)',
               color: '#333'
             }
           }}
@@ -760,10 +760,15 @@ const HomeworkManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Course</InputLabel>
                 <Select
                   value={newHomework.course_id}
                   onChange={(e) => setNewHomework({ ...newHomework, course_id: e.target.value })}
+                  displayEmpty
+                  renderValue={(value) => {
+                    if (!value) return 'Course';
+                    const course = courses.find(c => c._id === value);
+                    return course ? `${course.course_name} (${course.course_code})` : 'Course';
+                  }}
                   sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
@@ -789,24 +794,22 @@ const HomeworkManagement = () => {
             
             
             <Grid item xs={12}>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Allow Study Partners
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Enable students to form partnerships for this homework
-                  </Typography>
-                </Box>
+              <Box display="flex" alignItems="center" justifyContent="flex-end">
                 <FormControlLabel
                   control={
                     <Switch
                       checked={newHomework.allow_partners}
                       onChange={(e) => setNewHomework({ ...newHomework, allow_partners: e.target.checked })}
-                      color="primary"
+                      sx={{
+                        '& .MuiSwitch-track': { backgroundColor: '#fff', border: '1px solid #333' },
+                        '& .MuiSwitch-thumb': { backgroundColor: '#fff', border: '1px solid #333' },
+                        '& .MuiSwitch-switchBase.Mui-checked': { color: '#A8DD7A' },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#A8DD7A', border: '1px solid transparent' },
+                        '& .MuiSwitch-switchBase.Mui-checked .MuiSwitch-thumb': { border: 'none' }
+                      }}
                     />
                   }
-                  label=""
+                  label="Allow Study Partners"
                 />
               </Box>
             </Grid>
@@ -816,12 +819,16 @@ const HomeworkManagement = () => {
           <Button onClick={() => setCreateDialogOpen(false)} sx={{ color: '#4a5568' }}>Cancel</Button>
           <Button
             onClick={handleCreateHomework}
-            variant="contained"
+            variant="outlined"
             disabled={submitting || !newHomework.title || !newHomework.course_id || !newHomework.claimed_deadline}
             sx={{
-              backgroundColor: '#D6F7AD',
-              color: '#2d3748',
-              '&:hover': { backgroundColor: '#c8f299' }
+              backgroundColor: '#fff',
+              color: '#333',
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
+              }
             }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Create'}
@@ -858,10 +865,15 @@ const HomeworkManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Course</InputLabel>
                 <Select
                   value={newHomework.course_id}
                   onChange={(e) => setNewHomework({ ...newHomework, course_id: e.target.value })}
+                  displayEmpty
+                  renderValue={(value) => {
+                    if (!value) return 'Course';
+                    const course = courses.find(c => c._id === value);
+                    return course ? `${course.course_name} (${course.course_code})` : 'Course';
+                  }}
                   sx={{ minWidth: '300px' }}
                 >
                   {courses.map((course) => (
@@ -901,24 +913,22 @@ const HomeworkManagement = () => {
             </Grid>
             
             <Grid item xs={12}>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Allow Study Partners
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Enable students to form partnerships for this homework
-                  </Typography>
-                </Box>
+              <Box display="flex" alignItems="center" justifyContent="flex-end">
                 <FormControlLabel
                   control={
                     <Switch
                       checked={newHomework.allow_partners}
                       onChange={(e) => setNewHomework({ ...newHomework, allow_partners: e.target.checked })}
-                      color="primary"
+                      sx={{
+                        '& .MuiSwitch-track': { backgroundColor: '#fff', border: '1px solid #333' },
+                        '& .MuiSwitch-thumb': { backgroundColor: '#fff', border: '1px solid #333' },
+                        '& .MuiSwitch-switchBase.Mui-checked': { color: '#A8DD7A' },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#A8DD7A', border: '1px solid transparent' },
+                        '& .MuiSwitch-switchBase.Mui-checked .MuiSwitch-thumb': { border: 'none' }
+                      }}
                     />
                   }
-                  label=""
+                  label="Allow Study Partners"
                 />
               </Box>
             </Grid>
@@ -936,12 +946,16 @@ const HomeworkManagement = () => {
           </Button>
           <Button
             onClick={handleUpdateHomework}
-            variant="contained"
+            variant="outlined"
             disabled={submitting || !newHomework.title || !newHomework.course_id || !newHomework.claimed_deadline}
             sx={{
-              backgroundColor: '#D6F7AD',
+              backgroundColor: '#fff',
               color: '#333',
-              '&:hover': { backgroundColor: '#c8f299' }
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
+              }
             }}
           >
             {submitting ? <CircularProgress size={24} /> : 'Update'}

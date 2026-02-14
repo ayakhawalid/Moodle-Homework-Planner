@@ -2,7 +2,7 @@
 .dashboard-container {
   display: flex;
   min-height: 100vh;
-  background: #D6F7AD;
+  background: #DDF5C4;
   transition: background-color 0.3s ease;
 }
 
@@ -11,7 +11,7 @@
   margin-left: 280px;
   transition: margin-left 0.3s ease;
   min-height: 100vh;
-  background: #D6F7AD;
+  background: #DDF5C4;
   transition: background-color 0.3s ease;
 }
 
@@ -23,7 +23,7 @@
 
 .green-background .dashboard-container,
 .green-background .dashboard-content {
-  background: #D6F7AD !important;
+  background: #DDF5C4 !important;
 }
 
 .teal-background .dashboard-container,
@@ -33,7 +33,7 @@
 
 .coral-background .dashboard-container,
 .coral-background .dashboard-content {
-  background: #FAC8C8 !important;
+  background: #FCD8D8 !important;
 }
 
 .yellow-background .dashboard-container,

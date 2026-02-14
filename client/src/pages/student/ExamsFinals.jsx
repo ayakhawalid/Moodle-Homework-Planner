@@ -34,7 +34,6 @@ import {
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Schedule as ScheduleIcon,
-  FilterList as FilterListIcon,
   TrendingUp as TrendingUpIcon,
   Assignment as AssignmentIcon,
   Bookmark as BookmarkIcon,
@@ -43,13 +42,11 @@ import {
 } from '@mui/icons-material';
 import {
   Plus as AddIcon,
-  ClipboardText as PhosphorQuizIcon,
   CalendarBlank as PhosphorCalendarTodayIcon,
   Clock as PhosphorAccessTimeIcon,
   CheckCircle as PhosphorCheckCircleIcon,
   Warning as PhosphorWarningIcon,
   CalendarBlank as PhosphorScheduleIcon,
-  FunnelSimple as PhosphorFilterListIcon,
   ChartLineUp as PhosphorTrendingUpIcon,
   ClipboardText as PhosphorAssignmentIcon,
   BookmarkSimple as PhosphorBookmarkIcon,
@@ -136,6 +133,35 @@ function ExamsFinals() {
     }
   };
 
+  // Format start_time "HH:MM" for display (e.g. "14:00" -> "2:00 PM")
+  const formatExamTime = (startTime) => {
+    if (!startTime || typeof startTime !== 'string') return '';
+    const [h, m] = startTime.trim().split(':').map(Number);
+    if (Number.isNaN(h)) return '';
+    const hour = h % 12 || 12;
+    const min = Number.isNaN(m) ? 0 : m;
+    const ampm = h < 12 ? 'AM' : 'PM';
+    return `${hour}:${String(min).padStart(2, '0')} ${ampm}`;
+  };
+
+  // Compute end time from start_time "HH:MM" + duration_minutes; return formatted "start - end" or just start
+  const formatExamTimeRange = (startTime, durationMinutes) => {
+    const startFormatted = formatExamTime(startTime);
+    if (!startFormatted) return startFormatted;
+    const dur = durationMinutes != null ? parseInt(durationMinutes, 10) : NaN;
+    if (Number.isNaN(dur) || dur < 1) return startFormatted;
+    if (!startTime || typeof startTime !== 'string') return startFormatted;
+    const [h, m] = startTime.trim().split(':').map(Number);
+    if (Number.isNaN(h)) return startFormatted;
+    const totalStartMins = (Number.isNaN(m) ? 0 : m) + h * 60;
+    const totalEndMins = totalStartMins + dur;
+    const endH = Math.floor(totalEndMins / 60) % 24;
+    const endM = totalEndMins % 60;
+    const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    const endFormatted = formatExamTime(endTimeStr);
+    return `${startFormatted} – ${endFormatted}`;
+  };
+
   // Calculate days until exam
   const getDaysUntilExam = (examDate) => {
     const today = new Date();
@@ -179,8 +205,16 @@ function ExamsFinals() {
 
   // Handle add exam submission
   const handleAddExam = async () => {
+    if (!examFormData.exam_date || !examFormData.exam_date.trim()) {
+      setError('Please enter an exam date.');
+      return;
+    }
     try {
-      await apiService.studentDashboard.addExam(examFormData);
+      const payload = {
+        ...examFormData,
+        duration: examFormData.duration === '' ? 60 : Number(examFormData.duration) || 60
+      };
+      await apiService.studentDashboard.addExam(payload);
       setOpenAddExamDialog(false);
       setExamFormData({
         course_id: '',
@@ -200,28 +234,52 @@ function ExamsFinals() {
 
   const handleEditExam = (exam) => {
     setEditingExam(exam);
+    // Format due_date for date input (YYYY-MM-DD)
+    const dueDate = exam.due_date ? new Date(exam.due_date) : null;
+    const examDateStr = dueDate && !Number.isNaN(dueDate.getTime()) ? dueDate.toISOString().slice(0, 10) : '';
+    // Ensure time is HH:MM for time input (pad if needed, e.g. "9:0" -> "09:00")
+    const startTime = exam.start_time || exam.exam_time || '';
+    let examTimeStr = '';
+    if (typeof startTime === 'string' && startTime.trim()) {
+      const parts = startTime.trim().split(':');
+      const h = parseInt(parts[0], 10);
+      const m = parts[1] != null ? parseInt(parts[1], 10) : 0;
+      if (!Number.isNaN(h)) {
+        examTimeStr = `${String(h).padStart(2, '0')}:${String(Number.isNaN(m) ? 0 : m).padStart(2, '0')}`;
+      } else {
+        examTimeStr = startTime;
+      }
+    }
     setExamFormData({
-      course_id: exam.course?._id || exam.course_id || '',
+      course_id: exam.course?._id || (exam.course_id && (typeof exam.course_id === 'object' ? exam.course_id._id : exam.course_id)) || '',
       title: exam.title || exam.exam_title || '',
-      exam_date: exam.exam_date || exam.due_date || '',
-      exam_time: exam.exam_time || '',
-      duration: exam.duration || exam.duration_minutes || '',
+      exam_date: exam.exam_date || examDateStr,
+      exam_time: examTimeStr,
+      duration: exam.duration != null ? String(exam.duration) : (exam.duration_minutes != null ? String(exam.duration_minutes) : ''),
       location: exam.location || exam.room || '',
-      description: exam.description || '',
+      description: exam.description ?? '',
       exam_type: exam.exam_type || 'midterm'
     });
     setOpenEditExamDialog(true);
   };
 
   const handleUpdateExam = async () => {
+    if (!editingExam?._id) return;
+    if (!examFormData.exam_date || !examFormData.exam_date.trim()) {
+      setError('Please enter an exam date.');
+      return;
+    }
     try {
-      // Check if we have an update API method
-      if (apiService.lecturerManagement?.updateExam) {
-        await apiService.lecturerManagement.updateExam(editingExam._id, examFormData);
-      } else {
-        // Fallback to student dashboard add if update not available
-        await apiService.studentDashboard.addExam(examFormData);
-      }
+      const payload = {
+        exam_title: examFormData.title,
+        due_date: examFormData.exam_date,
+        start_time: (examFormData.exam_time && examFormData.exam_time.trim()) ? examFormData.exam_time.trim() : '00:00',
+        duration_minutes: Math.max(1, parseInt(examFormData.duration, 10) || 60),
+        room: examFormData.location || undefined,
+        description: examFormData.description || undefined,
+        exam_type: examFormData.exam_type || 'midterm'
+      };
+      await apiService.exams.update(editingExam._id, payload);
       setOpenEditExamDialog(false);
       setEditingExam(null);
       setExamFormData({
@@ -285,12 +343,12 @@ function ExamsFinals() {
   return (
     <DashboardLayout userRole="student">
       <div className="page-background">
-        {/* Add Exam Button */}
-        <Box display="flex" justifyContent="flex-start" mb={3}>
+        {/* Add Exam Button + Course filter */}
+        <Box display="flex" alignItems="center" gap={2} flexWrap="wrap" mb={3}>
           <IconButton
             onClick={() => setOpenAddExamDialog(true)}
             sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              backgroundColor: 'transparent',
               color: '#555',
               borderRadius: '8px',
               padding: '20px',
@@ -298,44 +356,29 @@ function ExamsFinals() {
               width: '64px',
               height: '64px',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backgroundColor: 'rgba(0, 0, 0, 0.06)',
                 color: '#333'
               }
             }}
           >
             <AddIcon size={48} weight="thin" />
           </IconButton>
+          <FormControl sx={{ minWidth: '300px' }}>
+            <InputLabel>Course</InputLabel>
+            <Select
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              label="Course"
+            >
+              <MenuItem value="">All Courses</MenuItem>
+              {examsData?.courses?.map((course) => (
+                <MenuItem key={course._id} value={course._id}>
+                  {course.code} - {course.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
-
-          {/* Filters */}
-          <div className="dashboard-card" style={{ marginBottom: '24px', border: 'none', boxShadow: 'none', background: 'transparent' }}>
-            <div className="card-content" style={{ background: 'transparent', padding: '0' }}>
-              <Typography variant="h6" gutterBottom>
-                <PhosphorFilterListIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#95E1D3' }} />
-                Filter Exams
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={8}>
-                  <FormControl fullWidth>
-                    <InputLabel>Course</InputLabel>
-                    <Select
-                      value={selectedCourse}
-                      onChange={(e) => setSelectedCourse(e.target.value)}
-                      label="Course"
-                      sx={{ minWidth: '300px' }}
-                    >
-                      <MenuItem value="">All Courses</MenuItem>
-                      {examsData?.courses?.map((course) => (
-                        <MenuItem key={course._id} value={course._id}>
-                          {course.code} - {course.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </div>
-          </div>
 
 
           {/* Upcoming Exams */}
@@ -353,16 +396,16 @@ function ExamsFinals() {
                       <div className="card-content">
                         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                           <Box flex={1}>
-                            <Typography variant="h6" gutterBottom>
+                            <Typography variant="h6" gutterBottom sx={{ color: '#333' }}>
                               {exam.exam_title}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" sx={{ color: '#666' }}>
                               {exam.course?.code} - {exam.course?.name}
                             </Typography>
                           </Box>
                           <Box display="flex" alignItems="center" gap={1}>
                             <Chip 
-                              icon={getExamStatusIcon(exam.status)}
+                              icon={exam.days_until_due !== undefined && exam.days_until_due < 0 ? undefined : getExamStatusIcon(exam.status)}
                               label={String(exam.exam_type || 'midterm').replace(/\b\w/g, l => l.toUpperCase())}
                               sx={getExamTypeColor(exam.exam_type)}
                               size="small"
@@ -400,16 +443,16 @@ function ExamsFinals() {
                         </Box>
                         
                         <Box display="flex" alignItems="center" mb={1}>
-                          <PhosphorCalendarTodayIcon size={16} style={{ marginRight: '8px', color: '#95E1D3' }} />
-                          <Typography variant="body2">
+                          <PhosphorCalendarTodayIcon size={16} style={{ marginRight: '8px', color: '#757575' }} />
+                          <Typography variant="body2" sx={{ color: '#333' }}>
                             {new Date(exam.due_date).toLocaleDateString()}
                           </Typography>
                         </Box>
                         
                         <Box display="flex" alignItems="center" mb={2}>
-                          <PhosphorAccessTimeIcon size={16} style={{ marginRight: '8px', color: '#D6F7AD' }} />
-                          <Typography variant="body2">
-                            {new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <PhosphorAccessTimeIcon size={16} style={{ marginRight: '8px', color: '#757575' }} />
+                          <Typography variant="body2" sx={{ color: '#333' }}>
+                            {exam.start_time ? formatExamTimeRange(exam.start_time, exam.duration_minutes) : new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </Typography>
                         </Box>
 
@@ -425,9 +468,9 @@ function ExamsFinals() {
                                 size="small" 
                                 sx={{ 
                                   mb: 1,
-                                  backgroundColor: '#D6F7AD',
+                                  backgroundColor: 'rgba(0,0,0,0.08)',
                                   color: '#333',
-                                  border: '1px solid #D6F7AD'
+                                  border: '1px solid rgba(0,0,0,0.12)'
                                 }}
                               />
                             )}
@@ -448,7 +491,7 @@ function ExamsFinals() {
                         )}
 
                         {exam.description && (
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant="body2" sx={{ color: '#666' }}>
                             {exam.description}
                           </Typography>
                         )}
@@ -461,29 +504,14 @@ function ExamsFinals() {
             </div>
           )}
 
-          {/* All Exams List */}
+          {/* All Exams List - only show when there are exams */}
+          {examsData?.exams?.length > 0 && (
           <div className="dashboard-card">
             <div className="card-content">
-              <Typography variant="h6" gutterBottom>
-                <PhosphorQuizIcon size={20} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#D6F7AD' }} />
+              <Typography variant="h6" gutterBottom sx={{ color: '#555', fontWeight: 700 }}>
                 All Exams
               </Typography>
             
-            {examsData?.exams?.length === 0 ? (
-              <Alert 
-                severity="info"
-                sx={{
-                  backgroundColor: 'rgba(214, 247, 173, 0.2)',
-                  border: '1px solid #D6F7AD',
-                  color: '#333',
-                  '& .MuiAlert-icon': {
-                    color: '#333'
-                  }
-                }}
-              >
-                No exams found for the selected criteria.
-              </Alert>
-            ) : (
               <List>
                 {examsData?.exams?.map((exam, index) => (
                   <React.Fragment key={exam._id}>
@@ -491,11 +519,11 @@ function ExamsFinals() {
                       <ListItemText
                         primary={
                           <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="h6">
+                            <Typography variant="h6" sx={{ color: '#333' }}>
                               {exam.exam_title}
                             </Typography>
                             <Chip 
-                              icon={getExamStatusIcon(exam.status)}
+                              icon={exam.days_until_due !== undefined && exam.days_until_due < 0 ? undefined : getExamStatusIcon(exam.status)}
                               label={String(exam.status || 'upcoming').replace(/\b\w/g, l => l.toUpperCase())}
                               color={getExamStatusColor(exam.status)}
                               size="small"
@@ -510,11 +538,11 @@ function ExamsFinals() {
                         }
                         secondary={
                           <Box component="div">
-                            <Typography variant="body2" color="text.secondary" component="div">
+                            <Typography variant="body2" sx={{ color: '#666' }} component="div">
                               {exam.course?.code} - {exam.course?.name}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary" component="div">
-                              {new Date(exam.due_date).toLocaleDateString()} at {new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <Typography variant="body2" sx={{ color: '#666' }} component="div">
+                              {new Date(exam.due_date).toLocaleDateString()}{exam.start_time ? ` at ${formatExamTimeRange(exam.start_time, exam.duration_minutes)}` : ` at ${new Date(exam.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                             </Typography>
                             {exam.days_until_due !== undefined && (
                               <Box component="div" sx={{ mt: 1 }}>
@@ -527,13 +555,13 @@ function ExamsFinals() {
                                     label="Today" 
                                     size="small" 
                                     sx={{ 
-                                      backgroundColor: '#D6F7AD',
+                                      backgroundColor: 'rgba(0,0,0,0.08)',
                                       color: '#333',
-                                      border: '1px solid #D6F7AD'
+                                      border: '1px solid rgba(0,0,0,0.12)'
                                     }}
                                   />
                                 ) : (
-                                  <Typography variant="body2" sx={{ color: '#D6F7AD' }} component="div">
+                                  <Typography variant="body2" sx={{ color: '#666' }} component="div">
                                     {Math.abs(exam.days_until_due)} days past due
                                   </Typography>
                                 )}
@@ -588,9 +616,9 @@ function ExamsFinals() {
                   </React.Fragment>
                 ))}
               </List>
-            )}
             </div>
           </div>
+          )}
 
       {/* Add Exam Dialog */}
       <Dialog open={openAddExamDialog} onClose={() => setOpenAddExamDialog(false)} maxWidth="md" fullWidth>
@@ -699,12 +727,14 @@ function ExamsFinals() {
           </Button>
           <Button 
             onClick={handleAddExam} 
-            variant="contained"
+            variant="outlined"
             sx={{
-              backgroundColor: '#D6F7AD',
+              backgroundColor: '#fff',
               color: '#333',
+              border: '1px solid rgba(0, 0, 0, 0.12)',
               '&:hover': {
-                backgroundColor: '#c8f299'
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
               }
             }}
           >
@@ -826,12 +856,14 @@ function ExamsFinals() {
           </Button>
           <Button 
             onClick={handleUpdateExam} 
-            variant="contained"
+            variant="outlined"
             sx={{
-              backgroundColor: '#D6F7AD',
+              backgroundColor: '#fff',
               color: '#333',
+              border: '1px solid rgba(0, 0, 0, 0.12)',
               '&:hover': {
-                backgroundColor: '#c8f299'
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(0, 0, 0, 0.2)'
               }
             }}
           >

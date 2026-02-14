@@ -46,7 +46,7 @@
 }
 
 .green-background .page-background {
-  background: #D6F7AD !important;
+  background: #DDF5C4 !important;
 }
 
 .teal-background .page-background {
@@ -54,7 +54,7 @@
 }
 
 .coral-background .page-background {
-  background: #FAC8C8 !important;
+  background: #FCD8D8 !important;
 }
 
 .yellow-background .page-background {
@@ -75,9 +75,10 @@
 .green-background .teal-page-background,
 .green-background .coral-page-background,
 .green-background .yellow-page-background {
-  background: #D6F7AD !important;
+  background: #DDF5C4 !important;
 }
 
+.teal-background .white-page-background,
 .teal-background .white-page-background,
 .teal-background .green-page-background,
 .teal-background .teal-page-background,
@@ -91,7 +92,7 @@
 .coral-background .teal-page-background,
 .coral-background .coral-page-background,
 .coral-background .yellow-page-background {
-  background: #FAC8C8 !important;
+  background: #FCD8D8 !important;
 }
 
 .yellow-background .white-page-background,
