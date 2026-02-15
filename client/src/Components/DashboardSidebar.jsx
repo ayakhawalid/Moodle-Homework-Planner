@@ -139,16 +139,7 @@ function DashboardSidebar({ userRole }) {
           <div className="user-info">
             <div className="user-avatar">
               {auth0User?.picture ? (
-                <img 
-                  src={auth0User.picture} 
-                  alt="Profile" 
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    borderRadius: '50%',
-                    objectFit: 'cover'
-                  }} 
-                />
+                <img src={auth0User.picture} alt="Profile" />
               ) : (
                 userRole === 'student' ? '👨‍🎓' : userRole === 'lecturer' ? '👨‍🏫' : '👨‍💼'
               )}

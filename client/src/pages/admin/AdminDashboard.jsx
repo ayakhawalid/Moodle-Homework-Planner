@@ -431,7 +431,8 @@ const AdminDashboard = () => {
                           sx={{ 
                             backgroundColor: '#D6F7AD', 
                             color: '#333',
-                            '&:hover': { backgroundColor: '#c8f299', color: '#333' }
+                            boxShadow: 'none',
+                            '&:hover': { backgroundColor: '#c8f299', color: '#333', boxShadow: 'none' }
                           }}
                         >
                           Approve

@@ -281,17 +281,51 @@ router.put('/profile', checkJwt, async (req, res) => {
   }
 });
 
-// GET /api/users/profile - Get current user's profile
+// GET /api/users/profile - Get current user's profile (creates profile if missing)
 router.get('/profile', checkJwt, extractUser, async (req, res) => {
   try {
     const auth0_id = req.auth.sub;
     console.log('[GET /profile] Fetching profile for auth0_id:', auth0_id);
-    
-    const user = await User.findOne({ auth0_id });
+
+    let user = await User.findOne({ auth0_id });
 
     if (!user) {
-      console.log('[GET /profile] User not found for auth0_id:', auth0_id);
-      return res.status(404).json({ error: 'User profile not found' });
+      console.log('[GET /profile] User not found, creating from JWT for auth0_id:', auth0_id);
+      let email = req.auth.email || req.userInfo?.email;
+      let name = req.auth.name || req.userInfo?.name;
+      const picture = req.auth.picture || req.userInfo?.picture;
+      const email_verified = req.auth.email_verified ?? req.userInfo?.email_verified;
+      if (!email || !name) {
+        try {
+          const auth0User = await getAuth0User(auth0_id);
+          if (auth0User) {
+            if (!email) email = auth0User.email;
+            if (!name) name = auth0User.name || auth0User.nickname;
+          }
+        } catch (err) {
+          console.warn('[GET /profile] Could not fetch Auth0 user for missing email/name:', err.message);
+        }
+      }
+      if (!email || !name) {
+        return res.status(400).json({ error: 'User profile could not be created: email and name are required.' });
+      }
+      const rolesFromAuth0 = req.auth['https://my-app.com/roles'] || [];
+      let initialRole = null;
+      if (rolesFromAuth0.includes('admin')) initialRole = 'admin';
+      else if (rolesFromAuth0.includes('lecturer')) initialRole = 'lecturer';
+      else if (rolesFromAuth0.includes('student')) initialRole = 'student';
+      else if (rolesFromAuth0.length > 0) initialRole = rolesFromAuth0[0];
+      user = new User({
+        auth0_id,
+        email,
+        name,
+        full_name: name,
+        picture: picture || undefined,
+        email_verified: email_verified ?? false,
+        role: initialRole,
+      });
+      await user.save();
+      console.log('[GET /profile] Created new user:', user._id, user.email);
     }
 
     // Convert to plain object and explicitly include username and all profile fields.

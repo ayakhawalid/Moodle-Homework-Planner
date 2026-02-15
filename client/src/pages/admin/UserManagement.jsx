@@ -11,6 +11,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Paper,
   Chip,
   Button,
@@ -39,6 +40,8 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -96,7 +99,7 @@ const UserManagement = () => {
       // Don't clear error - let fetchWithToken handle error state
 
       const base = import.meta.env.VITE_API_BASE_URL || 'https://moodle-homework-planner.onrender.com';
-      const url = `${base.replace(/\/$/, '')}/api/users?page=${pageNum}&limit=10`;
+      const url = `${base.replace(/\/$/, '')}/api/users?page=${pageNum}&limit=${rowsPerPage}`;
 
       // use fetchWithToken to avoid sending an expired token
       const resp = await fetchWithToken(url);
@@ -119,16 +122,19 @@ const UserManagement = () => {
       if (data && data.users) {
         setUsers(data.users);
         setTotalPages(data.pagination?.total_pages || 1);
+        setTotalUsers(data.pagination?.total_users ?? data.users.length);
       } else {
         console.warn('Unexpected response structure:', data);
         setUsers(Array.isArray(data) ? data : []);
         setTotalPages(1);
+        setTotalUsers(Array.isArray(data) ? data.length : 0);
       }
     } catch (err) {
       console.error('Failed to fetch users:', err);
       setError(err);
       setUsers([]);
       setTotalPages(1);
+      setTotalUsers(0);
     } finally {
       setLoading(false);
     }
@@ -141,7 +147,7 @@ const UserManagement = () => {
         fetchUsers(page);
       });
     }
-  }, [hasAdminAccess, page]);
+  }, [hasAdminAccess, page, rowsPerPage]);
 
   // Replace role update to use fetchWithToken (avoids expired token errors)
   const handleRoleChange = async () => {
@@ -421,6 +427,20 @@ const UserManagement = () => {
           </TableBody>
         </Table>
         </TableContainer>
+        <TablePagination
+          component="div"
+          count={totalUsers}
+          page={page - 1}
+          onPageChange={(_, newPage) => setPage(newPage + 1)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(1);
+          }}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          labelRowsPerPage="Rows per page:"
+          sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+        />
       </div>
       </Box>
       {/* Role Change Dialog */}
@@ -444,20 +464,20 @@ const UserManagement = () => {
           <Button 
             onClick={() => setRoleDialogOpen(false)}
             sx={{ 
-              borderColor: '#F38181', 
-              color: '#F38181',
-              '&:hover': { borderColor: '#e85a6b', backgroundColor: 'rgba(243, 129, 129, 0.1)' }
+              color: '#333',
+              '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)', color: '#333' }
             }}
           >
             Cancel
           </Button>
           <Button 
             onClick={handleRoleChange} 
-            variant="contained"
+            variant="outlined"
             sx={{
-              backgroundColor: '#95E1D3',
+              backgroundColor: '#fff',
               color: '#333',
-              '&:hover': { backgroundColor: '#7dd3c0' }
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
             }}
           >
             Update Role
@@ -488,11 +508,22 @@ const UserManagement = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => { setPasswordDialogOpen(false); setUserForPassword(null); setNewPassword(''); }}>Cancel</Button>
           <Button
-            variant="contained"
+            onClick={() => { setPasswordDialogOpen(false); setUserForPassword(null); setNewPassword(''); }}
+            sx={{ color: '#333', '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)', color: '#333' } }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="outlined"
             onClick={handlePasswordChange}
             disabled={passwordLoading || newPassword.length < 8}
+            sx={{
+              backgroundColor: '#fff',
+              color: '#333',
+              border: '1px solid rgba(0, 0, 0, 0.12)',
+              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)', border: '1px solid rgba(0, 0, 0, 0.2)' }
+            }}
           >
             {passwordLoading ? <CircularProgress size={20} /> : 'Set password'}
           </Button>
