@@ -49,7 +49,37 @@ body, html {
   background: #FDF6D0 !important;
 }
 
-/* Home Footer */
+/* Home Footer - same four walls as top (same width, height, colors) */
+.home-footer-walls {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  position: relative;
+  z-index: 10;
+  margin-top: auto;
+}
+
+.footer-wall {
+  height: 44px;
+  width: 25vw;
+  flex-shrink: 0;
+  animation: colorShift 8s ease-in-out infinite;
+}
+
+.footer-wall-1 {
+  background: linear-gradient(90deg, #FF7F7F 0%, #FF6B6B 100%); /* Coral - same as wall-1 */
+}
+.footer-wall-2 {
+  background: linear-gradient(90deg, #FCE38A 0%, #F9D56E 100%); /* Yellow - same as wall-2 */
+}
+.footer-wall-3 {
+  background: linear-gradient(90deg, #D6F7AD 0%, #C8F299 100%); /* Green - same as wall-3 */
+}
+.footer-wall-4 {
+  background: linear-gradient(90deg, #95E1D3 0%, #7DD3C0 100%); /* Teal - same as wall-4 */
+}
+
+/* Legacy home footer (kept if used elsewhere) */
 .home-footer {
   position: relative;
   width: 100%;
@@ -732,6 +762,21 @@ body, html {
   line-height: 0;
   vertical-align: top;
 }
+
+.founder-credit {
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+  margin-left: 3.5rem;
+  margin-right: 3.5rem;
+  padding: 1.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.25;
+  text-align: left;
+  direction: ltr;
+}
+
 
 .different-column .about-subtitle {
   margin-top: 0;

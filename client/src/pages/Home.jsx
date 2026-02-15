@@ -77,6 +77,7 @@ function Home() {
           </div>
         </div>
 
+
             <div className="about-and-different-row">
               <div className="about-column">
                 <div className="magazine-layout">
@@ -123,10 +124,24 @@ function Home() {
                   </button>
                 </div>
                 <FallingLeaves />
+                <p className="founder-credit">
+                  About the founder:
+                  <br />
+                  Aia Khawaled, 21 years old computer science student at University of Haifa.
+                  <br />
+                  A project supervised by prof. Roi Porrane.
+                </p>
               </div>
             </div>
-            
       </div>
+
+      {/* Footer - same four walls as top (outside about-section so no side padding) */}
+      <footer className="home-footer-walls" aria-label="Footer">
+        <div className="footer-wall footer-wall-1"></div>
+        <div className="footer-wall footer-wall-2"></div>
+        <div className="footer-wall footer-wall-3"></div>
+        <div className="footer-wall footer-wall-4"></div>
+      </footer>
     </div>
   )
 }
