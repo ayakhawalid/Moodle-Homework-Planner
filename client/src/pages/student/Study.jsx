@@ -227,15 +227,26 @@ function Study() {
   };
 
   const handleUpdateWeeklyGoal = async () => {
+    const goalToSave = Number(weeklyGoal);
+    if (Number.isNaN(goalToSave) || goalToSave < 0) {
+      setError('Please enter a valid number of hours (0 or more).');
+      return;
+    }
     setSubmitting(true);
+    setError(null);
     try {
-      const token = await getAccessTokenSilently();
-      // This endpoint would need to be created on the backend
-      await apiService.studentDashboard.updateWeeklyGoal(weeklyGoal);
+      const updateResponse = await apiService.studentDashboard.updateWeeklyGoal(goalToSave);
       setEditingGoal(false);
-      // Refresh data
+      if (updateResponse?.data?.weekly_goal != null) {
+        setWeeklyGoal(updateResponse.data.weekly_goal);
+      } else {
+        setWeeklyGoal(goalToSave);
+      }
       const response = await apiService.studentDashboard.getStudyProgress(30);
       setStudyData(response.data);
+      if (response.data?.overview?.weekly_goal != null) {
+        setWeeklyGoal(response.data.overview.weekly_goal);
+      }
     } catch (err) {
       console.error('Error updating weekly goal:', err);
       setError('Failed to update weekly goal. Please try again.');

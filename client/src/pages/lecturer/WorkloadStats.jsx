@@ -311,11 +311,13 @@ function WorkloadStats() {
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
                           {homeworkStatusData.homework_status.map((hw) => (
                             <Paper 
-                              key={hw._id} 
+                              key={hw._id}
+                              elevation={0}
                               sx={{ 
                                 p: 2, 
                                 height: '100%',
                                 minWidth: 0,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
                                 borderLeft: `4px solid ${hw.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`,
                                 backgroundColor: 'rgba(255, 255, 255, 0.6)'
                               }}
@@ -375,8 +377,8 @@ function WorkloadStats() {
                                               borderRadius: '12px 12px 0 0',
                                               minHeight: status.value > 0 ? '6px' : '0px',
                                               transition: 'all 0.3s ease',
-                                              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
-                                              '&:hover': { transform: 'scale(1.05)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)' }
+                                              boxShadow: 'none',
+                                              '&:hover': { transform: 'scale(1.02)', opacity: 0.9 }
                                             }}
                                           />
                                           <Typography variant="caption" sx={{ mt: 0.5, fontSize: '0.75rem', fontWeight: 600, color: '#666' }}>

@@ -42,6 +42,19 @@ import { apiService } from '../../services/api';
 import '../../styles/DashboardLayout.css';
 import '../../styles/HomeworkCard.css';
 
+// Format a Date (or ISO string) as local YYYY-MM-DDTHH:mm for datetime-local input (avoids UTC display bug)
+const toLocalDateTimeInput = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${day}T${h}:${min}`;
+};
+
 const HomeworkManagement = () => {
   const { isAuthenticated } = useAuth0();
   const [homework, setHomework] = useState([]);
@@ -76,61 +89,29 @@ const HomeworkManagement = () => {
     if (isAuthenticated) {
       fetchData();
     }
-  }, [isAuthenticated, searchCourse]);
+  }, [isAuthenticated]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch courses
       const coursesResponse = await apiService.courses.getAll();
       setCourses(coursesResponse.data);
-      
-      // Fetch all homework (traditional homework) with course filter
-      const homeworkParams = searchCourse ? { course_id: searchCourse } : {};
-      const homeworkResponse = await apiService.homework.getAll(homeworkParams);
+
+      // Fetch all homework (no course filter – filtering is done on the client)
+      const homeworkResponse = await apiService.homework.getAll({});
       const homeworkData = homeworkResponse.data || [];
-      console.log('Homework data:', homeworkData.map(hw => ({ id: hw._id, title: hw.title })));
       setHomework(homeworkData);
-      
-      // Fetch student homework
+
+      // Fetch all student homework (filtering by course is done on the client)
       try {
         const studentHwResponse = await apiService.studentHomework.getLecturerHomework();
-        // The API returns { homework: [...] }, so we need to access the homework property
         const allHomeworkData = studentHwResponse.data?.homework || [];
-        
-        // Filter to only show student-created homework (exclude lecturer-created homework)
-        let studentHwData = allHomeworkData.filter(hw => hw.uploader_role === 'student');
-        
-        console.log('All student homework before filtering:', studentHwData.map(hw => ({ 
-          id: hw._id, 
-          title: hw.title, 
-          course: hw.course,
-          courseId: hw.course?._id
-        })));
-        
-        // Apply course filter on frontend for student homework (since API doesn't support course filtering yet)
-        if (searchCourse) {
-          console.log('Filtering by course:', searchCourse, 'Type:', typeof searchCourse);
-          studentHwData = studentHwData.filter(hw => {
-            const courseId = hw.course?._id;
-            const matches = courseId === searchCourse;
-            console.log(`Homework "${hw.title}" course._id: ${courseId} (${typeof courseId}), searchCourse: ${searchCourse} (${typeof searchCourse}), matches: ${matches}`);
-            return matches;
-          });
-        }
-        
-        console.log('Student homework data:', studentHwData.map(hw => ({ 
-          id: hw._id, 
-          title: hw.title, 
-          role: hw.uploader_role,
-          course: hw.course,
-          courseId: hw.course?._id
-        })));
+        const studentHwData = allHomeworkData.filter(hw => hw.uploader_role === 'student');
         setStudentHomework(studentHwData);
       } catch (err) {
         console.error('Error fetching student homework:', err);
-        // Don't fail the whole page if student homework fetch fails
         setStudentHomework([]);
       }
       
@@ -148,7 +129,7 @@ const HomeworkManagement = () => {
       setError(null);
       
       // Validate required fields
-      if (!newHomework.course_id || !newHomework.title || !newHomework.description || !newHomework.due_date) {
+      if (!newHomework.course_id || !newHomework.title || !newHomework.due_date) {
         throw new Error('Please fill in all required fields');
       }
 
@@ -187,7 +168,7 @@ const HomeworkManagement = () => {
       description: hw.description,
       instructions: hw.instructions || '',
       course_id: hw.course_id?._id || hw.course_id,
-      due_date: hw.due_date ? new Date(hw.due_date).toISOString().slice(0, 16) : '',
+      due_date: toLocalDateTimeInput(hw.due_date),
       allow_partners: hw.allow_partners || false,
       max_partners: hw.max_partners || 1
     });
@@ -200,7 +181,7 @@ const HomeworkManagement = () => {
       setError(null);
       
       // Validate required fields
-      if (!newHomework.course_id || !newHomework.title || !newHomework.description || !newHomework.due_date) {
+      if (!newHomework.course_id || !newHomework.title || !newHomework.due_date) {
         throw new Error('Please fill in all required fields');
       }
 
@@ -275,7 +256,7 @@ const HomeworkManagement = () => {
       description: hw.description || '',
       instructions: '',
       course_id: hw.course?._id || hw.course_id,
-      due_date: hw.claimed_deadline ? new Date(hw.claimed_deadline).toISOString().slice(0, 16) : '',
+      due_date: toLocalDateTimeInput(hw.claimed_deadline),
       allow_partners: hw.allow_partners || false,
       max_partners: hw.max_partners || 1
     });
@@ -323,13 +304,14 @@ const HomeworkManagement = () => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Traditional homework is filtered on the server side, but add frontend filtering as backup
-  const filteredHomework = searchCourse 
-    ? homework.filter(hw => (hw.course_id?._id || hw.course_id) === searchCourse)
+  // Filter by course on the client – no refetch when changing filter
+  const filteredHomework = searchCourse
+    ? homework.filter(hw => String(hw.course_id?._id || hw.course_id) === String(searchCourse))
     : homework;
 
-  // Student homework is filtered on the frontend (since API doesn't support course filtering yet)
-  const filteredStudentHomework = studentHomework;
+  const filteredStudentHomework = searchCourse
+    ? studentHomework.filter(hw => String(hw.course?._id || hw.course_id) === String(searchCourse))
+    : studentHomework;
 
   if (loading) {
     return (
@@ -398,7 +380,6 @@ const HomeworkManagement = () => {
         <Box 
           sx={{ 
             mb: 3, 
-            borderBottom: '1px solid #e0e0e0',
             backgroundColor: 'transparent'
           }}
         >
@@ -407,7 +388,7 @@ const HomeworkManagement = () => {
             onChange={(e, newValue) => setTabValue(newValue)}
             TabIndicatorProps={{
               sx: {
-                backgroundColor: '#6b7280',
+                backgroundColor: '#1a202c',
                 height: 2
               }
             }}
@@ -462,9 +443,7 @@ const HomeworkManagement = () => {
                   <div className="homework-item" key={hw._id || `hw-${Math.random()}`}>
                     <div className="homework-card lecturer-homework">
                       {/* Notebook Edge - Simple line for lecturer */}
-                      <div className="notebook-edge lecturer-edge">
-                        <div className="lecturer-indicator"></div>
-                      </div>
+                      <div className="notebook-edge lecturer-edge" />
 
                       {/* Homework Content */}
                       <div className="homework-content">
@@ -519,21 +498,19 @@ const HomeworkManagement = () => {
                         </div>
                         <div className="homework-description">{hw.description || 'No description provided'}</div>
                         
-                        {/* Partner Settings */}
-                        {hw.allow_partners && (
-                          <div className="partner-indicator">
-                            <Chip
-                              label="Allows Partners"
-                              sx={{
-                                backgroundColor: 'rgba(214, 247, 173, 0.3)',
-                                color: '#333',
-                                border: '1px solid #D6F7AD',
-                                fontSize: '0.75rem'
-                              }}
-                              size="small"
-                            />
-                          </div>
-                        )}
+                        {/* Partner Settings - same as student homework management */}
+                        <div className="partner-indicator" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <Chip
+                            label={hw.allow_partners ? 'Allows Partners' : 'No Partners'}
+                            size="small"
+                            sx={{
+                              backgroundColor: hw.allow_partners ? 'rgba(214, 247, 173, 0.3)' : 'rgba(255, 182, 193, 0.3)',
+                              color: '#333',
+                              border: hw.allow_partners ? '1px solid #D6F7AD' : '1px solid #FFB6C1',
+                              fontSize: '0.75rem'
+                            }}
+                          />
+                        </div>
 
                         {/* Grade and Deadline - Left aligned */}
                         <div className="homework-meta">
@@ -571,9 +548,7 @@ const HomeworkManagement = () => {
                 <div className="homework-item" key={hw._id || `student-hw-${Math.random()}`}>
                   <div className="homework-card student-homework">
                     {/* Notebook Edge - Simple line for student homework */}
-                    <div className="notebook-edge student-edge">
-                      <div className="student-indicator"></div>
-                    </div>
+                    <div className="notebook-edge student-edge" />
 
                     {/* Homework Content */}
                     <div className="homework-content">
@@ -628,7 +603,7 @@ const HomeworkManagement = () => {
                       {/* Student Info */}
                       <div className="homework-course">
                         <PeopleIcon size={16} weight="thin" style={{ marginRight: '8px', color: '#6b7280' }} />
-                        {hw.uploaded_by?.full_name || hw.uploaded_by?.name || 'Unknown Student'}
+                        {hw.uploaded_by?.full_name || hw.uploaded_by?.name || hw.uploaded_by?.email || 'Unknown Student'}
                       </div>
 
                       {/* Course Info */}
@@ -738,11 +713,10 @@ const HomeworkManagement = () => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    required
                     label="Description"
                     value={newHomework.description}
                     onChange={(e) => setNewHomework({ ...newHomework, description: e.target.value })}
-                    placeholder="Brief description"
+                    placeholder="Brief description (optional)"
                     multiline
                     rows={3}
                   />
@@ -872,11 +846,10 @@ const HomeworkManagement = () => {
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    required
                     label="Description"
                     value={newHomework.description}
                     onChange={(e) => setNewHomework({ ...newHomework, description: e.target.value })}
-                    placeholder="Brief description"
+                    placeholder="Brief description (optional)"
                     multiline
                     rows={3}
                   />

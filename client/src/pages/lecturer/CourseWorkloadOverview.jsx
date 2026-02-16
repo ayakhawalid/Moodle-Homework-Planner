@@ -30,7 +30,8 @@ import {
   TableRow,
   TablePagination,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Popover
 } from '@mui/material';
 import DashboardLayout from '../../Components/DashboardLayout';
 import {
@@ -70,6 +71,81 @@ const formatDeadlineDisplay = (isoStr) => {
   return `${day}.${month}.${year}`;
 };
 
+// Tooltip for Assignment Timeline – shows date and course counts on hover; click a grey dot to pin the panel
+const TimelineTooltipContent = ({ active, payload }) => {
+  if (!active || !payload || !payload.length) return null;
+  const dateStr = payload[0]?.payload?.date;
+  const displayLabel = dateStr ? `Date: ${formatDeadlineDisplay(dateStr)}` : '';
+  return (
+    <div
+      className="timeline-tooltip"
+      style={{
+        backgroundColor: '#fff',
+        border: '1px solid rgba(0,0,0,0.12)',
+        borderRadius: 8,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+        padding: '10px 14px',
+        minWidth: 220,
+        maxWidth: 360,
+        maxHeight: '70vh',
+        overflow: 'hidden',
+      }}
+    >
+      {displayLabel && (
+        <div style={{ fontWeight: 600, marginBottom: 8, color: '#333' }}>
+          {displayLabel}
+        </div>
+      )}
+      <div
+        className="timeline-tooltip-list"
+        style={{
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          maxHeight: 220,
+          paddingRight: 6,
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {payload.map((entry, i) => (
+          <div key={i} style={{ color: entry.color || '#333', fontSize: 12, marginBottom: 4 }}>
+            {entry.name}: {entry.value}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Pinned panel content (same as tooltip, scrollable, with Close)
+const PinnedTimelinePanel = ({ dateStr, payload, onClose }) => (
+  <Paper
+    elevation={2}
+    sx={{
+      p: 2,
+      mt: 2,
+      maxHeight: 360,
+      display: 'flex',
+      flexDirection: 'column',
+      border: '1px solid rgba(0,0,0,0.08)',
+      borderRadius: 2,
+    }}
+  >
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+      <Typography variant="subtitle2" fontWeight={600}>
+        {dateStr ? `Date: ${formatDeadlineDisplay(dateStr)}` : 'Assignment count'}
+      </Typography>
+      <Button size="small" onClick={onClose}>Close</Button>
+    </Box>
+    <Box sx={{ overflowY: 'auto', flex: 1, minHeight: 0, pr: 1 }}>
+      {payload && payload.length > 0 && payload.map((entry, i) => (
+        <div key={i} style={{ color: entry.color || '#333', fontSize: 12, marginBottom: 6 }}>
+          {entry.name}: {entry.value}
+        </div>
+      ))}
+    </Box>
+  </Paper>
+);
+
 const CourseWorkloadOverview = () => {
   const { isAuthenticated } = useAuth0();
   const [courses, setCourses] = useState([]);
@@ -88,6 +164,8 @@ const CourseWorkloadOverview = () => {
   const [selectedTableValue, setSelectedTableValue] = useState(null); // { type, id/date, label }
   const [tablePage, setTablePage] = useState(0);
   const [timelineTableMyCoursesOnly, setTimelineTableMyCoursesOnly] = useState(false);
+  const [pinnedTimelineTooltip, setPinnedTimelineTooltip] = useState(null); // { dateStr, payload } when user clicks "Keep open"
+  const [completionPopover, setCompletionPopover] = useState({ anchor: null, data: null }); // { anchor: HTMLElement, data: { title, status_counts, total_students } }
 
   // Helper function to get status color
   const getStatusColor = (status) => {
@@ -210,7 +288,7 @@ const CourseWorkloadOverview = () => {
     fetchStudentWorkload();
   }, [selectedCourseForWorkload]);
 
-  // Fetch homework status for all courses that students are taking
+  // Fetch homework status for all courses that students are taking (restricted to lecturer's students when selectedCourseForWorkload is set)
   useEffect(() => {
     const fetchAllHomeworkStatus = async () => {
       if (!selectedCourseForWorkload) {
@@ -223,30 +301,24 @@ const CourseWorkloadOverview = () => {
         if (studentWorkloadData && studentWorkloadData.student_workload) {
           const courseIds = studentWorkloadData.student_workload.map(course => course.course_id);
           
-          // Fetch homework status for each course
+          // Fetch homework status for each course, restricted to students in the selected course (lecturer's course)
           const allHomeworkStatusPromises = courseIds.map(courseId => 
-            apiService.lecturerDashboard.getHomeworkStatusAny(courseId)
+            apiService.lecturerDashboard.getHomeworkStatusAny(courseId, selectedCourseForWorkload)
           );
           
           const allHomeworkStatusResponses = await Promise.all(allHomeworkStatusPromises);
           
-          console.log('Homework status responses:', allHomeworkStatusResponses);
-          
-          // Combine all homework status data
-          const combinedHomeworkStatus = allHomeworkStatusResponses.map((response, index) => {
-            console.log(`Course ${index} response:`, response.data);
-            return {
-              course: response.data.course,
-              homework_status: response.data.homework_status,
-              overall_stats: response.data.overall_stats
-            };
-          });
-          
-          console.log('Combined homework status:', combinedHomeworkStatus);
+          // Combine all homework status data (includes your_students_count per course)
+          const combinedHomeworkStatus = allHomeworkStatusResponses.map((response) => ({
+            course: response.data.course,
+            homework_status: response.data.homework_status,
+            overall_stats: response.data.overall_stats,
+            your_students_count: response.data.your_students_count
+          }));
           
           setHomeworkStatusData({
             courses: combinedHomeworkStatus,
-            selected_course: studentWorkloadData.course
+            selected_course: studentWorkloadData.selected_course
           });
         }
       } catch (err) {
@@ -615,9 +687,13 @@ const CourseWorkloadOverview = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <DashboardLayout userRole="lecturer">
+        <div className="white-page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
+      </DashboardLayout>
     );
   }
 
@@ -626,6 +702,7 @@ const CourseWorkloadOverview = () => {
   let timelineData = [];
   let timelineCourseIds = [];
   let courseIdToInfo = new Map();
+  let timelineYMax = 5; // default for empty data
   
   try {
     console.log('=== RENDER DATA PROCESSING ===');
@@ -650,6 +727,14 @@ const CourseWorkloadOverview = () => {
     timelineData = timelineResult.timelineData;
     timelineCourseIds = timelineResult.timelineCourseIds || [];
     courseIdToInfo = timelineResult.courseIdToInfo || new Map();
+    // Max value for timeline y-axis (total or any course count) so we can show 0, 1, 2, ...
+    const maxVal = timelineData.length
+      ? Math.max(
+          ...timelineData.map((d) => (typeof d.total === 'number' ? d.total : 0)),
+          ...timelineCourseIds.flatMap((cid) => timelineData.map((d) => (typeof d[cid] === 'number' ? d[cid] : 0)))
+        )
+      : 0;
+    timelineYMax = Math.max(0, Math.ceil(maxVal), 5);
     
     console.log('Processed data:', {
       totalHomework: allHomework.length,
@@ -803,7 +888,7 @@ const CourseWorkloadOverview = () => {
               <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
                 <ResponsiveContainer 
                   width={workloadData.length > 8 ? workloadData.length * 56 : '100%'} 
-                  height={Math.max(340, workloadData.length * 22 + 120)}
+                  height={Math.max(260, workloadData.length * 18 + 100)}
                 >
                   <BarChart 
                     data={workloadData && workloadData.length > 0 ? workloadData : []}
@@ -823,6 +908,7 @@ const CourseWorkloadOverview = () => {
                     />
                     <YAxis
                       width={32}
+                      allowDecimals={false}
                       tick={{ fontSize: 10 }}
                       domain={[0, Math.max(2, ...(workloadData || []).flatMap((d) => [d.totalHomework || 0, d.upcomingDeadlines || 0, d.overdue || 0]))]}
                     />
@@ -861,8 +947,8 @@ const CourseWorkloadOverview = () => {
         </Box>
 
         {/* Assignment Timeline */}
-        <Box sx={{ mb: 3 }}>
-          <div className="dashboard-card">
+        <Box sx={{ mb: 3 }} className="assignment-timeline-section">
+          <div className="dashboard-card assignment-timeline-card" style={{ border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <div className="card-content">
               <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
                 <Typography variant="subtitle1" fontWeight="bold" sx={{ fontSize: '0.95rem' }}>
@@ -901,18 +987,34 @@ const CourseWorkloadOverview = () => {
                   </Typography>
                 </FormControl>
               </Box>
-              <Box sx={{ overflowX: 'auto', overflowY: 'hidden' }}>
-                <ResponsiveContainer 
-                  width={timelineData.length > 14 ? timelineData.length * 44 : '100%'} 
-                  height={340}
+              <Box
+                className="assignment-timeline-chart"
+                sx={{
+                  overflowX: 'auto',
+                  overflowY: 'visible',
+                  userSelect: 'none',
+                  '& .recharts-wrapper': { outline: 'none', border: 'none' },
+                  '& .recharts-surface': { border: 'none' },
+                  '& .recharts-default-tooltip': { border: 'none' },
+                  '& svg': { border: 'none', outline: 'none' },
+                  '& svg:focus': { outline: 'none' },
+                  '& .recharts-wrapper *:focus': { outline: 'none !important' },
+                  '& .recharts-wrapper *:focus:not(:focus-visible)': { outline: 'none !important' },
+                  '& .recharts-cartesian-grid-horizontal line, .recharts-cartesian-grid-vertical line': { stroke: 'rgba(0,0,0,0.06)' },
+                }}
+              >
+                <ResponsiveContainer
+                  width={timelineData.length > 14 ? timelineData.length * 44 : '100%'}
+                  height={420}
+                  style={{ border: 'none' }}
                 >
                   <LineChart
                     data={timelineData && timelineData.length > 0 ? timelineData : []}
-                    margin={{ top: 16, right: 24, left: 16, bottom: 50 }}
+                    margin={{ top: 24, right: 24, left: 44, bottom: 50 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="day" 
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                    <XAxis
+                      dataKey="day"
                       angle={-45}
                       textAnchor="end"
                       height={64}
@@ -920,10 +1022,18 @@ const CourseWorkloadOverview = () => {
                       fontSize={10}
                       tick={{ fontSize: 10 }}
                     />
-                    <YAxis width={32} tick={{ fontSize: 10 }} />
-                    <Tooltip 
-                      formatter={(value, name) => [value, name]}
-                      labelFormatter={(label, payload) => payload?.[0]?.payload?.date ? `Date: ${formatDeadlineDisplay(payload[0].payload.date)}` : `Date: ${label}`}
+                    <YAxis
+                      width={44}
+                      allowDecimals={false}
+                      domain={[0, timelineYMax]}
+                      ticks={Array.from({ length: timelineYMax + 1 }, (_, i) => i)}
+                      interval={0}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip
+                      content={(props) => (pinnedTimelineTooltip ? null : <TimelineTooltipContent {...props} />)}
+                      cursor={false}
+                      wrapperStyle={{ zIndex: 9999 }}
                     />
                     <Legend />
                     {timelineCourseIds.map((cid, idx) => (
@@ -937,10 +1047,59 @@ const CourseWorkloadOverview = () => {
                         dot={false}
                       />
                     ))}
-                    <Line type="monotone" dataKey="total" stroke="#6b7280" name="Total (Assignments Due)" strokeWidth={3} dot={false} />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#6b7280"
+                      name="Total (Assignments Due)"
+                      strokeWidth={3}
+                      dot={(props) => {
+                        const { cx, cy, payload } = props;
+                        if (cx == null || cy == null) return null;
+                        const buildPinnedPayload = () => [
+                          ...timelineCourseIds.map((cid, i) => ({
+                            name: courseIdToInfo.get(cid) ? `${courseIdToInfo.get(cid).code} (${courseIdToInfo.get(cid).name})` : cid,
+                            value: payload[cid] ?? 0,
+                            color: COURSE_LINE_COLORS[i % COURSE_LINE_COLORS.length],
+                          })),
+                          { name: 'Total (Assignments Due)', value: payload.total ?? 0, color: '#6b7280' },
+                        ];
+                        const pinPanel = () => {
+                          if (payload?.date) setPinnedTimelineTooltip({ dateStr: payload.date, payload: buildPinnedPayload() });
+                        };
+                        const handlePointer = (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          pinPanel();
+                        };
+                        return (
+                          <g style={{ outline: 'none' }} focusable={false}>
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={10}
+                              fill="#6b7280"
+                              fillOpacity={0.4}
+                              stroke="#6b7280"
+                              strokeWidth={2}
+                              style={{ cursor: 'pointer' }}
+                              onMouseDown={handlePointer}
+                              onClick={handlePointer}
+                            />
+                          </g>
+                        );
+                      }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
+              {pinnedTimelineTooltip && (
+                <PinnedTimelinePanel
+                  dateStr={pinnedTimelineTooltip.dateStr}
+                  payload={pinnedTimelineTooltip.payload}
+                  onClose={() => setPinnedTimelineTooltip(null)}
+                />
+              )}
             </div>
           </div>
         </Box>
@@ -1345,7 +1504,6 @@ const CourseWorkloadOverview = () => {
                             return null;
                           }}
                         />
-                        <Legend wrapperStyle={{ fontSize: '10px' }} />
                         {selectedTimeframe === '7' && (
                           <Bar dataKey="upcoming_week" fill="#95E1D3" name="Due This Week" barSize={12} />
                         )}
@@ -1359,15 +1517,44 @@ const CourseWorkloadOverview = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   </Box>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2, pt: 1.5, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                    {selectedTimeframe === '7' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: 1, backgroundColor: '#95E1D3' }} />
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#333' }}>Due This Week</Typography>
+                      </Box>
+                    )}
+                    {selectedTimeframe === '30' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: 1, backgroundColor: '#D6F7AD' }} />
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#333' }}>Due This Month</Typography>
+                      </Box>
+                    )}
+                    {selectedTimeframe === '60' && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: 1, backgroundColor: '#FCE38A' }} />
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#333' }}>Due This Quarter</Typography>
+                      </Box>
+                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 12, height: 12, borderRadius: 1, backgroundColor: '#F38181' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#333' }}>Students Taking This Course</Typography>
+                    </Box>
+                  </Box>
 
                   {/* Detailed List - one course per row, full width */}
-                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ fontSize: '0.95rem' }}>
-                    Course Details
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {studentWorkloadData.student_workload.map((courseData) => (
-                      <Box key={courseData.course_id} sx={{ width: '100%' }}>
-                        <Paper sx={{ p: 1.5 }}>
+                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {studentWorkloadData.student_workload.map((courseData, courseIndex) => (
+                      <Box
+                        key={courseData.course_id}
+                        sx={{
+                          width: '100%',
+                          borderBottom: courseIndex < studentWorkloadData.student_workload.length - 1 ? '1px solid rgba(0,0,0,0.12)' : 'none',
+                          pb: 2,
+                          mb: courseIndex < studentWorkloadData.student_workload.length - 1 ? 2 : 0
+                        }}
+                      >
+                        <Paper elevation={0} sx={{ p: 1.5, boxShadow: 'none' }}>
                           <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
                             {courseData.course_name}
                           </Typography>
@@ -1378,6 +1565,13 @@ const CourseWorkloadOverview = () => {
                             <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.7rem' }}>
                               Lecturer: {courseData.lecturer.name}
                             </Typography>
+                          )}
+                          {typeof courseData.total_students_in_course === 'number' && courseData.total_students_in_course > 0 && (
+                            <Chip
+                              label={`${Math.round((courseData.student_count / courseData.total_students_in_course) * 100)}% of this course's students are in your course`}
+                              size="small"
+                              sx={{ mt: 1, fontSize: '0.7rem', backgroundColor: 'rgba(149, 225, 211, 0.25)', color: '#333' }}
+                            />
                           )}
                           
                           <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -1415,11 +1609,14 @@ const CourseWorkloadOverview = () => {
                           {/* Homework Status Breakdown for this course */}
                           {homeworkStatusData && homeworkStatusData.courses && (() => {
                             const courseStatusData = homeworkStatusData.courses.find(c => c.course._id === courseData.course_id);
-                            console.log('Looking for course:', courseData.course_id);
-                            console.log('Available courses:', homeworkStatusData.courses.map(c => c.course._id));
-                            console.log('Found course status data:', courseStatusData);
+                            const yourStudentsCount = courseStatusData?.your_students_count ?? 0;
                             return courseStatusData && courseStatusData.homework_status.length > 0 ? (
                               <Box sx={{ mt: 2 }}>
+                                {yourStudentsCount > 0 && (
+                                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1, fontSize: '0.75rem' }}>
+                                    Among your {yourStudentsCount} student{yourStudentsCount !== 1 ? 's' : ''} in this course
+                                  </Typography>
+                                )}
                                 <Typography variant="body2" fontWeight="bold" gutterBottom sx={{ fontSize: '0.8rem' }}>
                                   Homework Status Breakdown
                                 </Typography>
@@ -1431,7 +1628,7 @@ const CourseWorkloadOverview = () => {
                                   }}
                                 >
                                 {courseStatusData.homework_status.map((homework) => (
-                                  <Paper key={homework._id} sx={{ p: 2, height: '100%', minWidth: 0, borderLeft: `4px solid ${homework.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}>
+                                  <Paper key={homework._id} elevation={0} sx={{ p: 2, height: '100%', minWidth: 0, borderLeft: `4px solid ${homework.homework_type === 'student' ? '#FCE38A' : '#95E1D3'}`, backgroundColor: 'rgba(255, 255, 255, 0.6)', boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                       <Box>
                                         <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
@@ -1523,8 +1720,29 @@ const CourseWorkloadOverview = () => {
                                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem', display: 'block', mb: 0.25 }}>Average Grade</Typography>
                                         <Typography variant="body1" sx={{ color: '#333', fontWeight: 'bold', fontSize: '1.2rem' }}>{homework.average_grade ? `${homework.average_grade}%` : 'N/A'}</Typography>
                                       </Box>
-                                      <Box sx={{ p: 1, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 1, textAlign: 'center', minWidth: 88 }}>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem', display: 'block', mb: 0.25 }}>Completion Rate</Typography>
+                                      <Box
+                                        sx={{
+                                          p: 1,
+                                          backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                                          borderRadius: 1,
+                                          textAlign: 'center',
+                                          minWidth: 88,
+                                          cursor: 'pointer',
+                                          '&:hover': { backgroundColor: 'rgba(149, 225, 211, 0.2)' }
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setCompletionPopover({
+                                            anchor: e.currentTarget,
+                                            data: {
+                                              title: homework.title,
+                                              status_counts: homework.status_counts,
+                                              total_students: homework.total_students
+                                            }
+                                          });
+                                        }}
+                                      >
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem', display: 'block', mb: 0.25 }}>Your students' completion</Typography>
                                         <Typography variant="body1" sx={{ color: '#333', fontWeight: 'bold', fontSize: '1.2rem' }}>{homework.total_students > 0 ? Math.round(((homework.status_counts.graded + homework.status_counts.completed) / homework.total_students) * 100) : 0}%</Typography>
                                       </Box>
                                     </Box>
@@ -1576,6 +1794,49 @@ const CourseWorkloadOverview = () => {
           )}
         </div>
       </Box>
+
+      {/* Completion breakdown popover (click "Your students' completion") */}
+      <Popover
+        open={Boolean(completionPopover.anchor)}
+        anchorEl={completionPopover.anchor}
+        onClose={() => setCompletionPopover({ anchor: null, data: null })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        PaperProps={{ sx: { minWidth: 220, borderRadius: 2, p: 2 } }}
+      >
+        {completionPopover.data && (
+          <Box>
+            <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1.5, fontSize: '0.85rem' }}>
+              {completionPopover.data.title}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+              Your students' completion breakdown
+            </Typography>
+            <List dense disablePadding>
+              {[
+                { key: 'graded', label: 'Graded', count: completionPopover.data.status_counts.graded, color: '#95E1D3' },
+                { key: 'completed', label: 'Completed', count: completionPopover.data.status_counts.completed, color: '#D6F7AD' },
+                { key: 'in_progress', label: 'In progress', count: completionPopover.data.status_counts.in_progress, color: '#FCE38A' },
+                { key: 'not_started', label: 'Not started', count: completionPopover.data.status_counts.not_started, color: '#F38181' }
+              ].map(({ key, label, count, color }) => (
+                <ListItem key={key} disablePadding sx={{ py: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: 1, backgroundColor: color }} />
+                    <Typography variant="body2">{label}</Typography>
+                  </Box>
+                  <Typography variant="body2" fontWeight="600">
+                    {count}
+                    {completionPopover.data.total_students > 0 ? ` (${Math.round((count / completionPopover.data.total_students) * 100)}%)` : ''}
+                  </Typography>
+                </ListItem>
+              ))}
+            </List>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+              Total: {completionPopover.data.total_students} students
+            </Typography>
+          </Box>
+        )}
+      </Popover>
 
       </Box>
       </div>

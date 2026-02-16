@@ -1690,41 +1690,27 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
           }
         });
         
-        // Check if student already has max partners for this course (default max is 1)
-        const maxPartnersPerStudent = 1; // Default max partners
+        // Exclude only students who already have a partner for the *selected homework* (if any), not for the whole course
+        const studentsWithPartnerForThisHomework = new Set();
+        if (homework_id) {
+          const partnershipsForHomework = await Partner.find({
+            homework_id,
+            partnership_status: { $in: ['pending', 'accepted', 'active'] }
+          }).select('student1_id student2_id');
+          partnershipsForHomework.forEach(partner => {
+            if (partner.student1_id) studentsWithPartnerForThisHomework.add(partner.student1_id.toString());
+            if (partner.student2_id) studentsWithPartnerForThisHomework.add(partner.student2_id.toString());
+          });
+        }
+        
+        const maxPartnersPerStudent = 1;
         if (currentPartners.length >= maxPartnersPerStudent) {
-          potentialPartners = []; // No more partners allowed
+          potentialPartners = [];
         } else {
-          // Get students who don't already have max partners
-          const studentsWithMaxPartners = new Set();
-          
-          for (const student of selectedCourse.students) {
-            if (student._id.equals(studentId)) continue;
-            
-            const studentPartners = await Partner.find({
-              $or: [
-                { student1_id: student._id },
-                { student2_id: student._id }
-              ],
-              partnership_status: { $in: ['pending', 'accepted', 'active'] }
-            }).populate('homework_id', 'course_id');
-            
-            const coursePartners = studentPartners.filter(partner => 
-              partner.homework_id && 
-              partner.homework_id.course_id && 
-              partner.homework_id.course_id._id &&
-              partner.homework_id.course_id._id.toString() === course_id
-            );
-            
-            if (coursePartners.length >= maxPartnersPerStudent) {
-              studentsWithMaxPartners.add(student._id.toString());
-            }
-          }
-          
           potentialPartners = selectedCourse.students.filter(student => 
             !student._id.equals(studentId) && 
-            !studentsWithMaxPartners.has(student._id.toString()) &&
-            !existingPartnerIds.has(student._id.toString())
+            !existingPartnerIds.has(student._id.toString()) &&
+            !studentsWithPartnerForThisHomework.has(student._id.toString())
           );
         }
       }
@@ -1780,37 +1766,11 @@ router.get('/choose-partner', checkJwt, extractUser, requireStudent, async (req,
             }
           });
           
+          // When no homework_id we don't exclude by "has partner" (no per-homework context). Just exclude self and people I'm already partnered with in this course.
           let coursePotentialPartners = [];
           if (coursePartners.length < maxPartnersPerStudent) {
-            // Get students who don't already have max partners
-            const studentsWithMaxPartners = new Set();
-            
-            for (const student of populatedCourse.students) {
-              if (student._id.equals(studentId)) continue;
-              
-              const studentPartners = await Partner.find({
-                $or: [
-                  { student1_id: student._id },
-                  { student2_id: student._id }
-                ],
-                partnership_status: { $in: ['pending', 'accepted', 'active'] }
-              }).populate('homework_id', 'course_id');
-              
-              const studentCoursePartners = studentPartners.filter(partner => 
-                partner.homework_id && 
-                partner.homework_id.course_id && 
-                partner.homework_id.course_id._id &&
-                partner.homework_id.course_id._id.toString() === course._id.toString()
-              );
-              
-              if (studentCoursePartners.length >= maxPartnersPerStudent) {
-                studentsWithMaxPartners.add(student._id.toString());
-              }
-            }
-            
             coursePotentialPartners = populatedCourse.students.filter(student => 
               !student._id.equals(studentId) && 
-              !studentsWithMaxPartners.has(student._id.toString()) &&
               !existingPartnerIds.has(student._id.toString())
             );
           }
@@ -2296,22 +2256,26 @@ function getLetterGrade(numericGrade) {
 router.put('/weekly-goal', checkJwt, extractUser, requireStudent, async (req, res) => {
   try {
     const auth0Id = req.userInfo.auth0_id;
-    const { weekly_goal } = req.body;
+    const raw = req.body.weekly_goal;
+    const weekly_goal = typeof raw === 'number' && !Number.isNaN(raw) ? raw : Number(raw);
+    if (Number.isNaN(weekly_goal) || weekly_goal < 0) {
+      return res.status(400).json({ error: 'weekly_goal must be a non-negative number' });
+    }
     
-    // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
     if (!user) {
       return res.status(404).json({ error: 'User not found in database' });
     }
     
-    const studentId = user._id;
-    
-    // Update or create user's weekly goal
-    await User.findByIdAndUpdate(studentId, { weekly_study_goal: weekly_goal });
+    await User.findByIdAndUpdate(
+      user._id,
+      { $set: { weekly_study_goal: weekly_goal } },
+      { new: true }
+    );
     
     res.json({
       message: 'Weekly goal updated successfully',
-      weekly_goal: weekly_goal
+      weekly_goal
     });
   } catch (error) {
     console.error('Error updating weekly goal:', error);

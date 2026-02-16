@@ -185,7 +185,7 @@ router.post('/', checkJwt, extractUser, requireLecturer, async (req, res) => {
     const homework = new Homework({
       course_id,
       title,
-      description,
+      description: description || '',
       due_date,
       allow_late_submission,
       allow_partners: allow_partners || false,
@@ -245,7 +245,7 @@ router.put('/:id', checkJwt, extractUser, requireLecturer, async (req, res) => {
     } = req.body;
     
     if (title) homework.title = title;
-    if (description) homework.description = description;
+    if (description !== undefined) homework.description = description;
     if (due_date) homework.due_date = due_date;
     if (allow_late_submission !== undefined) homework.allow_late_submission = allow_late_submission;
     if (allow_partners !== undefined) homework.allow_partners = allow_partners;

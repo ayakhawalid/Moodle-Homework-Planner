@@ -162,9 +162,13 @@ const VerificationDashboard = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <DashboardLayout userRole="lecturer">
+        <div className="page-background">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress />
+          </Box>
+        </div>
+      </DashboardLayout>
     );
   }
 
@@ -193,9 +197,7 @@ const VerificationDashboard = () => {
                 <div className="homework-item" key={verification._id}>
                   <div className="homework-card student-homework">
                     {/* Notebook Edge - Simple line for verification */}
-                    <div className="notebook-edge student-edge">
-                      <div className="student-indicator"></div>
-                    </div>
+                    <div className="notebook-edge student-edge" />
 
                     {/* Verification Content */}
                     <div className="homework-content">

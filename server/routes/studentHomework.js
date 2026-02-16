@@ -285,6 +285,7 @@ router.get('/', checkJwt, extractUser, requireStudent, async (req, res) => {
     });
 
     res.json({
+      user: user ? { _id: user._id } : null,
       homework: homework.map(hw => ({
         _id: hw._id,
         title: hw.title,
@@ -450,8 +451,17 @@ router.put('/:id', checkJwt, extractUser, requireStudent, async (req, res) => {
       claimed_deadline,
       allow_partners,
       max_partners,
-      completion_status
+      completion_status,
+      claimed_grade
     } = req.body;
+
+    // Grade is required when setting status to 'graded' (Grade model validation)
+    if (completion_status === 'graded') {
+      const num = claimed_grade != null && claimed_grade !== '' ? Number(claimed_grade) : NaN;
+      if (Number.isNaN(num) || num < 0 || num > 100) {
+        return res.status(400).json({ error: 'A grade (0–100) is required when setting status to graded' });
+      }
+    }
 
     // Check if it's student homework or traditional homework
     let homework = await StudentHomework.findById(homeworkId);
@@ -524,6 +534,7 @@ router.put('/:id', checkJwt, extractUser, requireStudent, async (req, res) => {
       if (max_partners !== undefined) homework.max_partners = max_partners;
     }
 
+    // When a student edits student-created or previously verified homework, set to unverified so it reappears on the lecturer verification page
     if (isStudentHomework && isStudent) {
       const contentFieldsUpdated = [
         title,
@@ -593,6 +604,12 @@ router.put('/:id', checkJwt, extractUser, requireStudent, async (req, res) => {
           } else {
             console.log(`UPDATED existing Grade entry for student ${user._id} and homework ${homeworkId} to status: ${completion_status}`);
           }
+        }
+
+        // When setting status to 'graded', store the grade if provided
+        if (completion_status === 'graded' && claimed_grade !== undefined && claimed_grade !== null && claimed_grade !== '') {
+          const num = Number(claimed_grade);
+          if (!Number.isNaN(num)) gradeEntry.grade = num;
         }
 
         await gradeEntry.save();
@@ -939,7 +956,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
       course_id: { $in: courseIds }
     })
     .populate('course_id', 'course_name course_code')
-    .populate('uploaded_by', 'name email')
+    .populate('uploaded_by', 'name email full_name')
     .populate('deadline_verified_by', 'name email')
     .sort({ createdAt: -1 });
 
@@ -968,6 +985,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
       uploaded_by: {
         _id: user._id,
         name: user.name,
+        full_name: user.full_name,
         email: user.email,
         role: 'lecturer'
       },
@@ -997,6 +1015,7 @@ router.get('/lecturer/all', checkJwt, extractUser, requireLecturer, async (req, 
         uploaded_by: hw.uploaded_by ? {
           _id: hw.uploaded_by._id,
           name: hw.uploaded_by.name,
+          full_name: hw.uploaded_by.full_name,
           email: hw.uploaded_by.email,
           role: hw.uploader_role
         } : null,

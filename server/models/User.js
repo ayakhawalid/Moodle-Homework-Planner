@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
   metadata: { type: Object, default: {} }, // Additional metadata
   lastSynced: { type: Date }, // Last sync timestamp
   student_id: { type: String, sparse: true }, // Student display ID (e.g. for lecturers to identify students)
+  weekly_study_goal: { type: Number, default: 20 }, // Weekly study goal in hours (study progress page)
 }, { timestamps: true }); // Automatically add createdAt and updatedAt fields
 
 module.exports = mongoose.model('User', userSchema);

@@ -36,7 +36,9 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Group as GroupIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon
 } from '@mui/icons-material';
 import {
   Plus as AddIcon,
@@ -61,8 +63,11 @@ const CourseManagement = () => {
   const [editingCourse, setEditingCourse] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewingCourse, setViewingCourse] = useState(null);
+  const [studentsListPage, setStudentsListPage] = useState(0);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const STUDENTS_PER_PAGE = 10;
 
   const semesters = ['fall', 'spring', 'summer', 'winter'];
   const currentYear = new Date().getFullYear();
@@ -237,12 +242,14 @@ const CourseManagement = () => {
 
   const handleViewCourse = (course) => {
     setViewingCourse(course);
+    setStudentsListPage(0);
     setViewDialogOpen(true);
   };
 
   const handleCloseViewDialog = () => {
     setViewDialogOpen(false);
     setViewingCourse(null);
+    setStudentsListPage(0);
   };
 
 
@@ -734,31 +741,52 @@ const CourseManagement = () => {
                             {viewingCourse.students?.length || 0} students enrolled
                           </Typography>
                         </Box>
-                        {viewingCourse.students && viewingCourse.students.length > 0 && (
-                          <Box>
-                            <Typography variant="subtitle2" gutterBottom>
-                              Enrolled Students:
-                            </Typography>
-                            <List dense>
-                              {viewingCourse.students.slice(0, 5).map((student, index) => (
-                                <ListItem key={index}>
-                                  <ListItemText 
-                                    primary={student.name || student.full_name || student.email}
-                                    secondary={student.email}
-                                  />
-                                </ListItem>
-                              ))}
-                              {viewingCourse.students.length > 5 && (
-                                <ListItem>
-                                  <ListItemText 
-                                    primary={`... and ${viewingCourse.students.length - 5} more students`}
-                                    sx={{ fontStyle: 'italic' }}
-                                  />
-                                </ListItem>
+                        {viewingCourse.students && viewingCourse.students.length > 0 && (() => {
+                          const total = viewingCourse.students.length;
+                          const totalPages = Math.ceil(total / STUDENTS_PER_PAGE);
+                          const start = studentsListPage * STUDENTS_PER_PAGE;
+                          const pageStudents = viewingCourse.students.slice(start, start + STUDENTS_PER_PAGE);
+                          return (
+                            <Box>
+                              <Typography variant="subtitle2" gutterBottom>
+                                Enrolled Students ({total}):
+                              </Typography>
+                              <List dense sx={{ maxHeight: 320, overflowY: 'auto' }}>
+                                {pageStudents.map((student, index) => (
+                                  <ListItem key={student._id || student.id || index}>
+                                    <ListItemText
+                                      primary={student.full_name || student.name || student.email}
+                                      secondary={student.email}
+                                    />
+                                  </ListItem>
+                                ))}
+                              </List>
+                              {totalPages > 1 && (
+                                <Box display="flex" alignItems="center" justifyContent="space-between" mt={1} px={0.5}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => setStudentsListPage(p => Math.max(0, p - 1))}
+                                    disabled={studentsListPage === 0}
+                                    aria-label="Previous students"
+                                  >
+                                    <ChevronLeftIcon />
+                                  </IconButton>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {start + 1}–{Math.min(start + STUDENTS_PER_PAGE, total)} of {total}
+                                  </Typography>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => setStudentsListPage(p => Math.min(totalPages - 1, p + 1))}
+                                    disabled={studentsListPage >= totalPages - 1}
+                                    aria-label="Next students"
+                                  >
+                                    <ChevronRightIcon />
+                                  </IconButton>
+                                </Box>
                               )}
-                            </List>
-                          </Box>
-                        )}
+                            </Box>
+                          );
+                        })()}
                       </CardContent>
                     </Card>
                   </Grid>

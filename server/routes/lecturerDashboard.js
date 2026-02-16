@@ -372,10 +372,12 @@ router.get('/homework-status/:courseId/students', checkJwt, extractUser, require
 });
 
 // GET /api/lecturer-dashboard/homework-status-any/:courseId - Get homework status for any course (not just lecturer's courses)
+// Query: selectedCourseId - if provided, restrict stats to students who are in BOTH this course and the selected course (lecturer's course)
 router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLecturer, async (req, res) => {
   try {
     const auth0Id = req.userInfo.auth0_id;
     const { courseId } = req.params;
+    const { selectedCourseId } = req.query;
     
     // First, find the user in our database using the Auth0 ID
     const user = await User.findOne({ auth0_id: auth0Id });
@@ -393,7 +395,17 @@ router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLectu
       return res.status(404).json({ error: 'Course not found' });
     }
     
-    const studentIds = course.students.map(student => student._id);
+    let studentIds = course.students.map(student => student._id);
+    let yourStudentsCount = studentIds.length;
+    
+    if (selectedCourseId) {
+      const selectedCourse = await Course.findOne({ _id: selectedCourseId, is_active: true }).select('students');
+      if (selectedCourse) {
+        const selectedStudentIdSet = new Set(selectedCourse.students.map(id => id.toString()));
+        studentIds = studentIds.filter(id => selectedStudentIdSet.has(id.toString()));
+        yourStudentsCount = studentIds.length;
+      }
+    }
     
     // Get traditional homework for this course
     const traditionalHomework = await Homework.find({ 
@@ -518,7 +530,8 @@ router.get('/homework-status-any/:courseId', checkJwt, extractUser, requireLectu
         course_code: course.course_code,
         student_count: course.students.length
       },
-      homework_status: allHomeworkStatus
+      homework_status: allHomeworkStatus,
+      your_students_count: yourStudentsCount
     });
   } catch (error) {
     console.error('Error fetching homework status for any course:', error);
@@ -865,7 +878,8 @@ router.get('/student-course-workload/:courseId', checkJwt, extractUser, requireL
         upcoming_week: upcomingWeek,
         upcoming_month: upcomingMonth,
         upcoming_quarter: upcomingQuarter,
-        student_count: studentCount
+        student_count: studentCount,
+        total_students_in_course: otherCourse.students.length
       };
     }));
     

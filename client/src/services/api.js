@@ -343,7 +343,10 @@ export const apiService = {
         getHomeworkStatus: (courseId) => api.get(withApi(`/lecturer-dashboard/homework-status/${courseId}`)),
     getHomeworkStatusStudents: (courseId, homeworkId, status) =>
       api.get(withApi(`/lecturer-dashboard/homework-status/${courseId}/students?homeworkId=${encodeURIComponent(homeworkId)}&status=${encodeURIComponent(status)}`)),
-        getHomeworkStatusAny: (courseId) => api.get(withApi(`/lecturer-dashboard/homework-status-any/${courseId}`)),
+        getHomeworkStatusAny: (courseId, selectedCourseId) => {
+      const params = selectedCourseId ? `?selectedCourseId=${encodeURIComponent(selectedCourseId)}` : '';
+      return api.get(withApi(`/lecturer-dashboard/homework-status-any/${courseId}${params}`));
+    },
         getAllHomeworkStatus: () => api.get(withApi('/lecturer-dashboard/all-homework-status')),
         getAllHomework: () => api.get(withApi('/lecturer-dashboard/all-homework')),
         getAssignmentTimelineTable: (courseId = null) => api.get(withApi('/lecturer-dashboard/assignment-timeline-table' + (courseId ? `?course_id=${courseId}` : ''))),

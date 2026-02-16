@@ -90,10 +90,6 @@ const CourseEnrollment = () => {
     loadLecturers();
   }, []);
 
-  useEffect(() => {
-    loadCourses();
-  }, [selectedSemester, selectedYear]);
-
   const loadLecturers = async () => {
     try {
       console.log('Loading lecturers...');
@@ -138,26 +134,22 @@ const CourseEnrollment = () => {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      
-      // Get all available courses
-      const params = {};
-      if (selectedSemester) params.semester = selectedSemester;
-      if (selectedYear) params.year = selectedYear;
-      
+
+      // Fetch all courses (no semester/year filter – filtering is done on the client)
       const [allCoursesResponse, enrolledResponse] = await Promise.all([
-        apiService.courses.getAll(params),
+        apiService.courses.getAll({}),
         apiService.courses.getAll({ student_id: user?._id })
       ]);
-      
+
       const allCourses = allCoursesResponse.data || allCoursesResponse;
       const enrolled = enrolledResponse.data || enrolledResponse;
-      
+
       setEnrolledCourses(enrolled);
-      
+
       // Filter out courses the student is already enrolled in
       const enrolledIds = enrolled.map(course => course._id);
       const available = allCourses.filter(course => !enrolledIds.includes(course._id));
-      
+
       setAvailableCourses(available);
     } catch (error) {
       console.error('Error loading courses:', error);
@@ -355,11 +347,16 @@ const CourseEnrollment = () => {
     }
   };
 
-  const filteredAvailableCourses = availableCourses.filter(course =>
-    course.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.course_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.lecturer_id?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter by semester/year (dropdowns) and search term – no refetch when filters change
+  const filteredAvailableCourses = availableCourses.filter(course => {
+    const matchesSearch =
+      course.course_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.course_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.lecturer_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSemester = !selectedSemester || course.semester === selectedSemester;
+    const matchesYear = !selectedYear || String(course.year) === String(selectedYear);
+    return matchesSearch && matchesSemester && matchesYear;
+  });
 
   if (loading) {
     return (

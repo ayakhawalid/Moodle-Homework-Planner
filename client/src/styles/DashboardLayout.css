@@ -119,9 +119,12 @@
 
 .course-stat-item {
   background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .course-stat-item h4 {
@@ -235,6 +238,14 @@
 .dashboard-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* Remove black focus rectangle when clicking the assignment timeline chart */
+.assignment-timeline-chart .recharts-wrapper,
+.assignment-timeline-chart .recharts-wrapper *,
+.assignment-timeline-chart svg,
+.assignment-timeline-chart svg * {
+  outline: none !important;
 }
 
 .card-header {

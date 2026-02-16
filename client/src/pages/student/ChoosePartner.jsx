@@ -61,15 +61,11 @@ function ChoosePartner() {
   const [showRequests, setShowRequests] = useState(false);
   const [detailsDialog, setDetailsDialog] = useState({ open: false, partnership: null });
 
-  // Fetch partner data
-  const fetchPartnerData = async () => {
+  // Fetch partner data (silent = true skips full-page loading spinner, e.g. after a button action)
+  const fetchPartnerData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
-      
-      const params = new URLSearchParams();
-      if (selectedCourse) params.append('course_id', selectedCourse);
-      if (selectedHomework) params.append('homework_id', selectedHomework);
       
       const response = await apiService.studentDashboard.getChoosePartner(
         selectedCourse || null, 
@@ -84,7 +80,7 @@ function ChoosePartner() {
   };
 
   useEffect(() => {
-    fetchPartnerData();
+    fetchPartnerData(true);
   }, [selectedCourse, selectedHomework]);
 
   // Fetch partner requests
@@ -97,11 +93,12 @@ function ChoosePartner() {
     }
   };
 
+  // Load partner requests when user opens "View Requests" or when they select a homework (so we can hide Available Partners if they already have one)
   useEffect(() => {
-    if (showRequests) {
+    if (showRequests || selectedHomework) {
       fetchPartnerRequests();
     }
-  }, [showRequests]);
+  }, [showRequests, selectedHomework]);
 
   // Handle partner selection
   const handleSelectPartner = (partner) => {
@@ -137,8 +134,8 @@ function ChoosePartner() {
       
       console.log('Partnership request response:', response);
       
-      // Refresh data
-      await fetchPartnerData();
+      // Refresh data without full-page loading
+      await fetchPartnerData(true);
       setOpenPartnerDialog(false);
       setSelectedPartner(null);
       setPartnerMessage('');
@@ -172,8 +169,8 @@ function ChoosePartner() {
       setError(errorMsg);
       setOpenPartnerDialog(false); // Close dialog on error
       
-      // Refresh data to show current partnerships
-      await fetchPartnerData();
+      // Refresh data without full-page loading
+      await fetchPartnerData(true);
       if (errorData?.partnership_id) {
         setShowRequests(true); // Automatically show requests section
       }
@@ -233,8 +230,8 @@ function ChoosePartner() {
       // First, decline/delete the current partnership
       await apiService.studentDashboard.respondToPartnerRequest(partnership._id, 'decline');
       
-      // Refresh data to update the UI
-      await fetchPartnerData();
+      // Refresh data without full-page loading
+      await fetchPartnerData(true);
       await fetchPartnerRequests();
       
       setSuccess('Partnership ended successfully! You can now choose a new partner.');
@@ -257,8 +254,8 @@ function ChoosePartner() {
       // Delete the partnership
       await apiService.studentDashboard.respondToPartnerRequest(partnership._id, 'decline');
       
-      // Refresh data to update the UI
-      await fetchPartnerData();
+      // Refresh data without full-page loading
+      await fetchPartnerData(true);
       await fetchPartnerRequests();
       
       setSuccess('Partnership deleted successfully!');
@@ -269,19 +266,85 @@ function ChoosePartner() {
     }
   };
 
-  // Get unique partners (remove duplicates and students you already have partnerships with for the specific homework)
+  // True if the current student already has a partner (pending, accepted, or active) for the selected homework – don't show Available Study Partners in that case
+  const hasPartnerForSelectedHomework = () => {
+    if (!selectedHomework) return false;
+    const hwId = selectedHomework.toString();
+    if (partnerData?.current_partners?.length) {
+      const hasInCurrent = partnerData.current_partners.some(partnership => {
+        const pHwId = partnership.homework_id?._id?.toString?.() ?? partnership.homework_id?.toString?.();
+        return pHwId === hwId;
+      });
+      if (hasInCurrent) return true;
+    }
+    if (partnerRequests?.sent_requests?.length) {
+      const hasSent = partnerRequests.sent_requests.some(r => (r.homework?._id ?? r.homework)?.toString?.() === hwId);
+      if (hasSent) return true;
+    }
+    if (partnerRequests?.active_partnerships?.length) {
+      const hasActive = partnerRequests.active_partnerships.some(p => (p.homework?._id ?? p.homework)?.toString?.() === hwId);
+      if (hasActive) return true;
+    }
+    if (partnerRequests?.pending_requests?.length) {
+      const hasPending = partnerRequests.pending_requests.some(r => (r.homework?._id ?? r.homework)?.toString?.() === hwId);
+      if (hasPending) return true;
+    }
+    return false;
+  };
+
+  // Get partner info for the selected homework (when student already has a partner) for "Your partner is..." display
+  const getPartnerInfoForSelectedHomework = () => {
+    if (!selectedHomework) return null;
+    const hwId = selectedHomework.toString();
+    const partnerFrom = (other) => ({
+      name: other?.name || other?.full_name || 'Unknown',
+      email: other?.email || '',
+      picture: other?.picture
+    });
+    const matchHw = (id) => (id?.toString?.() ?? id) === hwId;
+    if (partnerData?.current_partners?.length) {
+      const p = partnerData.current_partners.find(partnership => {
+        const pHwId = partnership.homework_id?._id?.toString?.() ?? partnership.homework_id?.toString?.();
+        return pHwId === hwId;
+      });
+      if (p) {
+        const myId = partnerData?.user_id?.toString?.() ?? '';
+        const id1 = (p.student1_id?._id ?? p.student1_id)?.toString?.();
+        const other = id1 === myId ? p.student2_id : p.student1_id;
+        return partnerFrom(other);
+      }
+    }
+    if (partnerRequests?.sent_requests?.length) {
+      const r = partnerRequests.sent_requests.find(req => matchHw(req.homework?._id ?? req.homework));
+      if (r?.partner) return partnerFrom(r.partner);
+    }
+    if (partnerRequests?.active_partnerships?.length) {
+      const p = partnerRequests.active_partnerships.find(part => matchHw(part.homework?._id ?? part.homework));
+      if (p?.partner) return partnerFrom(p.partner);
+    }
+    if (partnerRequests?.pending_requests?.length) {
+      const r = partnerRequests.pending_requests.find(req => matchHw(req.homework?._id ?? req.homework));
+      if (r?.partner) return partnerFrom(r.partner);
+    }
+    return null;
+  };
+
+  // Get unique partners. Server already excludes students who HAVE partners (maxed out). We only exclude for this homework: people I'm already partnered with for this homework, or have sent/pending request for this homework.
   const getUniquePartners = () => {
     if (!partnerData?.potential_partners) return [];
     
-    // Get IDs of students you already have partnerships with for the specific homework
     const partneredStudentIds = new Set();
     
-    // Add students from current partners (for the selected homework only)
+    // For the selected homework only: exclude students I'm already partnered with (so we don't show them twice for same homework)
     partnerData?.current_partners?.forEach(partnership => {
-      // Only exclude if this partnership is for the selected homework
-      if (selectedHomework && partnership.homework_id?._id === selectedHomework) {
-        if (partnership.student1_id?._id) partneredStudentIds.add(partnership.student1_id._id.toString());
-        if (partnership.student2_id?._id) partneredStudentIds.add(partnership.student2_id._id.toString());
+      if (selectedHomework) {
+        const pHwId = partnership.homework_id?._id?.toString?.() ?? partnership.homework_id?.toString?.();
+        if (pHwId === selectedHomework.toString()) {
+          const id1 = partnership.student1_id?._id?.toString?.() ?? partnership.student1_id?.toString?.();
+          const id2 = partnership.student2_id?._id?.toString?.() ?? partnership.student2_id?.toString?.();
+          if (id1) partneredStudentIds.add(id1);
+          if (id2) partneredStudentIds.add(id2);
+        }
       }
     });
     
@@ -338,9 +401,11 @@ function ChoosePartner() {
   if (error) {
     return (
       <DashboardLayout userRole="student">
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+        <div className="white-page-background">
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        </div>
       </DashboardLayout>
     );
   }
@@ -859,23 +924,6 @@ function ChoosePartner() {
               </Grid>
             </Grid>
             
-            {/* No homework available message */}
-            {selectedCourse && partnerData?.homework_assignments?.length === 0 && (
-              <Alert 
-                severity="info" 
-                sx={{ 
-                  mt: 2,
-                  backgroundColor: 'rgba(252, 227, 138, 0.2)',
-                  border: '1px solid #FCE38A',
-                  color: '#333',
-                  '& .MuiAlert-icon': {
-                    color: '#333'
-                  }
-                }}
-              >
-                No available homework assignments found for this course. All homework may be completed or not yet available.
-              </Alert>
-            )}
             </div>
           </div>
 
@@ -1031,8 +1079,39 @@ function ChoosePartner() {
               )}
 
 
-              {/* Available Partners - only show when a course is chosen and there are partners */}
-              {selectedCourse && getUniquePartners().length > 0 && (
+              {/* Your partner is... – show when homework selected and student already has a partner for it */}
+              {selectedCourse && selectedHomework && (() => {
+                const partnerInfo = getPartnerInfoForSelectedHomework();
+                return partnerInfo ? (
+                  <Box sx={{ mt: 4, mb: 2, p: 2, backgroundColor: 'transparent', borderRadius: 2 }}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: '0.85rem' }}>
+                      Your partner is
+                    </Typography>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <Avatar sx={{ bgcolor: '#95E1D3', width: 48, height: 48 }}>
+                        {partnerInfo.picture ? (
+                          <img src={partnerInfo.picture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          (partnerInfo.name || 'P').charAt(0).toUpperCase()
+                        )}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="body1" fontWeight="600">
+                          {partnerInfo.name}
+                        </Typography>
+                        {partnerInfo.email && (
+                          <Typography variant="body2" color="text.secondary">
+                            {partnerInfo.email}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </Box>
+                ) : null;
+              })()}
+
+              {/* Available Partners - show when course chosen and there are partners; hide for a specific homework if student already has a partner for that homework */}
+              {selectedCourse && getUniquePartners().length > 0 && !(selectedHomework && hasPartnerForSelectedHomework()) && (
                 <>
               <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 4, mb: 2 }}>
                 <Typography variant="h6" sx={{ color: '#555', fontSize: '1.1rem' }}>
