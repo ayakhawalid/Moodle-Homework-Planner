@@ -7,15 +7,49 @@ const User = require('../models/User');
 // Do NOT create a separate connection here. The app-level connection is managed in server.js via config/database.js
 // This module assumes mongoose is already connected before startPeriodicSync() is invoked.
 
+const MAX_429_RETRIES = 4;
+
+function parseRetryAfterMs(retryAfter, attemptNumber) {
+  if (retryAfter != null && String(retryAfter).trim() !== '') {
+    const sec = parseInt(retryAfter, 10);
+    if (!Number.isNaN(sec)) return Math.min(sec * 1000, 60000);
+    const date = new Date(retryAfter);
+    if (!Number.isNaN(date.getTime())) {
+      const ms = date.getTime() - Date.now();
+      return Math.max(0, Math.min(ms, 60000));
+    }
+  }
+  return Math.min(1000 * Math.pow(2, attemptNumber), 30000);
+}
+
+async function withRetry429(fn) {
+  let lastError;
+  for (let attempt = 0; attempt <= MAX_429_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const status = err.response?.status;
+      if (status !== 429 || attempt === MAX_429_RETRIES) throw err;
+      const retryAfter = err.response?.headers?.['retry-after'];
+      const delayMs = parseRetryAfterMs(retryAfter, attempt);
+      console.warn(`Auth0 API 429 (Too Many Requests), retry ${attempt + 1}/${MAX_429_RETRIES} in ${delayMs}ms`);
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 // Sync users from Auth0
 async function syncUsers() {
   try {
-    const token = await getMgmtToken();
+    const token = await withRetry429(() => getMgmtToken());
 
-    // Fetch users from Auth0
-    const { data: auth0Users } = await axios.get(
-      `https://${process.env.AUTH0_DOMAIN}/api/v2/users`,
-      { headers: { Authorization: `Bearer ${token}` } }
+    // Fetch users from Auth0 (with 429 retry)
+    const { data: auth0Users } = await withRetry429(() =>
+      axios.get(`https://${process.env.AUTH0_DOMAIN}/api/v2/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
     );
 
     const auth0Ids = auth0Users.map(u => u.user_id);

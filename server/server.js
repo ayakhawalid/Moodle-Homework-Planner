@@ -111,7 +111,13 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // keyGenerator uses req.ip, which works correctly with 'trust proxy' setting
+  // Send Retry-After (seconds) so clients can wait and retry; 60s is a safe default
+  handler: (req, res, next, options) => {
+    res.setHeader('Retry-After', '60');
+    res.status(429).json({
+      error: options.message || 'Too many requests, please try again later.',
+    });
+  },
   keyGenerator: (req) => {
     // req.ip is now correctly set from X-Forwarded-For header due to trust proxy
     return req.ip || req.connection.remoteAddress;

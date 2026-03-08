@@ -73,20 +73,51 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// 429 retry: parse Retry-After (seconds or HTTP-date) or use exponential backoff
+const MAX_429_RETRIES = 3;
+const parseRetryAfterMs = (retryAfter, attemptNumber) => {
+  if (retryAfter != null && retryAfter !== '') {
+    const sec = parseInt(retryAfter, 10);
+    if (!Number.isNaN(sec)) return Math.min(sec * 1000, 60000); // cap 60s
+    const date = new Date(retryAfter);
+    if (!Number.isNaN(date.getTime())) {
+      const ms = date.getTime() - Date.now();
+      return Math.max(0, Math.min(ms, 60000));
+    }
+  }
+  return Math.min(1000 * Math.pow(2, attemptNumber), 30000); // 1s, 2s, 4s... cap 30s
+};
+
+// Response interceptor for error handling (includes 429 retry with exponential backoff + Retry-After)
 api.interceptors.response.use(
   (response) => {
     console.log('API Response:', response.status, response.config.url);
     return response;
   },
-  (error) => {
+  async (error) => {
+    const config = error.config;
     const status = error.response?.status || 'No Status';
     const data = error.response?.data || error.message || 'No Data';
-    const url = error.config?.url || 'Unknown URL';
-    const baseURL = error.config?.baseURL || '';
+    const url = config?.url || 'Unknown URL';
+    const baseURL = config?.baseURL || '';
     const fullUrl = baseURL + url;
-    const timeout = error.config?.timeout || 'Unknown';
-    
+    const timeout = config?.timeout || 'Unknown';
+
+    // 429 Too Many Requests: retry with exponential backoff and respect Retry-After
+    if (status === 429 && config && !config.__429RetryDone) {
+      const retryCount = config.__429RetryCount ?? 0;
+      if (retryCount < MAX_429_RETRIES) {
+        const retryAfterHeader = error.response?.headers?.['retry-after'];
+        const delayMs = parseRetryAfterMs(retryAfterHeader, retryCount);
+        config.__429RetryCount = retryCount + 1;
+        if (retryCount + 1 >= MAX_429_RETRIES) config.__429RetryDone = true;
+        console.warn(`API 429 (Too Many Requests) for ${url}, retry ${retryCount + 1}/${MAX_429_RETRIES} in ${delayMs}ms (Retry-After: ${retryAfterHeader ?? 'exponential backoff'})`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        return api.request(config);
+      }
+      config.__429RetryDone = true;
+    }
+
     // Enhanced error logging for diagnostics
     console.error('API Response Error:', {
       status,
@@ -96,7 +127,7 @@ api.interceptors.response.use(
       timeout: timeout,
       responseData: data
     });
-    
+
     // Check for network errors (backend not reachable)
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       console.error('⏱️  TIMEOUT ERROR - Request took too long');
@@ -108,11 +139,11 @@ api.interceptors.response.use(
       console.error('   2. Backend URL is incorrect');
       console.error('   3. Network connectivity issue');
       console.error('   4. Backend is too slow (cold start)');
-      
+
       // Add more helpful error message
       error.userMessage = `Request to ${url} timed out after ${timeout}ms. Check if backend at ${baseURL} is running.`;
     }
-    
+
     // Check for network errors (no connection)
     if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
       console.error('🌐 NETWORK ERROR - Cannot reach backend');
@@ -124,14 +155,19 @@ api.interceptors.response.use(
       console.error('   3. CORS configuration?');
       error.userMessage = `Cannot connect to backend at ${baseURL}. Is the server running?`;
     }
-    
+
+    // 429 after exhausting retries
+    if (status === 429) {
+      error.userMessage = 'Too many requests. Please wait a moment and try again.';
+    }
+
     // Handle specific error cases
     if (error.response?.status === 401) {
       // Unauthorized - redirect to login
       console.log('Unauthorized access - redirecting to login');
       // We can dispatch a logout action here
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -158,20 +194,36 @@ apiSync.interceptors.request.use(
   }
 );
 
-// Response interceptor for sync instance
+// Response interceptor for sync instance (includes 429 retry like main api)
 apiSync.interceptors.response.use(
   (response) => {
     console.log('API Sync Response:', response.status, response.config.url);
     return response;
   },
-  (error) => {
+  async (error) => {
+    const config = error.config;
     const status = error.response?.status || 'No Status';
     const data = error.response?.data || error.message || 'No Data';
-    const url = error.config?.url || 'Unknown URL';
-    const baseURL = error.config?.baseURL || '';
+    const url = config?.url || 'Unknown URL';
+    const baseURL = config?.baseURL || '';
     const fullUrl = baseURL + url;
-    const timeout = error.config?.timeout || 'Unknown';
-    
+    const timeout = config?.timeout || 'Unknown';
+
+    // 429 Too Many Requests: retry with exponential backoff and Retry-After
+    if (status === 429 && config && !config.__429RetryDone) {
+      const retryCount = config.__429RetryCount ?? 0;
+      if (retryCount < MAX_429_RETRIES) {
+        const retryAfterHeader = error.response?.headers?.['retry-after'];
+        const delayMs = parseRetryAfterMs(retryAfterHeader, retryCount);
+        config.__429RetryCount = retryCount + 1;
+        if (retryCount + 1 >= MAX_429_RETRIES) config.__429RetryDone = true;
+        console.warn(`API Sync 429 for ${url}, retry ${retryCount + 1}/${MAX_429_RETRIES} in ${delayMs}ms`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        return apiSync.request(config);
+      }
+      config.__429RetryDone = true;
+    }
+
     console.error('API Sync Response Error:', {
       status,
       message: error.message,
@@ -180,7 +232,7 @@ apiSync.interceptors.response.use(
       timeout: timeout,
       responseData: data
     });
-    
+
     // Same diagnostic logging for sync errors
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       console.error('⏱️  SYNC TIMEOUT ERROR');
@@ -189,6 +241,7 @@ apiSync.interceptors.response.use(
       console.error('   Backend URL:', baseURL);
       error.userMessage = `Sync request to ${url} timed out after ${timeout}ms. Check backend at ${baseURL}.`;
     }
+    if (status === 429) error.userMessage = 'Too many requests. Please wait a moment and try again.';
     
     if (error.response?.status === 401) {
       console.log('Unauthorized access - redirecting to login');
